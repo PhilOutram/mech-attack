@@ -1,0 +1,327 @@
+:root {
+  color-scheme: dark;
+  --bg: #1a0b08;
+  --panel: #2a1410;
+  --panel-edge: #4a2219;
+  --text: #f3e6df;
+  --muted: #b89a8e;
+  --accent: #5ad8ff;
+  --accent-dim: #1b6b85;
+  --title-font: "Orbitron", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  /* Reserve the scrollbar's width always, so a centred layout whose content length
+     changes (tabs, filters, a growing list) does not jump sideways. Never use
+     `overflow-y: scroll` on html for this - it breaks position: sticky. */
+  scrollbar-gutter: stable;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* Splash */
+.splash {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  background-color: #000;
+}
+
+/* Blurred copy of the art fills the bands left around the letterboxed image. */
+.splash::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  background-image: url("splash.jpg");
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) brightness(0.55);
+}
+
+.splash-art {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  animation: splash-in 1.2s ease-out both;
+}
+
+.start-btn {
+  position: absolute;
+  left: 50%;
+  /* Top of the screen: the art's title runs along its bottom edge. */
+  top: max(1.5rem, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  padding: 0.7rem 1.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background-color: rgba(10, 20, 30, 0.55);
+  color: var(--accent);
+  font-family: var(--title-font);
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  animation: pulse 1.8s ease-in-out 1.2s infinite;
+}
+
+/* Scale only, no fade: if animations are paused the art must still be visible. */
+@keyframes splash-in {
+  from { transform: scale(1.04); }
+  to { transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(90, 216, 255, 0.45); }
+  50% { box-shadow: 0 0 18px 4px rgba(90, 216, 255, 0.35); }
+}
+
+/* Units screen */
+.units {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem 3.5rem;
+}
+
+.units-head {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: max(0.75rem, env(safe-area-inset-top)) 0 0.75rem;
+  background-color: var(--bg);
+  border-bottom: 1px solid var(--panel-edge);
+}
+
+.home-btn {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0.25rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  background-color: var(--panel);
+  cursor: pointer;
+}
+
+.home-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+h1,
+h2 {
+  font-family: var(--title-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.3rem, 5vw, 1.8rem);
+  color: var(--accent);
+}
+
+.group h2,
+.notes h2 {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.75rem;
+}
+
+.card {
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.85rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 14px;
+  background-color: var(--panel);
+}
+
+.art {
+  flex: 0 0 4.5rem;
+  height: 5.5rem;
+  display: grid;
+  place-items: center;
+}
+
+.art img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+  background-color: var(--accent-dim);
+  color: var(--text);
+  font-family: var(--title-font);
+  font-weight: 800;
+}
+
+.info {
+  min-width: 0;
+  flex: 1;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.code {
+  margin-right: 0.45rem;
+  color: var(--accent);
+  font-family: var(--title-font);
+  font-size: 0.8rem;
+}
+
+.tags {
+  margin: 0.1rem 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.stat {
+  padding: 0.2rem 0.3rem;
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.stat dt {
+  color: var(--muted);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.abilities {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: var(--accent);
+}
+
+.notes ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.notes li {
+  margin-bottom: 0.35rem;
+}
+
+.notes b {
+  color: var(--text);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+@media (max-width: 380px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .art {
+    flex-basis: 3.5rem;
+  }
+}
+
+/* Version badge + changelog */
+.version-badge {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0.5rem;
+  z-index: 20;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  opacity: 0.55;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.version-badge:hover { opacity: 1; }
+
+.changelog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  z-index: 50;
+}
+
+.changelog {
+  background-color: var(--panel);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.changelog section {
+  margin-bottom: 1rem;
+}
+
+.changelog h3 {
+  margin-bottom: 0.25rem;
+}
