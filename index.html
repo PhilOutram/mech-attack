@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1a0b08" />
-  <meta name="description" content="Mech Attack - unit reference for the hex strategy board game" />
+  <meta name="description" content="Mech Attack - play the hex strategy board game against the AI" />
   <title>Mech Attack</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="favicon.png" type="image/png" />
@@ -13,13 +13,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.01" />
+  <link rel="stylesheet" href="styles.css?v=0.02" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
     <img class="splash-art" src="splash.jpg"
       alt="Mech Attack - a blue battle tank firing across a red Martian desert" />
-    <button id="start" class="start-btn" type="button">Tap to start</button>
+    <nav class="splash-menu" aria-label="Main menu">
+      <button id="menu-play" class="start-btn" type="button">Play</button>
+      <button id="menu-resume" class="start-btn" type="button" hidden>Resume</button>
+      <button id="menu-units" class="start-btn" type="button">Units</button>
+    </nav>
   </section>
 
   <main id="units" class="units" hidden>
@@ -36,6 +40,38 @@
     </section>
   </main>
 
-  <script src="app.js?v=0.01" type="module"></script>
+  <main id="game" class="game" hidden>
+    <header class="game-bar">
+      <button id="game-home" class="home-btn" type="button" aria-label="Back to title screen">
+        <img src="icon.png" alt="" />
+      </button>
+      <div class="game-status">
+        <span id="game-round"></span>
+        <span id="game-turn"></span>
+      </div>
+      <div class="game-crystals" title="Your crystals">
+        <img src="units/crystals.svg" alt="Crystals" /><span id="game-crystals"></span>
+      </div>
+      <button id="end-turn" class="end-turn" type="button">End turn</button>
+    </header>
+    <div class="board-wrap">
+      <svg id="board" class="board" xmlns="http://www.w3.org/2000/svg"
+        aria-label="Game board"><g id="board-root"></g></svg>
+    </div>
+    <section class="panel" aria-live="polite">
+      <p id="game-message" class="game-message"></p>
+      <div id="unit-panel"></div>
+    </section>
+    <div id="game-over" class="game-over" hidden>
+      <div class="game-over-card">
+        <h2 id="game-over-title"></h2>
+        <p id="game-over-text"></p>
+        <button id="play-again" class="start-btn" type="button">Play again</button>
+        <button id="game-over-home" class="start-btn" type="button">Title screen</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js?v=0.02" type="module"></script>
 </body>
 </html>

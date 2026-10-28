@@ -27,6 +27,11 @@ Ruins appear as fog of war clears and tiles are explored (reuse the Myths of Tim
 Problem from early play: limited resources made the game one-dimensional and predictable, and it stalled into stalemate quickly.
 Idea: crystals spring up at random as 10 units and grow by 10 units every turn they are not harvested.
 
+### 6c. Crystals explode at 80 (added 28 October)
+- A growing crystal pile that reaches 80 explodes.
+- To decide: what the explosion does (damage to units nearby, and how much and how far), whether the pile is lost or scatters into smaller piles, and whether deposits can explode or only spawned piles.
+- Side effect: it caps how big a pile can get, which also answers the "very large fields decide the game" risk under Open design questions.
+
 ### 6a. Escalation to stop growing crystals making the game longer
 - Risk: growing crystals could make the game last longer and become more attritional, not less.
 - Answer: exponentially larger units, so the real pace of play stays the same but the game feels like it is speeding up towards a conclusion.

@@ -1,18 +1,28 @@
 // Builds small custom positions for engine tests.
 import { RULES } from "../rules-config.js";
 import { newGame, refreshKnowledge } from "../engine.js";
-import { key } from "../hex.js";
+import { key, clusterCentre, clusterHexes } from "../hex.js";
 
 export const TEST_RADIUS = 6;
+// Far enough out to cover every hex of the test board with clusters.
+const CLUSTER_SPAN = TEST_RADIUS;
 
 // A hexagonal all-plain board of radius TEST_RADIUS with factories at the top and bottom.
+// Hexes are grouped into seven-hex clusters (blocks) named "i,j" as on a real map.
 export function testMap(terrain = {}) {
   const hexes = {};
   for (let q = -TEST_RADIUS; q <= TEST_RADIUS; q++) {
     for (let r = -TEST_RADIUS; r <= TEST_RADIUS; r++) {
       if (Math.abs(q + r) > TEST_RADIUS) continue;
       const k = key(q, r);
-      hexes[k] = { terrain: terrain[k] || "plain", cluster: null };
+      hexes[k] = { terrain: terrain[k] || "plain", cluster: null, slot: null };
+    }
+  }
+  for (let i = -CLUSTER_SPAN; i <= CLUSTER_SPAN; i++) {
+    for (let j = -CLUSTER_SPAN; j <= CLUSTER_SPAN; j++) {
+      for (const [q, r] of clusterHexes(clusterCentre(i, j))) {
+        if (hexes[key(q, r)]) hexes[key(q, r)].cluster = `${i},${j}`;
+      }
     }
   }
   return {
@@ -34,13 +44,20 @@ export function testRules(overrides = {}) {
 }
 
 // units: [{ id, type, owner, at, ...extra }]. crystals: { key: pile fields }.
-// Everything is explored for both players unless explored is false.
+// Everything is explored (every block turned over) unless explored is false.
 // Players start with 100 crystals so that a side with no units has not already lost.
 export function scenario({
   terrain = {}, units = [], crystals = {}, rules = {}, playerCrystals = [100, 100],
   explored = true, seed = 1,
 } = {}) {
   const state = newGame({ rules: testRules(rules), map: testMap(terrain), seed });
+  // newGame has already turned over the blocks round the factories; start from scratch.
+  state.revealed = {};
+  state.players.forEach((player) => {
+    player.explored = {};
+    player.seenCrystals = {};
+    player.seenFactory = null;
+  });
   for (const u of units) {
     state.units[u.id] = {
       lives: state.rules.lives, moved: false, acted: false, setUp: false, carrying: 0, ...u,
@@ -52,7 +69,11 @@ export function scenario({
   }
   state.players.forEach((player, p) => {
     player.crystals = playerCrystals[p];
-    if (explored) for (const k in state.map.hexes) player.explored[k] = true;
+    if (!explored) return;
+    for (const k in state.map.hexes) {
+      player.explored[k] = true;
+      state.revealed[state.map.hexes[k].cluster] = true;
+    }
   });
   refreshKnowledge(state);
   return state;

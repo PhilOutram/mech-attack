@@ -65,12 +65,20 @@ body {
   animation: splash-in 1.2s ease-out both;
 }
 
-.start-btn {
+/* Top of the screen: the art's title runs along its bottom edge. */
+.splash-menu {
   position: absolute;
-  left: 50%;
-  /* Top of the screen: the art's title runs along its bottom edge. */
+  left: 0;
+  right: 0;
   top: max(1.5rem, env(safe-area-inset-top));
-  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+
+.start-btn {
   padding: 0.7rem 1.6rem;
   border: 1px solid var(--accent);
   border-radius: 999px;
@@ -278,6 +286,329 @@ h1 {
   .art {
     flex-basis: 3.5rem;
   }
+}
+
+.splash {
+  cursor: default;
+}
+
+.splash-menu .start-btn[hidden] {
+  display: none;
+}
+
+#menu-play {
+  animation: pulse 1.8s ease-in-out 1.2s infinite;
+}
+
+#menu-resume,
+#menu-units,
+.game-over-card .start-btn {
+  animation: none;
+}
+
+/* The version badge would sit on top of the orders panel. */
+#game:not([hidden]) ~ .version-badge {
+  display: none;
+}
+
+/* Game screen: bar on top, board in the middle, orders panel at the bottom. */
+.game {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+}
+
+.game-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: max(0.5rem, env(safe-area-inset-top)) 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--panel-edge);
+  background-color: var(--bg);
+}
+
+.game-status {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  font-family: var(--title-font);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+.turn-blue {
+  color: #6aa8ff;
+}
+
+.turn-green {
+  color: #6ad87e;
+}
+
+.game-crystals {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-crystals img {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.end-turn,
+.order {
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background-color: rgba(10, 20, 30, 0.55);
+  color: var(--accent);
+  font-family: var(--title-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.end-turn {
+  padding: 0.55rem 0.8rem;
+  white-space: nowrap;
+}
+
+.end-turn:disabled,
+.order:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.board-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background-color: #0d0504;
+}
+
+.board {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
+
+.board .hit {
+  cursor: pointer;
+}
+
+.board-label {
+  fill: #fff;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 4px;
+  pointer-events: none;
+}
+
+.crystal-label {
+  fill: #9ff4ff;
+}
+
+.setup-label {
+  fill: #ffd84a;
+}
+
+.hit-label {
+  fill: #ffb27a;
+}
+
+.shot-label {
+  fill: #ff8a7a;
+}
+
+.board .units image,
+.board .crystals image,
+.board .effects image {
+  pointer-events: none;
+}
+
+.effect {
+  animation: blast 0.5s ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes blast {
+  from { transform: scale(0.4); }
+  to { transform: scale(1.1); }
+}
+
+/* Fixed height, so the board never moves when the panel's contents change. The message
+   strip shows the latest two lines; unit orders scroll inside the panel if they overflow. */
+.panel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  height: calc(13rem + env(safe-area-inset-bottom));
+  padding: 0.5rem 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--panel-edge);
+  background-color: var(--panel);
+  overflow: hidden;
+}
+
+.game-message {
+  flex: 0 0 2.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin: 0 0 0.4rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.game-message span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#unit-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.game-message span:last-child {
+  color: var(--text);
+}
+
+.panel-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.panel-head img {
+  width: 2.8rem;
+  height: 2.8rem;
+  object-fit: contain;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.panel-head p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.panel-head .stats {
+  font-size: 0.72rem;
+}
+
+.panel-hint {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.orders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+/* Six unit types in a compact grid so the build list fits the fixed panel. */
+.build-orders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+}
+
+.build-orders .order {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.66rem;
+}
+
+.build-orders .cost {
+  margin-left: auto;
+}
+
+.order {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.order.active {
+  background-color: var(--accent);
+  color: var(--bg);
+}
+
+.build-orders .order img {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.order .cost {
+  color: #9ff4ff;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+}
+
+.order.active .cost {
+  color: var(--bg);
+}
+
+.game-over {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 30;
+}
+
+.game-over[hidden] {
+  display: none;
+}
+
+.game-over-card {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 22rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 14px;
+  background-color: var(--panel);
+  text-align: center;
+}
+
+.game-over-card h2 {
+  margin: 0;
+  font-family: var(--title-font);
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.game-over-card p {
+  margin: 0;
+  color: var(--muted);
 }
 
 /* Version badge + changelog */

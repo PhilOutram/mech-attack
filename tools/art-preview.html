@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mech Attack art preview</title>
+<style>
+  :root {
+    --bg: #14141c;
+    --panel: #1e1e2a;
+    --text: #e8e4dc;
+    --muted: #9a96a6;
+    --line: #34344a;
+    --mars: #b8322f;
+    --mars-dark: #8e2220;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+  p { margin: 0 0 12px; color: var(--muted); }
+  code { color: var(--text); }
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .tile {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .tile img { width: 100%; max-width: 192px; height: auto; display: block; margin: 0 auto 6px; }
+  .tile .name { font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; }
+  .tile .terrain { color: var(--muted); font-size: 0.85rem; }
+  .tile .note { color: #e0b060; font-size: 0.75rem; margin-top: 4px; }
+  .grid-wrap {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .grid-wrap.light { background: #f2efe8; }
+  .grid-wrap svg { width: 100%; max-width: 760px; height: auto; display: block; margin: 0 auto; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font: inherit;
+    cursor: pointer;
+  }
+  button[aria-pressed="true"] { border-color: var(--text); }
+  .units {
+    background: radial-gradient(circle at 50% 40%, var(--mars), var(--mars-dark));
+    border-radius: 8px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 16px;
+  }
+  .unit {
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+  }
+  .pair { display: flex; justify-content: center; gap: 8px; }
+  .unit img { width: 100px; height: 100px; display: block; }
+  .unit .label { font-size: 0.85rem; margin-top: 4px; }
+  .unit .files {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.7rem;
+    opacity: 0.8;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mech Attack art preview</h1>
+  <p>Checks the tiles cut by <code>tools/extract-art.py</code> and the copied unit SVGs.
+    Serve the repo root (for example <code>python -m http.server 8000</code>) and open
+    <code>/tools/art-preview.html</code>, so the page can read <code>tiles/tiles.json</code>.</p>
+
+  <h2>Tiles</h2>
+  <p id="tiles-source">Tile list built into this page.</p>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>Sample hex grid</h2>
+  <p>19 tiles at their real 192 x 166 size on a flat-topped grid: column step 144 px, row
+    step 166 px, odd columns 83 px lower. The three chasm pieces sit north of, on and
+    south-west of the centre hex, so the crack should run unbroken across them.</p>
+  <div class="controls">
+    <button type="button" id="bg-dark" aria-pressed="true">Dark background</button>
+    <button type="button" id="bg-light" aria-pressed="false">Light background</button>
+    <button type="button" id="shuffle">Shuffle the other tiles</button>
+  </div>
+  <div class="grid-wrap" id="grid-wrap"><svg id="grid" role="img"
+    aria-label="Sample hex grid built from the tiles"></svg></div>
+
+  <h2>Units</h2>
+  <p>Blue and green pairs, then the factory, crystals and explosion, on a Mars red
+    background.</p>
+  <div class="units" id="units"></div>
+</main>
+
+<script>
+  "use strict";
+
+  const TILE_W = 192;
+  const TILE_H = 166;
+  const COL_STEP = 0.75 * TILE_W;
+  const GRID_RADIUS = 2;
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  // Used when tiles.json cannot be read (for example when opened straight from disk).
+  const BUILT_IN_TILES = [
+    { file: "plain-1.png", terrain: "plain" },
+    { file: "plain-2.png", terrain: "plain" },
+    { file: "rocky-1.png", terrain: "rocky" },
+    { file: "rocky-2.png", terrain: "rocky" },
+    { file: "rocky-3.png", terrain: "rocky" },
+    { file: "mountain-1.png", terrain: "mountain" },
+    { file: "chasm-n.png", terrain: "chasm" },
+    { file: "chasm-centre.png", terrain: "chasm" },
+    { file: "chasm-sw.png", terrain: "chasm" },
+    { file: "chasm-single.png", terrain: "chasm" }
+  ];
+
+  // Axial (q, r) positions of the chasm pieces: N is (0, -1), SW is (-1, 1).
+  const CHASM_PLACES = {
+    "0,-1": "chasm-n.png",
+    "0,0": "chasm-centre.png",
+    "-1,1": "chasm-sw.png"
+  };
+
+  const UNITS = ["scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester",
+    "light-medic"];
+  const EXTRAS = ["factory", "crystals", "explosion"];
+
+  let tiles = BUILT_IN_TILES;
+  let seed = 1;
+
+  function titleCase(slug) {
+    return slug.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+  }
+
+  function renderTiles() {
+    const box = document.getElementById("tiles");
+    box.textContent = "";
+    for (const t of tiles) {
+      const card = document.createElement("div");
+      card.className = "tile";
+      const img = document.createElement("img");
+      img.src = "../tiles/" + t.file;
+      img.alt = t.file;
+      img.width = TILE_W;
+      img.height = TILE_H;
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = t.file;
+      const terrain = document.createElement("div");
+      terrain.className = "terrain";
+      terrain.textContent = t.terrain + (t.clusterPosition ? " - " + t.clusterPosition : "");
+      card.append(img, name, terrain);
+      if (t.note) {
+        const note = document.createElement("div");
+        note.className = "note";
+        note.textContent = t.note;
+        card.append(note);
+      }
+      box.append(card);
+    }
+  }
+
+  // Small seeded generator so a shuffle can be repeated.
+  function random() {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  }
+
+  function renderGrid() {
+    const svg = document.getElementById("grid");
+    svg.textContent = "";
+    const others = tiles.filter((t) => !Object.values(CHASM_PLACES).includes(t.file));
+    const cells = [];
+    for (let q = -GRID_RADIUS; q <= GRID_RADIUS; q++) {
+      for (let r = -GRID_RADIUS; r <= GRID_RADIUS; r++) {
+        if (Math.abs(q + r) <= GRID_RADIUS) cells.push([q, r]);
+      }
+    }
+    const minX = -GRID_RADIUS * COL_STEP;
+    const minY = -GRID_RADIUS * TILE_H;
+    const width = 2 * GRID_RADIUS * COL_STEP + TILE_W;
+    const height = (2 * GRID_RADIUS + 1) * TILE_H;
+    svg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
+    let k = Math.floor(random() * others.length);
+    for (const [q, r] of cells) {
+      const file = CHASM_PLACES[`${q},${r}`] || others[k++ % others.length].file;
+      // Flat-topped axial to pixel: odd columns end up half a row lower.
+      const x = q * COL_STEP;
+      const y = (r + q / 2) * TILE_H;
+      const img = document.createElementNS(SVG_NS, "image");
+      img.setAttribute("href", "../tiles/" + file);
+      img.setAttribute("x", x);
+      img.setAttribute("y", y);
+      img.setAttribute("width", TILE_W);
+      img.setAttribute("height", TILE_H);
+      const title = document.createElementNS(SVG_NS, "title");
+      title.textContent = `${file} at q ${q}, r ${r}`;
+      img.append(title);
+      svg.append(img);
+    }
+  }
+
+  function renderUnits() {
+    const box = document.getElementById("units");
+    const add = (label, files) => {
+      const card = document.createElement("div");
+      card.className = "unit";
+      const pair = document.createElement("div");
+      pair.className = "pair";
+      for (const f of files) {
+        const img = document.createElement("img");
+        img.src = "../units/" + f;
+        img.alt = f;
+        pair.append(img);
+      }
+      const name = document.createElement("div");
+      name.className = "label";
+      name.textContent = label;
+      const list = document.createElement("div");
+      list.className = "files";
+      list.textContent = files.join("  ");
+      card.append(pair, name, list);
+      box.append(card);
+    };
+    for (const u of UNITS) add(titleCase(u), [`${u}-blue.svg`, `${u}-green.svg`]);
+    for (const e of EXTRAS) add(titleCase(e), [`${e}.svg`]);
+  }
+
+  function setBackground(light) {
+    document.getElementById("grid-wrap").classList.toggle("light", light);
+    document.getElementById("bg-dark").setAttribute("aria-pressed", String(!light));
+    document.getElementById("bg-light").setAttribute("aria-pressed", String(light));
+  }
+
+  document.getElementById("bg-dark").addEventListener("click", () => setBackground(false));
+  document.getElementById("bg-light").addEventListener("click", () => setBackground(true));
+  document.getElementById("shuffle").addEventListener("click", () => {
+    seed += 1;
+    renderGrid();
+  });
+
+  async function start() {
+    try {
+      const res = await fetch("../tiles/tiles.json", { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      tiles = data.tiles;
+      document.getElementById("tiles-source").textContent =
+        "Read from tiles/tiles.json (terrain and cluster position as recorded there).";
+    } catch (err) {
+      document.getElementById("tiles-source").textContent =
+        "Could not read tiles/tiles.json, so the tile list built into this page is shown.";
+    }
+    renderTiles();
+    renderGrid();
+    renderUnits();
+  }
+
+  start();
+</script>
+</body>
+</html>

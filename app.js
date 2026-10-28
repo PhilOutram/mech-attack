@@ -1,6 +1,7 @@
-// Mech Attack - splash screen, then the units reference screen.
-import { VERSION, CHANGELOG } from "./version.js?v=0.01";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.01";
+// Mech Attack - splash screen with a menu: play against the AI, or the units reference.
+import { VERSION, CHANGELOG } from "./version.js?v=0.02";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.02";
+import { openGame, hasSavedGame } from "./game.js?v=0.02";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -20,12 +21,25 @@ const units = document.getElementById("units");
 renderUnits();
 renderVersionBadge();
 
-// Any tap, click or key on the splash moves on to the units screen.
-splash.addEventListener("click", showUnits);
-document.addEventListener("keydown", (e) => {
-  if (!splash.hidden && !e.repeat) showUnits();
+const resume = document.getElementById("menu-resume");
+refreshMenu();
+
+document.getElementById("menu-play").addEventListener("click", () => {
+  const replace = !hasSavedGame() || confirm("Start a new game? Your saved game will be lost.");
+  if (replace) play(false);
 });
+resume.addEventListener("click", () => play(true));
+document.getElementById("menu-units").addEventListener("click", showUnits);
 document.getElementById("home").addEventListener("click", showSplash);
+
+function refreshMenu() {
+  resume.hidden = !hasSavedGame();
+}
+
+function play(fromSave) {
+  splash.hidden = true;
+  openGame({ resume: fromSave, onLeave: showSplash });
+}
 
 function showUnits() {
   splash.hidden = true;
@@ -36,6 +50,7 @@ function showUnits() {
 function showSplash() {
   units.hidden = true;
   splash.hidden = false;
+  refreshMenu();
 }
 
 function renderUnits() {

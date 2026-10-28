@@ -65,14 +65,24 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 
 ## Fog of war
 
-- You see every hex within sight range of one of your units (or your factory) that has a clear line of sight. Mountains block sight.
-- Explored hexes show their terrain from then on; unexplored hexes are blank.
-- Crystals out of sight show as you last saw them.
-- Enemy units show only while in sight. The enemy factory stays marked once you have seen it, because it cannot move.
-- **Provisional:** units can fire at any enemy that one of your units can see (spotting), which lets artillery use its full range. Unexplored hexes between attacker and target do not block the shot.
-- Moves are planned on what you know. If a hidden enemy unit or hidden crystals are in the way, the unit stops on the last free hex before them.
+### Map blocks, as on the table (default: `fog.mode` = `"tiles"`)
+Settled with Phil (28 October 2026): fog of war exposes a whole block at once, because on the table the only way to explore is to turn a seven-hex block over.
+
+- All blocks start face down.
+- When any unit can see a hex of a block (within its sight range, with a clear line of sight; mountains block sight), the whole block is turned over.
+- A turned-over block is face up for both players, and everything on it (units, crystals) stays visible from then on.
+- A moving unit turns over the blocks it can see along its route, not just from where it stops.
+- **Provisional:** how close a unit must be to turn a block over (`fog.revealRange`). The default is its sight range. With sight ranges of 2 to 4 (and 4 for a factory), 11 of the 12 blocks on fixed map 1 are face up after round 1. With `revealRange` 1 (only blocks a unit is on or next to), 6 of 12 are.
+
+### Line of sight (`fog.mode` = `"sight"`, kept for comparison)
+- You see only hexes within sight range of your units, with a clear line of sight.
+- Explored hexes keep their terrain; crystals out of sight show as last seen; enemy units show only while in sight; the enemy factory stays marked once seen.
+- Units can fire at any enemy one of your units can see (spotting). Unexplored hexes between attacker and target do not block the shot.
+- Moves are planned on what you know. A hidden enemy unit in the way stops the move on the last free hex before it.
 
 ## Open questions
+
+- What turns a block over on the table: anything a unit can see, or only a block next to a unit? (`fog.revealRange`)
 
 - Factory claiming: start with a headquarters factory (current), or start near unused factories and claim one?
 - Should the damaged side of a tile change a unit's stats? Currently it does not.

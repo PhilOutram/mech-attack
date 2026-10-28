@@ -12,6 +12,8 @@ import { scenario } from "./helpers.js";
 const BLUE = 0;
 const GREEN = 1;
 const BLUE_FACTORY_HEX = "0,6";
+// Line-of-sight fog, where units out of sight are hidden.
+const SIGHT_FOG = { fog: { mode: "sight" } };
 
 const play = (state, ...actions) => actions.reduce((s, a) => applyAction(s, a), state);
 const END = { type: "endTurn" };
@@ -178,6 +180,7 @@ describe("movement", () => {
   test("a hidden enemy in the way stops the move short", () => {
     const s = scenario({
       units: [unit("h", "lightHarvester", BLUE, "0,0"), unit("e", "tank", GREEN, "0,-3")],
+      rules: SIGHT_FOG,
     });
     assert.equal(viewFor(s, BLUE).units.e, undefined, "the enemy starts out of sight");
     const next = play(s, { type: "move", unitId: "h", to: "0,-4" });
@@ -226,6 +229,19 @@ describe("combat", () => {
     assert.equal(s.units.e.lives, 1, "50 reaches 40");
     s = play(s, attack("c", "e"));
     assert.equal(s.units.e.lives, 1, "75 is below 80");
+  });
+
+  test("artillery and a scout bike combine against a heavy cannon", () => {
+    const units = (lives) => [
+      unit("r", "artillery", BLUE, "0,2", { setUp: true }), unit("s", "scoutBike", BLUE, "1,-1"),
+      unit("e", "heavyCannon", GREEN, "0,-1", { lives }), unit("g", "tank", GREEN, "3,-6"),
+    ];
+    // 30 + 15 = 45 reaches its defence of 40: one life lost, the tile flips.
+    let s = play(scenario({ units: units(2) }), attack("r", "e"), attack("s", "e"));
+    assert.equal(s.units.e.lives, 1);
+    // Already damaged, the same 45 destroys it.
+    s = play(scenario({ units: units(1) }), attack("r", "e"), attack("s", "e"));
+    assert.equal(s.units.e, undefined);
   });
 
   test("attack totals do not carry over to the next turn", () => {
@@ -282,10 +298,12 @@ describe("combat", () => {
   test("units out of sight cannot be targeted until something spots them", () => {
     const art = unit("r", "artillery", BLUE, "0,0", { setUp: true });
     const target = unit("e", "scoutBike", GREEN, "0,-5");
-    const alone = scenario({ units: [art, target] });
+    const alone = scenario({ units: [art, target], rules: SIGHT_FOG });
     assert.deepEqual(attackTargets(viewFor(alone, BLUE), "r"), []);
     assert.equal(legalActions(alone).some((a) => a.type === "attack"), false);
-    const spotted = scenario({ units: [art, target, unit("s", "scoutBike", BLUE, "0,-3")] });
+    const spotted = scenario({
+      units: [art, target, unit("s", "scoutBike", BLUE, "0,-3")], rules: SIGHT_FOG,
+    });
     assert.deepEqual(attackTargets(viewFor(spotted, BLUE), "r"), ["e"]);
   });
 });
@@ -414,6 +432,19 @@ describe("crystals", () => {
     assert.deepEqual(harvestTargets(viewFor(full, BLUE), "h"), []);
   });
 
+  test("a unit that ends its turn next to its factory unloads automatically", () => {
+    let s = scenario({
+      units: [
+        unit("h", "lightHarvester", BLUE, "0,5", { carrying: 60 }),
+        unit("far", "lightHarvester", BLUE, "0,2", { carrying: 40 }),
+      ],
+    });
+    s = play(s, END);
+    assert.equal(s.players[BLUE].crystals, 160);
+    assert.equal(s.units.h.carrying, 0);
+    assert.equal(s.units.far.carrying, 40, "a unit away from the factory keeps its load");
+  });
+
   test("unloading next to the factory banks the load", () => {
     let s = scenario({ units: [unit("h", "lightHarvester", BLUE, "0,5", { carrying: 60 })] });
     s = play(s, { type: "unload", unitId: "h" });
@@ -481,11 +512,11 @@ describe("building", () => {
   });
 });
 
-describe("fog of war", () => {
+describe("fog of war by line of sight", () => {
   test("enemy units out of sight are hidden and unexplored terrain is unknown", () => {
     const s = scenario({
       units: [unit("a", "tank", BLUE, "0,2"), unit("e", "tank", GREEN, "0,-4")],
-      terrain: { "0,-3": "rocky" }, explored: false,
+      terrain: { "0,-3": "rocky" }, explored: false, rules: SIGHT_FOG,
     });
     const view = viewFor(s, BLUE);
     assert.equal(view.units.e, undefined);
@@ -496,7 +527,7 @@ describe("fog of war", () => {
   test("crystals out of sight show as last seen", () => {
     let s = scenario({
       units: [unit("s", "scoutBike", BLUE, "0,0"), unit("g", "tank", GREEN, "3,-6")],
-      crystals: { "0,-3": { amount: 10 } },
+      crystals: { "0,-3": { amount: 10 } }, rules: SIGHT_FOG,
     });
     s = play(s, { type: "move", unitId: "s", to: "0,5" }, END, END);
     assert.equal(s.crystals["0,-3"].amount, 20);
@@ -504,12 +535,62 @@ describe("fog of war", () => {
   });
 
   test("the enemy factory stays known once seen", () => {
-    let s = scenario({ units: [unit("s", "scoutBike", BLUE, "0,-2"),
-      unit("g", "tank", GREEN, "3,-6")] });
+    let s = scenario({
+      units: [unit("s", "scoutBike", BLUE, "0,-2"), unit("g", "tank", GREEN, "3,-6")],
+      rules: SIGHT_FOG,
+    });
     const factoryId = s.players[GREEN].factoryId;
     assert.ok(viewFor(s, BLUE).units[factoryId]);
     s = play(s, { type: "move", unitId: "s", to: "0,3" });
     assert.ok(viewFor(s, BLUE).units[factoryId]);
+  });
+});
+
+describe("fog of war by map blocks", () => {
+  // Factories see nothing beyond their own hex here, so only the test units turn blocks over.
+  const blindFactory = { ...RULES.units.factory, sight: 0 };
+  const blindFactories = { units: { ...RULES.units, factory: blindFactory } };
+  const blockOf = (s, k) =>
+    Object.keys(s.map.hexes).filter((h) => s.map.hexes[h].cluster === s.map.hexes[k].cluster);
+
+  test("seeing any hex of a block turns the whole block over", () => {
+    const s = scenario({
+      units: [unit("h", "lightHarvester", BLUE, "0,0")], explored: false, rules: blindFactories,
+    });
+    const view = viewFor(s, BLUE);
+    const block = blockOf(s, "0,-2");
+    assert.ok(block.some((k) => distance(k, "0,0") > RULES.units.lightHarvester.sight));
+    for (const k of block) assert.equal(view.map.hexes[k].terrain, "plain", `${k} is face down`);
+    assert.equal(view.map.hexes["-5,1"].terrain, null, "a block out of sight stays face down");
+  });
+
+  test("a turned-over block is face up for both players", () => {
+    const s = scenario({
+      units: [unit("h", "lightHarvester", BLUE, "0,0")], explored: false, rules: blindFactories,
+    });
+    assert.equal(viewFor(s, GREEN).map.hexes["0,-2"].terrain, "plain");
+  });
+
+  test("everything on a turned-over block stays visible", () => {
+    let s = scenario({
+      units: [unit("s", "scoutBike", BLUE, "0,0"), unit("e", "tank", GREEN, "0,-3")],
+      explored: false, rules: blindFactories,
+    });
+    s = play(s, { type: "move", unitId: "s", to: "0,5" });
+    assert.ok(distance(s.units.s.at, "0,-3") > RULES.units.scoutBike.sight);
+    assert.ok(viewFor(s, BLUE).units.e, "the tank is still on a face-up block");
+  });
+
+  test("a moving unit turns over the blocks it sees along the way", () => {
+    let s = scenario({
+      units: [unit("h", "lightHarvester", BLUE, "-3,0")], explored: false, rules: blindFactories,
+    });
+    const sight = RULES.units.lightHarvester.sight;
+    const block = blockOf(s, "0,2");
+    assert.ok(block.every((k) => distance(k, "-3,0") > sight && distance(k, "3,0") > sight));
+    assert.equal(viewFor(s, BLUE).map.hexes["0,2"].terrain, null);
+    s = play(s, { type: "move", unitId: "h", to: "3,0" });
+    assert.equal(viewFor(s, BLUE).map.hexes["0,2"].terrain, "plain");
   });
 });
 

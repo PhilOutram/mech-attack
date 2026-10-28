@@ -83,6 +83,13 @@ export const RULES = {
     units: ["lightHarvester", "scoutBike", "tank"], // provisional
   },
 
+  // "tiles": as on the table, a seven-hex block is turned over for both players as soon as
+  // any unit can see one of its hexes, and everything on it stays visible.
+  // "sight": each player sees only what their units can see now.
+  // revealRange (tiles mode only): how close a unit must be to a block to turn it over.
+  // null = within the unit's sight range; 1 = only blocks it is on or next to.
+  fog: { mode: "tiles", revealRange: null }, // provisional
+
   // Provisional: a game reaching this round ends with no winner.
   roundCap: 100,
 };

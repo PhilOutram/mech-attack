@@ -6,10 +6,16 @@
 //
 // Fog of war: viewFor(state, player) is everything that player knows. Every option offered
 // to a player (moves, targets, crystals) is worked out from their view, so neither the AI
-// nor the UI can learn hidden information from the engine.
+// nor the UI can learn hidden information from the engine. Two fog modes (rules.fog.mode):
+// - "tiles", as on the table: map blocks (seven-hex clusters) start face down. When any unit
+//   can see a hex of a block, the whole block is turned over for both players, and
+//   everything on a turned-over block stays visible from then on.
+// - "sight": each player sees only what their units can see now, and remembers terrain and
+//   crystals they have seen before.
 import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.02";
 
-export const STATE_FORMAT = 1;
+// Saved games in any other format are not loaded.
+export const STATE_FORMAT = 2;
 export const PLAYER_COLOURS = ["blue", "green"];
 
 // ---------------------------------------------------------------------------------------
@@ -39,6 +45,8 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
     nextUnitId: 1,
     crystals: {},
     hits: {},
+    // Map blocks turned over so far (fog mode "tiles"), shared by both players.
+    revealed: {},
     result: null,
     events: [],
     actions: recordActions ? [] : null,
@@ -134,9 +142,8 @@ function hexesInSight(state, at, sight) {
   return cache[id];
 }
 
-// Hexes the player can currently see: within sight range of one of their units, with a
-// clear line of sight.
-export function visibleHexes(state, player) {
+// Hexes within sight range of one of the player's units, with a clear line of sight.
+function hexesSeenBy(state, player) {
   const seen = {};
   for (const unit of unitsOf(state, player)) {
     for (const k of hexesInSight(state, unit.at, unitStats(state, unit).sight)) seen[k] = true;
@@ -144,9 +151,44 @@ export function visibleHexes(state, player) {
   return seen;
 }
 
+function tilesFog(state) {
+  return state.rules.fog.mode === "tiles";
+}
+
+// The block a hex belongs to: its seven-hex cluster, or the hex itself on a map without
+// clusters.
+function blockOf(state, k) {
+  return state.map.hexes[k].cluster || k;
+}
+
+// A unit turns over every block with a hex within this range: its sight, or the fixed
+// rules.fog.revealRange when one is set (1 = only blocks it is on or next to).
+function revealRangeOf(state, unit) {
+  const fixed = state.rules.fog.revealRange;
+  return fixed === null || fixed === undefined ? unitStats(state, unit).sight : fixed;
+}
+
+function revealFrom(state, at, range) {
+  for (const k of hexesInSight(state, at, range)) state.revealed[blockOf(state, k)] = true;
+}
+
+// Hexes the player can see now: every hex of a turned-over block in fog mode "tiles", or the
+// hexes in sight of their units in fog mode "sight".
+export function visibleHexes(state, player) {
+  if (!tilesFog(state)) return hexesSeenBy(state, player);
+  const visible = {};
+  for (const k in state.map.hexes) if (state.revealed[blockOf(state, k)]) visible[k] = true;
+  return visible;
+}
+
 // Updates what each player has explored and seen. applyAction calls it after every action;
 // call it directly after building a custom position (tests, puzzles).
 export function refreshKnowledge(state) {
+  if (tilesFog(state)) {
+    for (const unit of Object.values(state.units)) {
+      revealFrom(state, unit.at, revealRangeOf(state, unit));
+    }
+  }
   state.players.forEach((player, p) => {
     const seen = visibleHexes(state, p);
     for (const k in seen) {
@@ -173,7 +215,7 @@ export function viewFor(state, player) {
 
   const hexes = {};
   for (const k in state.map.hexes) {
-    hexes[k] = me.explored[k] ? state.map.hexes[k] : { terrain: null, cluster: null };
+    hexes[k] = me.explored[k] ? state.map.hexes[k] : { terrain: null, cluster: null, slot: null };
   }
 
   const units = {};
@@ -410,6 +452,7 @@ function cloneState(state) {
   for (const k in state.crystals) crystals[k] = { ...state.crystals[k] };
   const hits = {};
   for (const id in state.hits) hits[id] = { ...state.hits[id] };
+  const revealed = { ...state.revealed };
   const players = state.players.map((player) => ({
     ...player,
     explored: { ...player.explored },
@@ -423,6 +466,7 @@ function cloneState(state) {
     units,
     crystals,
     hits,
+    revealed,
     result: state.result && { ...state.result },
     actions: state.actions ? [...state.actions] : null,
   };
@@ -480,6 +524,11 @@ function applyMove(state, { unitId, to }) {
   unit.moved = true;
   state.events.push({ type: "move", unitId, from, to: unit.at, path: walked, stoppedBy });
 
+  // Blocks come into sight along the way, not just at the end of the move.
+  if (tilesFog(state)) {
+    for (const k of walked) revealFrom(state, k, revealRangeOf(state, unit));
+  }
+
   // Driving onto or over crystals destroys them.
   if (state.rules.crystals.crushedByMovement) {
     for (const k of walked) {
@@ -501,37 +550,48 @@ function applyAttack(state, { unitId, targetId }) {
   state.events.push({ type: "fire", unitId, targetId, attack });
   hit(state, target, attack);
 
-  // Return fire: a surviving target with a short range hits back at an adjacent attacker.
-  const targetStats = unitStats(state, target);
-  const returns =
-    state.units[targetId] &&
-    distance(unit.at, target.at) === 1 &&
-    targetStats.attack > 0 &&
-    targetStats.range &&
-    targetStats.range[0] <= 1 &&
-    targetStats.range[1] <= state.rules.combat.returnFireMaxRange &&
-    (!targetStats.needsSetup || target.setUp);
-  if (returns) {
+  if (state.units[targetId] && firesBack(state, unit, target)) {
+    const attackBack = unitStats(state, target).attack;
     state.events.push({ type: "returnFire", unitId: targetId, targetId: unitId,
-      attack: targetStats.attack });
-    hit(state, unit, targetStats.attack);
+      attack: attackBack });
+    hit(state, unit, attackBack);
   }
 }
 
-// Attacks on one unit within a turn add up. The total decides how many lives it has lost
-// this turn: one at its defence, both at twice its defence.
-function hit(state, target, amount) {
-  const record = state.hits[target.id] || { total: 0, livesAtStart: target.lives };
-  record.total += amount;
-  state.hits[target.id] = record;
+// Return fire: a target with a short range that survives an attack from an adjacent hex hits
+// back once. The caller checks that the target survives. Works on a view too.
+export function firesBack(state, attacker, target) {
+  const stats = unitStats(state, target);
+  return distance(attacker.at, target.at) === 1 &&
+    stats.attack > 0 &&
+    Boolean(stats.range) &&
+    stats.range[0] <= 1 &&
+    stats.range[1] <= state.rules.combat.returnFireMaxRange &&
+    (!stats.needsSetup || target.setUp);
+}
 
+// Attacks on one unit within a turn add up. The total decides how many lives it has lost
+// this turn: one at its defence, both at twice its defence. Returns the total so far this
+// turn (including amount), the target's defence and the lives it would have left. Works on a
+// view too, so the AI and the game screen can preview a shot.
+export function livesAfterHit(state, target, amount) {
+  const record = state.hits[target.id] || { total: 0, livesAtStart: target.lives };
+  const total = record.total + amount;
   const defence = defenceOf(state, target);
   const { loseOneLifeAt, loseTwoLivesAt } = state.rules.combat;
   let lost = 0;
-  if (record.total >= loseTwoLivesAt * defence) lost = 2;
-  else if (record.total >= loseOneLifeAt * defence) lost = 1;
+  if (total >= loseTwoLivesAt * defence) lost = 2;
+  else if (total >= loseOneLifeAt * defence) lost = 1;
   const lives = Math.min(target.lives, Math.max(0, record.livesAtStart - lost));
-  state.events.push({ type: "hit", unitId: target.id, amount, total: record.total, defence,
+  return { total, defence, lives };
+}
+
+function hit(state, target, amount) {
+  const { total, defence, lives } = livesAfterHit(state, target, amount);
+  state.hits[target.id] = {
+    total, livesAtStart: (state.hits[target.id] || { livesAtStart: target.lives }).livesAtStart,
+  };
+  state.events.push({ type: "hit", unitId: target.id, amount, total, defence,
     livesBefore: target.lives, livesAfter: lives });
   target.lives = lives;
   if (lives === 0) {
@@ -610,6 +670,7 @@ function applyBuild(state, { unitType, at }) {
 }
 
 function applyEndTurn(state) {
+  unloadAtFactory(state, state.current);
   state.hits = {};
   state.events.push({ type: "endTurn", player: state.current });
   state.turnIndex += 1;
@@ -621,6 +682,20 @@ function applyEndTurn(state) {
   for (const unit of unitsOf(state, state.current)) {
     unit.moved = false;
     unit.acted = false;
+  }
+}
+
+// Units that end their owner's turn next to its factory unload what they carry, without
+// needing the Unload action.
+function unloadAtFactory(state, player) {
+  const factory = state.units[state.players[player].factoryId];
+  if (!factory) return;
+  for (const unit of unitsOf(state, player)) {
+    if (unit.carrying <= 0 || distance(unit.at, factory.at) !== 1) continue;
+    state.players[player].crystals += unit.carrying;
+    state.events.push({ type: "unload", unitId: unit.id, amount: unit.carrying,
+      automatic: true });
+    unit.carrying = 0;
   }
 }
 

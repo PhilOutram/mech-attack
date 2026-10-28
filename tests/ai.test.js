@@ -99,8 +99,11 @@ describe("AI choices", () => {
 
   test("it plays the same whether or not a hidden enemy is there", () => {
     const own = [unit("t", "tank", BLUE, "0,2"), unit("h", "lightHarvester", BLUE, "1,3")];
-    const withHidden = scenario({ units: [...own, unit("e", "scoutBike", GREEN, "0,-4")] });
-    const without = scenario({ units: own });
+    const sightFog = { fog: { mode: "sight" } };
+    const withHidden = scenario({
+      units: [...own, unit("e", "scoutBike", GREEN, "0,-4")], rules: sightFog,
+    });
+    const without = scenario({ units: own, rules: sightFog });
     assert.equal(viewFor(withHidden, BLUE).units.e, undefined);
     assert.deepEqual(choose(withHidden), choose(without));
   });

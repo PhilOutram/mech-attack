@@ -1,0 +1,207 @@
+{
+  "note": "Hex tiles made by tools/extract-art.py from Phil's map art. Flat-topped, 192 x 166 px, cut on the middle of the dark border. 'centre' and 'radius' are in source pixels. Change 'terrain' here to correct a classification.",
+  "tileWidth": 192,
+  "tileHeight": 166,
+  "tiles": [
+    {
+      "file": "plain-1.png",
+      "terrain": "plain",
+      "source": "Map Tiles/Mech Attack - Map Page 3.png",
+      "centre": [
+        1586.0,
+        1806.5
+      ],
+      "radius": 189.33,
+      "clusterPosition": "S",
+      "copiesInSources": 61,
+      "positionsInClusters": [
+        "NW",
+        "S"
+      ],
+      "rockInkShare": 0.0142,
+      "peachShare": 0.0005,
+      "cutLinePixels": 2762,
+      "cutLinesRemoved": 1,
+      "cutLinePixelsAfter": 0,
+      "foreignBorderPixels": 279,
+      "bytes": 18878,
+      "png": "lossless"
+    },
+    {
+      "file": "plain-2.png",
+      "terrain": "plain",
+      "source": "Map Tiles/Mech Attack - Map Page 1.png",
+      "centre": [
+        764.0,
+        668.0
+      ],
+      "radius": 189.33,
+      "clusterPosition": "SE",
+      "copiesInSources": 51,
+      "positionsInClusters": [
+        "SE",
+        "SW"
+      ],
+      "rockInkShare": 0.0192,
+      "peachShare": 0.0021,
+      "cutLinePixels": 2881,
+      "cutLinesRemoved": 1,
+      "cutLinePixelsAfter": 6,
+      "foreignBorderPixels": 21,
+      "bytes": 18479,
+      "png": "lossless"
+    },
+    {
+      "file": "rocky-1.png",
+      "terrain": "rocky",
+      "source": "Map Tiles/Mech Attack - Map Page 1.png",
+      "centre": [
+        937.0,
+        2295.0
+      ],
+      "radius": 189.33,
+      "clusterPosition": "NE",
+      "copiesInSources": 23,
+      "positionsInClusters": [
+        "NE"
+      ],
+      "rockInkShare": 0.0295,
+      "peachShare": 0.0034,
+      "cutLinePixels": 2900,
+      "cutLinesRemoved": 1,
+      "cutLinePixelsAfter": 8,
+      "foreignBorderPixels": 7,
+      "bytes": 21396,
+      "png": "lossless",
+      "note": "Borderline plain or rocky: rock ink covers 2.9 % of the hex, the rocky threshold is 2.6 %."
+    },
+    {
+      "file": "rocky-2.png",
+      "terrain": "rocky",
+      "source": "Map Tiles/Mech Attack - Map Page 1.png",
+      "centre": [
+        653.0,
+        2131.5
+      ],
+      "radius": 189.33,
+      "clusterPosition": "N",
+      "copiesInSources": 24,
+      "positionsInClusters": [
+        "N"
+      ],
+      "rockInkShare": 0.0303,
+      "peachShare": 0.0035,
+      "cutLinePixels": 2807,
+      "cutLinesRemoved": 1,
+      "cutLinePixelsAfter": 6,
+      "foreignBorderPixels": 501,
+      "bytes": 22126,
+      "png": "lossless",
+      "note": "Borderline plain or rocky: rock ink covers 3.0 % of the hex, the rocky threshold is 2.6 %."
+    },
+    {
+      "file": "rocky-3.png",
+      "terrain": "rocky",
+      "source": "Map Tiles/Mech Attack - Map Page 1.png",
+      "centre": [
+        480.0,
+        504.0
+      ],
+      "radius": 189.33,
+      "clusterPosition": "C",
+      "copiesInSources": 31,
+      "positionsInClusters": [
+        "C"
+      ],
+      "rockInkShare": 0.038,
+      "peachShare": 0.005,
+      "cutLinePixels": 10,
+      "cutLinesRemoved": 0,
+      "cutLinePixelsAfter": 10,
+      "foreignBorderPixels": 24,
+      "bytes": 22629,
+      "png": "lossless"
+    },
+    {
+      "file": "mountain-1.png",
+      "terrain": "mountain",
+      "source": "Map Tiles/Mech Attack - Map Page 3.png",
+      "centre": [
+        621.0,
+        2459.0
+      ],
+      "radius": 189.33,
+      "clusterPosition": "C",
+      "copiesInSources": 108,
+      "positionsInClusters": [
+        "C",
+        "N",
+        "NE",
+        "NW",
+        "S",
+        "SE",
+        "SW"
+      ],
+      "rockInkShare": 0.0446,
+      "peachShare": 0.0592,
+      "cutLinePixels": 26,
+      "cutLinesRemoved": 0,
+      "cutLinePixelsAfter": 26,
+      "foreignBorderPixels": 0,
+      "bytes": 38620,
+      "png": "lossless"
+    },
+    {
+      "file": "chasm-n.png",
+      "terrain": "chasm",
+      "source": "Map Tiles/Mech Attack Tiles v3 - smaller for printing.png",
+      "centre": [
+        562.0,
+        251.86
+      ],
+      "radius": 189.33,
+      "clusterPosition": "N",
+      "bytes": 35503,
+      "png": "lossless"
+    },
+    {
+      "file": "chasm-centre.png",
+      "terrain": "chasm",
+      "source": "Map Tiles/Mech Attack Tiles v3 - smaller for printing.png",
+      "centre": [
+        562.0,
+        579.8
+      ],
+      "radius": 189.33,
+      "clusterPosition": "C",
+      "bytes": 35203,
+      "png": "lossless"
+    },
+    {
+      "file": "chasm-sw.png",
+      "terrain": "chasm",
+      "source": "Map Tiles/Mech Attack Tiles v3 - smaller for printing.png",
+      "centre": [
+        278.0,
+        743.77
+      ],
+      "radius": 189.33,
+      "clusterPosition": "SW",
+      "bytes": 29470,
+      "png": "lossless"
+    },
+    {
+      "file": "chasm-single.png",
+      "terrain": "chasm",
+      "source": "Map Tiles/Mech Attack Tiles v3 - smaller for printing.png",
+      "centre": [
+        2222.0,
+        1334.0
+      ],
+      "radius": 720.43,
+      "clusterPosition": "single",
+      "bytes": 25708,
+      "png": "lossless"
+    }
+  ]
+}

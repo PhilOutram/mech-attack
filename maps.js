@@ -59,9 +59,11 @@ export function buildMap(def) {
     const centre = clusterCentre(...cluster.at);
     centres[cluster.id] = key(...centre);
     clusterHexes(centre).forEach(([q, r], index) => {
-      const terrain =
-        index === 0 ? cluster.centre : cluster.ring[DIRECTION_NAMES[index - 1]] || "plain";
-      hexes[key(q, r)] = { terrain, cluster: cluster.id };
+      // slot: where the hex sits in its cluster, so a crack drawn across several hexes
+      // can be pieced together.
+      const slot = index === 0 ? "centre" : DIRECTION_NAMES[index - 1];
+      const terrain = index === 0 ? cluster.centre : cluster.ring[slot] || "plain";
+      hexes[key(q, r)] = { terrain, cluster: cluster.id, slot };
     });
   }
   return {

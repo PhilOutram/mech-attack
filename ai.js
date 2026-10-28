@@ -4,7 +4,7 @@
 // building, artillery set-up, then moving each unit towards its current goal.
 import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
-  buildSites, unitStats, unitsOf, defenceOf, applyAction, viewFor,
+  buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, applyAction, viewFor,
 } from "./engine.js?v=0.02";
 import { neighbourKeys, distance } from "./hex.js?v=0.02";
 
@@ -88,24 +88,9 @@ function lifeValue(view, unit) {
   return stats.isFactory ? FACTORY_LIFE_VALUE : stats.cost / view.rules.lives;
 }
 
-// Lives the target would have after taking extra damage this turn.
-function livesAfter(view, target, extra) {
-  const record = view.hits[target.id] || { total: 0, livesAtStart: target.lives };
-  const total = record.total + extra;
-  const defence = defenceOf(view, target);
-  const { loseOneLifeAt, loseTwoLivesAt } = view.rules.combat;
-  let lost = 0;
-  if (total >= loseTwoLivesAt * defence) lost = 2;
-  else if (total >= loseOneLifeAt * defence) lost = 1;
-  return { lives: Math.min(target.lives, Math.max(0, record.livesAtStart - lost)), total };
-}
-
 function returnFireLoss(view, attacker, target) {
-  const stats = unitStats(view, target);
-  const returns = distance(attacker.at, target.at) === 1 && stats.attack > 0 && stats.range &&
-    stats.range[0] <= 1 && stats.range[1] <= view.rules.combat.returnFireMaxRange;
-  if (!returns) return 0;
-  const after = livesAfter(view, attacker, stats.attack);
+  if (!firesBack(view, attacker, target)) return 0;
+  const after = livesAfterHit(view, attacker, unitStats(view, target).attack);
   return (attacker.lives - after.lives) * lifeValue(view, attacker);
 }
 
@@ -122,7 +107,7 @@ function bestAttack({ view, mine }) {
   let bestScore = 0;
   for (const { unit, target } of options) {
     const attack = unitStats(view, unit).attack;
-    const after = livesAfter(view, target, attack);
+    const after = livesAfterHit(view, target, attack);
     const livesLost = target.lives - after.lives;
     let score = livesLost * lifeValue(view, target);
     if (after.lives === 0 && !unitStats(view, target).isFactory) {
@@ -130,7 +115,7 @@ function bestAttack({ view, mine }) {
     }
     if (livesLost === 0) {
       // Worth starting only if everything ready to fire at it this turn can take a life.
-      const combined = livesAfter(view, target, ready[target.id]);
+      const combined = livesAfterHit(view, target, ready[target.id]);
       if (combined.lives < target.lives) score = SETUP_ATTACK_SCORE;
     }
     if (after.lives > 0) score -= returnFireLoss(view, unit, target);
@@ -173,7 +158,8 @@ function bestHarvest(ctx) {
   for (const unit of gatherers(ctx)) {
     const piles = harvestTargets(view, unit.id);
     if (!piles.length) continue;
-    const at = piles.reduce((a, b) => (view.crystals[b].amount > view.crystals[a].amount ? b : a));
+    const amount = (k) => view.crystals[k].amount;
+    const at = piles.reduce((a, b) => (amount(b) > amount(a) ? b : a));
     return { type: "harvest", unitId: unit.id, at };
   }
   return null;
@@ -384,7 +370,8 @@ function attackGoals(ctx, unit, stats) {
     }
   }
   target = target || enemyFactorySite;
-  const closest = maxRange >= STAND_OFF_DISTANCE ? Math.max(minRange, STAND_OFF_DISTANCE) : minRange;
+  const standOff = Math.max(minRange, STAND_OFF_DISTANCE);
+  const closest = maxRange >= STAND_OFF_DISTANCE ? standOff : minRange;
   return hexesAround(view, target, closest, maxRange);
 }
 
