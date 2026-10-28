@@ -1,8 +1,9 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.13";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.13";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.13";
-import { confirmDialog } from "./dialog.js?v=0.13";
+import { VERSION, CHANGELOG } from "./version.js?v=0.14";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.14";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.14";
+import { confirmDialog } from "./dialog.js?v=0.14";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.14";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -40,12 +41,56 @@ resume.addEventListener("click", () => play({ resume: true }));
 document.getElementById("menu-units").addEventListener("click", showUnits);
 document.getElementById("home").addEventListener("click", showSplash);
 
-// The shape chosen in the picker applies to New map and to a map typed by number.
+// The size and shape chosen in the picker apply to New map and to a map typed by number.
+// "Any" shape picks one of that size: at random for a new map, by number for a typed one.
+const SIZE_KEY = "mech-attack.map-size";
+const sizeSelect = document.getElementById("map-size");
 const shapeSelect = document.getElementById("map-shape");
-const shapedId = (number) =>
-  (shapeSelect.value === "classic" ? `map-${number}` : `map-${number}-${shapeSelect.value}`);
+const MAP_SHAPE_COUNT = Object.keys(MAP_SHAPES).length;
+const shapesOfSize = (size) => Object.keys(MAP_SHAPES).filter((s) => MAP_SHAPES[s].size === size);
+sizeSelect.innerHTML = Object.entries(MAP_SIZES)
+  .map(([size, name]) => `<option value="${size}">${name}</option>`).join("");
+sizeSelect.value = storedSize();
+fillShapes();
+sizeSelect.addEventListener("change", () => {
+  fillShapes();
+  try {
+    localStorage.setItem(SIZE_KEY, sizeSelect.value);
+  } catch {
+    // Not remembered; the picker still works.
+  }
+});
+
+function storedSize() {
+  try {
+    const size = localStorage.getItem(SIZE_KEY);
+    return MAP_SIZES[size] ? size : "small";
+  } catch {
+    return "small";
+  }
+}
+
+function fillShapes() {
+  shapeSelect.innerHTML = `<option value="any">Any</option>` +
+    shapesOfSize(sizeSelect.value).map((shape) => {
+      const label = `${MAP_SHAPES[shape].name} (${shapeBlocks(shape)} blocks)`;
+      return `<option value="${shape}">${label}</option>`;
+    }).join("");
+}
+
+// The chosen shape; for "Any", the one at index (wrapping round) among shapes of the size.
+function chosenShape(index) {
+  if (shapeSelect.value !== "any") return shapeSelect.value;
+  const shapes = shapesOfSize(sizeSelect.value);
+  return shapes[index % shapes.length];
+}
+
+const shapedId = (number) => {
+  const shape = chosenShape(number);
+  return shape === "classic" ? `map-${number}` : `map-${number}-${shape}`;
+};
 document.getElementById("map-new").addEventListener("click", () =>
-  play({ mapId: newMapId(shapeSelect.value) }));
+  play({ mapId: newMapId(chosenShape(Math.floor(Math.random() * MAP_SHAPE_COUNT))) }));
 document.getElementById("map-fixed").addEventListener("click", () => play({ mapId: "fixed-1" }));
 document.getElementById("map-cancel").addEventListener("click", () => {
   picker.hidden = true;

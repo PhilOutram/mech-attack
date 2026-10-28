@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.13" />
+  <link rel="stylesheet" href="styles.css?v=0.14" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -29,14 +29,14 @@
   <div id="map-picker" class="map-picker" hidden>
     <div class="map-picker-card" role="dialog" aria-labelledby="map-picker-title">
       <h2 id="map-picker-title">Choose a map</h2>
-      <label class="map-shape">Shape of new maps
-        <select id="map-shape">
-          <option value="classic">Classic (12 blocks)</option>
-          <option value="3-4-4-3">3-4-4-3 (14 blocks)</option>
-          <option value="3-5-5-3">3-5-5-3 (16 blocks)</option>
-          <option value="4-5-5-4">4-5-5-4 (18 blocks)</option>
-        </select>
-      </label>
+      <div class="map-options">
+        <label class="map-shape">Size
+          <select id="map-size"></select>
+        </label>
+        <label class="map-shape">Shape
+          <select id="map-shape"></select>
+        </label>
+      </div>
       <div class="map-choices">
         <button id="map-new" class="start-btn" type="button">New map</button>
         <button id="map-fixed" class="start-btn" type="button">Fixed map 1</button>
@@ -112,6 +112,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.13" type="module"></script>
+  <script src="app.js?v=0.14" type="module"></script>
 </body>
 </html>

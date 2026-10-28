@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.13";
+} from "./hex.js?v=0.14";
 
 // Factories, infantry and transporters (format 6):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
@@ -316,11 +316,12 @@ function occupancy(state) {
 // so of two equally short routes the one that crushes fewer crystals wins.
 const PATH_SCALE = 1000;
 
-function moveCostFor(state, unit, byHex = occupancy(state)) {
+// With avoidCrystals, a ground unit treats crystal piles as impassable.
+function moveCostFor(state, unit, byHex = occupancy(state), avoidCrystals = false) {
   // Flying units cross any hex for 1, over terrain, units and crystals.
   if (unitStats(state, unit).air) return (k) => (state.map.hexes[k] ? PATH_SCALE : null);
   return (k) => {
-    if (!state.map.hexes[k]) return null;
+    if (!state.map.hexes[k] || (avoidCrystals && state.crystals[k])) return null;
     const cost = terrainRules(state, k).moveCost;
     if (cost === null) return null;
     const other = byHex[k];
@@ -329,9 +330,9 @@ function moveCostFor(state, unit, byHex = occupancy(state)) {
   };
 }
 
-function plannedPaths(state, unit, byHex, move = Infinity) {
+function plannedPaths(state, unit, byHex, move = Infinity, avoidCrystals = false) {
   const maxCost = move === Infinity ? Infinity : move * PATH_SCALE + PATH_SCALE - 1;
-  return cheapestPaths(unit.at, moveCostFor(state, unit, byHex), maxCost);
+  return cheapestPaths(unit.at, moveCostFor(state, unit, byHex, avoidCrystals), maxCost);
 }
 
 // Movement points the unit has left this turn. Most units move once; a unit that splits its
@@ -343,12 +344,15 @@ function moveLeft(state, unit) {
   return unit.moved ? 0 : stats.move;
 }
 
-// Infantry can capture a factory that is not their owner's by moving into it. Works on a view
-// too.
+// Infantry can capture a factory that is not their owner's by moving into it. With
+// rules.capture.guarded, not while one of the factory owner's units is next to it. Works on a
+// view too.
 export function canCapture(state, unit, factory) {
   if (!factory || !unitStats(state, unit).captures || factory.owner === unit.owner) return false;
   if (!unitStats(state, factory).isFactory) return false;
-  return !isHomeFactory(state, factory) || Boolean(state.rules.capture.homeFactories);
+  if (isHomeFactory(state, factory) && !state.rules.capture.homeFactories) return false;
+  return !state.rules.capture.guarded || factory.owner === null ||
+    !unitsOf(state, factory.owner).some((u) => distance(u.at, factory.at) === 1);
 }
 
 // A unit that rides can board its owner's transporter, if there is room, by moving onto it.
@@ -359,30 +363,53 @@ export function canBoard(state, unit, transporter) {
   return (transporter.cargo || []).length < (unitStats(state, transporter).carries || 0);
 }
 
-// Where a unit can move this turn: { hex: { cost, path } }. Friendly units can be passed
+// Where a unit can move this turn: { hex: { cost, path, crushes } }. A ground unit takes a
+// route that keeps off crystals wherever it can, even a longer one within its move; crushes
+// marks hexes it can only reach by driving over crystals. Friendly units can be passed
 // through but not stopped on, except to board a transporter. Infantry can also end a move by
 // entering a factory to capture it.
 function routes(state, unit, byHex = occupancy(state)) {
   const left = moveLeft(state, unit);
   if (left <= 0) return {};
-  const paths = plannedPaths(state, unit, byHex, left);
+  const flies = Boolean(unitStats(state, unit).air);
+  const crushing = plannedPaths(state, unit, byHex, left);
+  const clear = plannedPaths(state, unit, byHex, left, true);
+  const route = (k, extra = null) => {
+    const paths = clear[k] ? clear : crushing;
+    const path = pathTo(paths, k);
+    if (extra) path.push(extra.at);
+    const cost = Math.floor(paths[k].cost / PATH_SCALE) + (extra ? extra.step : 0);
+    return { cost, path, crushes: !flies && path.some((h) => Boolean(state.crystals[h])) };
+  };
   const out = {};
-  for (const k in paths) {
+  for (const k in crushing) {
     if (k === unit.at || (byHex[k] && !canBoard(state, unit, byHex[k]))) continue;
-    out[k] = { cost: Math.floor(paths[k].cost / PATH_SCALE), path: pathTo(paths, k) };
+    out[k] = route(k);
   }
-  // A factory hex is entered from a neighbouring hex the unit can get to.
+  // A factory hex is entered from a neighbouring hex the unit can get to (with
+  // capture.mustStartNextTo, only from where it started its turn).
+  const fromStart = state.rules.capture.mustStartNextTo;
   for (const factory of Object.values(byHex)) {
-    if (!canCapture(state, unit, factory)) continue;
+    if (!canCapture(state, unit, factory) || (fromStart && unit.moved)) continue;
     const step = terrainRules(state, factory.at).moveCost;
     for (const k of neighbourKeys(factory.at)) {
-      if (!paths[k] || step === null) continue;
-      const cost = Math.floor(paths[k].cost / PATH_SCALE) + step;
-      if (cost > left || (out[factory.at] && out[factory.at].cost <= cost)) continue;
-      out[factory.at] = { cost, path: [...pathTo(paths, k), factory.at] };
+      if (!crushing[k] || step === null || (fromStart && k !== unit.at)) continue;
+      const option = route(k, { at: factory.at, step });
+      const current = out[factory.at];
+      const better = !current || current.crushes > option.crushes ||
+        (current.crushes === option.crushes && option.cost < current.cost);
+      if (option.cost <= left && better) out[factory.at] = option;
     }
   }
   return out;
+}
+
+// Destination hexes the unit can only reach by driving over crystals (and destroying them).
+export function crushingMoves(view, unitId) {
+  const unit = view.units[unitId];
+  if (!unit) return [];
+  const options = routes(view, unit);
+  return Object.keys(options).filter((k) => options[k].crushes);
 }
 
 // Destination hexes and their movement cost.
@@ -487,7 +514,7 @@ export function canUnload(view, unitId) {
 }
 
 // Hexes a transporter can drop its next passenger on: a free hex next to it, or a factory
-// next to it that the passenger can capture.
+// next to it that the passenger can capture (unless capture.mustStartNextTo).
 export function dropSites(view, unitId) {
   const unit = view.units[unitId];
   if (!unit || !unit.cargo || !unit.cargo.length) return [];
@@ -495,7 +522,7 @@ export function dropSites(view, unitId) {
   return neighbourKeys(unit.at).filter((k) => {
     if (!view.map.hexes[k]) return false;
     const other = unitAt(view, k);
-    if (other) return canCapture(view, passenger, other);
+    if (other) return !view.rules.capture.mustStartNextTo && canCapture(view, passenger, other);
     return terrainRules(view, k).moveCost !== null && !view.crystals[k];
   });
 }

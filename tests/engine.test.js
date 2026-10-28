@@ -4,7 +4,7 @@ import { RULES } from "../rules-config.js";
 import { FIXED_MAP_1, buildMap } from "../maps.js";
 import {
   newGame, applyAction, legalActions, viewFor, reachableHexes, attackTargets, healTargets,
-  harvestTargets, defenceOf,
+  harvestTargets, defenceOf, crushingMoves,
 } from "../engine.js";
 import { distance } from "../hex.js";
 import { scenario } from "./helpers.js";
@@ -185,12 +185,28 @@ describe("movement", () => {
     assert.equal(reachableHexes(viewFor(withEnemy, BLUE), "a")["0,-2"], 3);
   });
 
-  test("driving onto or over crystals destroys them", () => {
+  test("driving onto crystals destroys them", () => {
     let s = scenario({ units: [tank], crystals: { "0,-1": { amount: 30 } } });
-    assert.equal(reachableHexes(viewFor(s, BLUE), "a")["0,-2"], 2);
-    s = play(s, { type: "move", unitId: "a", to: "0,-2" });
+    const crushing = crushingMoves(viewFor(s, BLUE), "a");
+    assert.ok(crushing.includes("0,-1") && !crushing.includes("0,-2"));
+    s = play(s, { type: "move", unitId: "a", to: "0,-1" });
     assert.equal(s.crystals["0,-1"], undefined);
     assert.ok(s.events.some((e) => e.type === "crushed" && e.at === "0,-1" && e.amount === 30));
+  });
+
+  test("a unit goes round crystals when its move allows, even the longer way", () => {
+    let s = scenario({ units: [tank], crystals: { "0,-1": { amount: 30 } } });
+    assert.equal(reachableHexes(viewFor(s, BLUE), "a")["0,-2"], 3);
+    s = play(s, { type: "move", unitId: "a", to: "0,-2" });
+    assert.equal(s.crystals["0,-1"].amount, 30);
+  });
+
+  test("with no way round within its move, a unit drives over the crystals", () => {
+    const slow = unit("r", "artillery", BLUE, "0,0");
+    let s = scenario({ units: [slow], crystals: { "0,-1": { amount: 30 } } });
+    assert.ok(crushingMoves(viewFor(s, BLUE), "r").includes("0,-2"));
+    s = play(s, { type: "move", unitId: "r", to: "0,-2" });
+    assert.equal(s.crystals["0,-1"], undefined);
   });
 
   test("of two equally short routes, the one that spares the crystals is taken", () => {

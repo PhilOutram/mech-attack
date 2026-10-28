@@ -110,8 +110,10 @@ export const RULES = {
   },
 
   // Provisional: whether infantry can capture a player's home factory, or only unused and
-  // captured ones.
-  capture: { homeFactories: false },
+  // captured ones. Options for testing: guarded, a player's factory cannot be captured while
+  // one of that player's units stands next to it; mustStartNextTo, infantry can only move into
+  // a factory they started their turn next to (so a transporter cannot drop them straight in).
+  capture: { homeFactories: false, guarded: false, mustStartNextTo: false },
 
   // How a player loses besides running out of units: "homeFactory" when their home factory
   // is destroyed (or captured), "allFactories" only when they have no factory left. Phil:

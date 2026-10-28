@@ -6,19 +6,23 @@
 //   --seed         seed for the whole run, so a run can be repeated exactly (default 1)
 //   --out          module the evolved personalities are written to (default ai-personalities.js)
 //   --report       Markdown report (default docs/evolution.md)
+//   --set          rule change, e.g. --set factoryUpgrades.airfield.cost=50 (repeatable)
+//   --benchmark    games each of the best plays against the hand-tuned AI (default 100)
+//   --keep         how many of the best are kept (default 5)
+//   --json         also write the results as JSON to this file
 // Each generation every personality plays games against others from the population on fixed
 // map 1 and generated maps, with seats and the first player mixed. The best quarter survive;
 // the rest are replaced by mixed and mutated copies of the survivors. At the end the best few
 // play the hand-tuned AI, and they are written out for the game to use.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "./rules-config.js?v=0.13";
-import { mapById, seededRandom, MAP_SHAPES } from "./maps.js?v=0.13";
+import { RULES } from "./rules-config.js?v=0.14";
+import { mapById, seededRandom, MAP_SHAPES } from "./maps.js?v=0.14";
 import {
   DEFAULT_PERSONALITY, randomPersonality, mutatePersonality, crossPersonalities,
   favouriteUnits,
-} from "./ai.js?v=0.13";
-import { runGame } from "./sim.js?v=0.13";
+} from "./ai.js?v=0.14";
+import { runGame, withOverrides } from "./sim.js?v=0.14";
 
 const DEFAULTS = { generations: 30, population: 16, games: 8, seed: 1 };
 // Generated maps in the pool (map-1 .. map-N of every shape), alongside fixed map 1.
@@ -35,12 +39,12 @@ const PERCENT = 100;
 
 export function evolve({
   generations, population, games, seed, benchmarkGames = BENCHMARK_GAMES, keep = KEEP,
-  log = () => {},
+  rules = RULES, log = () => {},
 }) {
   const random = seededRandom(seed);
   const maps = new Map();
   const mapFor = (id) => {
-    if (!maps.has(id)) maps.set(id, mapById(id, RULES));
+    if (!maps.has(id)) maps.set(id, mapById(id, rules));
     return maps.get(id);
   };
   const randomMap = () => {
@@ -56,7 +60,7 @@ export function evolve({
     const seatOfA = random() < 0.5 ? 0 : 1;
     const personalities = seatOfA === 0 ? [a, b] : [b, a];
     const record = runGame({
-      map: randomMap(), seed: Math.floor(random() * MAX_SEED),
+      rules, map: randomMap(), seed: Math.floor(random() * MAX_SEED),
       firstPlayer: random() < 0.5 ? 0 : 1, personalities, roundCap: ROUND_CAP,
     });
     if (builtBy) {
@@ -214,14 +218,22 @@ function writeReport(path, { history, best, benchmarkGames }, settings) {
 }
 
 function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i += 2) args[argv[i].replace(/^--/, "")] = argv[i + 1];
+  const args = { set: [] };
+  for (let i = 0; i < argv.length; i += 2) {
+    const name = argv[i].replace(/^--/, "");
+    if (name === "set") args.set.push(argv[i + 1]);
+    else args[name] = argv[i + 1];
+  }
   return {
+    set: args.set,
+    benchmarkGames: Number(args.benchmark || BENCHMARK_GAMES),
+    keep: Number(args.keep || KEEP),
     generations: Number(args.generations || DEFAULTS.generations),
     population: Number(args.population || DEFAULTS.population),
     games: Number(args.games || DEFAULTS.games),
     seed: Number(args.seed || DEFAULTS.seed),
     out: args.out || "ai-personalities.js",
+    json: args.json || null,
     report: args.report || "docs/evolution.md",
   };
 }
@@ -229,11 +241,14 @@ function parseArgs(argv) {
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const settings = `--generations ${options.generations} --population ${options.population} ` +
-    `--games ${options.games} --seed ${options.seed}`;
+    `--games ${options.games} --seed ${options.seed}` +
+    options.set.map((s) => ` --set ${s}`).join("");
+  const rules = withOverrides(RULES, options.set);
   const started = performance.now();
-  const result = evolve({ ...options, log: (line) => console.log(line) });
+  const result = evolve({ ...options, rules, log: (line) => console.log(line) });
   writeModule(options.out, result.best, settings);
   writeReport(options.report, result, settings);
+  if (options.json) writeFileSync(options.json, JSON.stringify({ settings, ...result }, null, 2));
   console.log(`Done in ${((performance.now() - started) / 1000 / 60).toFixed(1)} min; wrote ` +
     `${options.out} and ${options.report}`);
 }

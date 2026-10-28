@@ -1,8 +1,18 @@
-export const VERSION = "v0.13";
+export const VERSION = "v0.14";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.14",
+    date: "2026-10-28",
+    notes: [
+      "Choose small, medium or large maps; two new large shapes.",
+      "You start in different places on different maps.",
+      "Units drive round crystals when they can; moves that crush crystals show yellow.",
+      "Undo brings back crystals a move drove over. Air units and the Airfield are green.",
+    ],
+  },
   {
     version: "v0.13",
     date: "2026-10-28",

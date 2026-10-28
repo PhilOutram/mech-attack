@@ -105,3 +105,12 @@ test("the fairness checks catch an unfair pair of unused factories", () => {
   const problems = mapProblems(m, RULES.terrain);
   assert.ok(problems.some((p) => p.startsWith("unused factory pair")), problems.join("; "));
 });
+
+test("players start in different places on different maps", () => {
+  const SEEDS = 20;
+  const starts = new Set();
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    starts.add(generateMap(seed, RULES.terrain, START_UNITS, "4-5-5-4").factories.join(" "));
+  }
+  assert.ok(starts.size > 2, `only ${starts.size} start positions`);
+});

@@ -1,19 +1,20 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.13";
-import { mapById, seededRandom } from "./maps.js?v=0.13";
+import { RULES } from "./rules-config.js?v=0.14";
+import { mapById, seededRandom } from "./maps.js?v=0.14";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
-  firesBack, dropSites, factoryBuilds, upgradeOptions, STATE_FORMAT,
-} from "./engine.js?v=0.13";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.13";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.13";
-import { distance } from "./hex.js?v=0.13";
+  firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
+  STATE_FORMAT,
+} from "./engine.js?v=0.14";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.14";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.14";
+import { distance } from "./hex.js?v=0.14";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.13";
-import { confirmDialog } from "./dialog.js?v=0.13";
+} from "./board.js?v=0.14";
+import { confirmDialog } from "./dialog.js?v=0.14";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -24,7 +25,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.13";
+const ASSET_VERSION = "0.14";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -276,7 +277,8 @@ function afterAction(action) {
 }
 
 // Takes back your last action this turn. What it revealed stays revealed: you cannot un-see
-// a block you have turned over, just as on the table.
+// a block you have turned over, just as on the table. Crystals the action drove over come
+// back.
 function undo() {
   if (!myTurn() || !history.length || undosLeft <= 0) return;
   const previous = history.pop();
@@ -292,6 +294,8 @@ function undo() {
     })),
     events: [],
   };
+  // What you see now comes from the restored board, so squashed crystals reappear.
+  refreshKnowledge(state);
   undosLeft -= 1;
   saveExtras();
   save();
@@ -575,7 +579,14 @@ function render() {
       notes = shotPreviews(view);
     }
     const style = ui.mode === "build" ? "build" : MODES[ui.mode].style;
-    overlays.push({ hexes: targetsFor(view, ui.mode, ui.selectedId), style });
+    let targets = targetsFor(view, ui.mode, ui.selectedId);
+    if (ui.mode === "move") {
+      // Moves that can only be made by driving over crystals (destroying them) show yellow.
+      const crushing = crushingMoves(view, ui.selectedId);
+      overlays.push({ hexes: crushing, style: "crush" });
+      targets = targets.filter((k) => !crushing.includes(k));
+    }
+    overlays.push({ hexes: targets, style });
   }
   renderBoard(els.root, {
     view, selectedId: ui.selectedId, overlays, effects: ui.effects, notes,
@@ -672,8 +683,9 @@ function factoryPanel(view, unit, head) {
         `${view.rules.units[type].name}<span class="cost">${cost}</span>`;
       const sites = buildSites(view, HUMAN, type).some((k) => distance(k, unit.at) === 1);
       const active = ui.mode === "build" && ui.buildType === type;
+      const air = view.rules.units[type].air ? " data-air" : "";
       return orderButton("build", label, myTurn() && sites && cost <= crystals, active,
-        ` data-type="${type}"`);
+        ` data-type="${type}"${air}`);
     }).join("");
   els.panel.innerHTML = `${head}<div class="orders build-orders">${upgradeOrders}` +
     `${buildOrders}</div><div class="orders">${undoButton()}</div>`;

@@ -5,7 +5,7 @@
 import {
   key, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance, neighbourKeys,
   toPixel,
-} from "./hex.js?v=0.13";
+} from "./hex.js?v=0.14";
 
 // Fixed map 1: 12 clusters, 84 hexes, about 11 hexes wide and 11 tall.
 // Paired clusters (point-reflected through the middle of the map) have the same number of
@@ -147,26 +147,49 @@ export function mapProblems(map, terrainRules) {
 // Generated maps
 
 // Map shapes (Phil, 28 October 2026): the classic 12-block layout of fixed map 1, or rows of
-// blocks from top to bottom. The bigger shapes have pairs of unused factories for infantry
-// to capture, one of each pair nearer each side.
+// blocks from top to bottom, in three sizes. The bigger shapes have pairs of unused
+// factories for infantry to capture, one of each pair nearer each side.
+export const MAP_SIZES = { small: "Small", medium: "Medium", large: "Large" };
 export const MAP_SHAPES = {
-  classic: { name: "Classic", rows: null, factoryPairs: 0 },
-  "3-4-4-3": { name: "3-4-4-3", rows: [3, 4, 4, 3], factoryPairs: 1 },
-  "3-5-5-3": { name: "3-5-5-3", rows: [3, 5, 5, 3], factoryPairs: 1 },
-  "4-5-5-4": { name: "4-5-5-4", rows: [4, 5, 5, 4], factoryPairs: 2 },
+  classic: { name: "Classic", size: "small", rows: null, factoryPairs: 0 },
+  "3-4-4-3": { name: "3-4-4-3", size: "small", rows: [3, 4, 4, 3], factoryPairs: 1 },
+  "3-5-5-3": { name: "3-5-5-3", size: "medium", rows: [3, 5, 5, 3], factoryPairs: 1 },
+  "4-5-5-4": { name: "4-5-5-4", size: "medium", rows: [4, 5, 5, 4], factoryPairs: 2 },
+  "5-6-6-5": { name: "5-6-6-5", size: "large", rows: [5, 6, 6, 5], factoryPairs: 2 },
+  "4-5-6-5-4": { name: "4-5-6-5-4", size: "large", rows: [4, 5, 6, 5, 4], factoryPairs: 2 },
 };
 
-// The classic layout: the same 12 block positions as fixed map 1. Each pair is point-reflected
-// through the middle of the map, blue's side first; home holds the two factory blocks.
-const CLASSIC_LAYOUT = {
-  blocks: {
-    A: [1, -2], L: [0, 2], B: [0, -1], K: [1, 1], C: [-1, 0], J: [2, 0],
-    D: [1, -1], I: [0, 1], F: [-1, 1], G: [2, -1], E: [0, 0], H: [1, 0],
-  },
-  home: ["L", "A"],
-  pairs: [["K", "B"], ["C", "J"], ["I", "D"], ["F", "G"]],
-  middle: ["E", "H"],
+// A layout: block positions on the cluster lattice, and the blocks in pairs, each pair
+// point-reflected (or nearly) through the middle of the map. middle is the pair nearest the
+// middle, which holds the chasm; the home factories go in one of the other pairs.
+
+// The classic layout: the same 12 block positions as fixed map 1.
+const CLASSIC_POSITIONS = {
+  A: [1, -2], L: [0, 2], B: [0, -1], K: [1, 1], C: [-1, 0], J: [2, 0],
+  D: [1, -1], I: [0, 1], F: [-1, 1], G: [2, -1], E: [0, 0], H: [1, 0],
 };
+const CLASSIC_PAIRS = [["L", "A"], ["K", "B"], ["C", "J"], ["I", "D"], ["F", "G"]];
+
+// Home factories go in a pair of blocks at least this share of the widest pair's distance
+// apart, so players start far from each other but not always in the same corners.
+const HOME_SPREAD_SHARE = 0.75;
+
+function blockPoint(at) {
+  return toPixel(...clusterCentre(...at), 1);
+}
+
+// The pairs with how far apart their two blocks are.
+function spreadPairs(blocks, pairs) {
+  return pairs.map((ids) => {
+    const [[ax, ay], [bx, by]] = ids.map((id) => blockPoint(blocks[id]));
+    return { ids, spread: Math.hypot(ax - bx, ay - by) };
+  });
+}
+
+function classicLayout() {
+  return { blocks: CLASSIC_POSITIONS, middle: ["E", "H"],
+    pairs: spreadPairs(CLASSIC_POSITIONS, CLASSIC_PAIRS) };
+}
 
 // Lattice positions searched when laying out rows of blocks.
 const LAYOUT_SPAN = 8;
@@ -176,8 +199,7 @@ const ROW_TOLERANCE = 0.01;
 
 // A layout of rows of blocks, e.g. [3, 4, 4, 3]. The clusters tile on a slanted grid, so the
 // lattice is turned until rows run left to right, and each row takes the blocks nearest the
-// middle. Blue's factory goes in the bottom-left block and green's in the top-right; the other
-// blocks are paired with the block opposite them through the middle of the map.
+// middle. Each block is paired with the block opposite it through the middle of the map.
 function rowsLayout(rows) {
   const [wx, wy] = toPixel(ROW_STEP[0], ROW_STEP[1], 1);
   const angle = -Math.atan2(wy, wx);
@@ -208,14 +230,10 @@ function rowsLayout(rows) {
     pt.id = String.fromCharCode(65 + n);
     blocks[pt.id] = pt.at;
   });
-  const lastRow = chosen.filter((pt) => pt.row === rows.length - 1);
-  const firstRow = chosen.filter((pt) => pt.row === 0);
-  const home = [lastRow[0].id, firstRow[firstRow.length - 1].id];
-
-  // Pair each other block with the one nearest its reflection through the middle.
+  // Pair each block with the one nearest its reflection through the middle.
   const cx = chosen.reduce((sum, pt) => sum + pt.x, 0) / chosen.length;
   const cy = chosen.reduce((sum, pt) => sum + pt.y, 0) / chosen.length;
-  const free = chosen.filter((pt) => !home.includes(pt.id));
+  const free = [...chosen];
   const pairs = [];
   while (free.length > 1) {
     const a = free.shift();
@@ -228,12 +246,10 @@ function rowsLayout(rows) {
       }
     });
     const b = free.splice(best, 1)[0];
-    pairs.push({ ids: [a.id, b.id], spread: Math.max(Math.hypot(a.x - cx, a.y - cy),
-      Math.hypot(b.x - cx, b.y - cy)) });
+    pairs.push([a.id, b.id]);
   }
-  // The pair nearest the middle holds the chasm.
-  pairs.sort((a, b) => a.spread - b.spread);
-  return { blocks, home, middle: pairs[0].ids, pairs: pairs.slice(1).map((pr) => pr.ids) };
+  const spread = spreadPairs(blocks, pairs).sort((a, b) => a.spread - b.spread);
+  return { blocks, middle: spread[0].ids, pairs: spread.slice(1) };
 }
 
 const layouts = {};
@@ -241,9 +257,25 @@ const layouts = {};
 function layoutFor(shape) {
   if (!layouts[shape]) {
     const rows = MAP_SHAPES[shape].rows;
-    layouts[shape] = rows ? rowsLayout(rows) : CLASSIC_LAYOUT;
+    layouts[shape] = rows ? rowsLayout(rows) : classicLayout();
   }
   return layouts[shape];
+}
+
+// How many blocks a map of the given shape has.
+export function shapeBlocks(shape) {
+  return Object.keys(layoutFor(shape).blocks).length;
+}
+
+// Picks the home pair for a map: one of the pairs far enough apart, either way round (blue's
+// block first). Returns { home, pairs } with the other non-middle pairs.
+function chooseHome(random, layout) {
+  const widest = Math.max(...layout.pairs.map((pr) => pr.spread));
+  const options = layout.pairs.filter((pr) => pr.spread >= HOME_SPREAD_SHARE * widest);
+  const choice = pick(random, options);
+  const home = random() < 0.5 ? choice.ids : [...choice.ids].reverse();
+  const pairs = layout.pairs.filter((pr) => pr !== choice).map((pr) => pr.ids);
+  return { home, pairs };
 }
 // Mountains per block, drawn for each pair (both blocks get the same number). The home blocks
 // keep enough room round the factory.
@@ -302,13 +334,13 @@ function mountainRing(random, count) {
   return ring;
 }
 
-function randomClusters(random, layout) {
+function randomClusters(random, layout, { home, pairs }) {
   const clusters = {};
-  const home = pick(random, HOME_MOUNTAINS);
-  for (const id of layout.home) {
-    clusters[id] = { centre: "plain", ring: mountainRing(random, home) };
+  const homeMountains = pick(random, HOME_MOUNTAINS);
+  for (const id of home) {
+    clusters[id] = { centre: "plain", ring: mountainRing(random, homeMountains) };
   }
-  for (const pair of layout.pairs) {
+  for (const pair of pairs) {
     const count = pick(random, OUTER_MOUNTAINS);
     for (const id of pair) clusters[id] = { centre: "rocky", ring: mountainRing(random, count) };
   }
@@ -414,9 +446,10 @@ export function generateMap(seed, terrainRules, startUnits, shape = "classic") {
   const extraPairs = Math.max(0,
     Math.round((blockCount - CLASSIC_BLOCKS) / BLOCKS_PER_EXTRA_PAIR));
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const sides = chooseHome(random, layout);
     const map = buildMap({
-      id, name, clusters: randomClusters(random, layout),
-      factories: layout.home, starts: [[], []], deposits: [],
+      id, name, clusters: randomClusters(random, layout, sides),
+      factories: sides.home, starts: [[], []], deposits: [],
     });
     const neutral =
       placeNeutralFactories(random, map, terrainRules, MAP_SHAPES[shape].factoryPairs);

@@ -11,8 +11,8 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites,
-} from "./engine.js?v=0.13";
-import { neighbourKeys, distance } from "./hex.js?v=0.13";
+} from "./engine.js?v=0.14";
+import { neighbourKeys, distance } from "./hex.js?v=0.14";
 
 // Score for an attack that costs no life now but sets up a combined attack this turn.
 const SETUP_ATTACK_SCORE = 1;
@@ -306,15 +306,17 @@ function firstUnload({ view, mine }) {
   return unit ? { type: "unload", unitId: unit.id } : null;
 }
 
-// A transporter next to a factory its infantry can capture drops them straight into it. With
-// nothing left to capture, passengers get out to fight.
+// A transporter next to a factory its infantry can capture drops them straight into it, or
+// next to it when they may not go straight in. With nothing left to capture, passengers get
+// out to fight.
 function captureDrop(ctx) {
   const { view, mine } = ctx;
-  const nothingToCapture = !captureSites(ctx).length;
+  const targets = captureSites(ctx);
   for (const unit of mine) {
     const sites = dropSites(view, unit.id);
-    const at = sites.find((k) => Object.values(view.units).some((u) =>
-      u.at === k && unitStats(view, u).isFactory)) || (nothingToCapture && sites[0]);
+    const at = sites.find((k) => targets.includes(k)) ||
+      sites.find((k) => targets.some((t) => distance(t, k) === 1)) ||
+      (!targets.length && sites[0]);
     if (at) return { type: "drop", unitId: unit.id, at };
   }
   return null;

@@ -99,6 +99,33 @@ describe("capturing factories", () => {
     assert.equal(s.result.reason, "factoryCaptured");
   });
 
+  test("with capture.guarded, a defender next to a factory stops its capture", () => {
+    const rules = { capture: { guarded: true } };
+    const units = [unusedFactory(), unit("i", "infantry", GREEN, "0,-1")];
+    let s = scenario({ units: [...units, unit("d", "tank", BLUE, "1,0")], rules });
+    s.units.n.owner = BLUE;
+    s = play(s, END);
+    assert.ok(!(MIDDLE in reachableHexes(viewFor(s, GREEN), "i")));
+    s = scenario({ units, rules });
+    s.units.n.owner = BLUE;
+    s = play(s, END);
+    assert.ok(MIDDLE in reachableHexes(viewFor(s, GREEN), "i"));
+  });
+
+  test("with capture.mustStartNextTo, infantry capture only from where they started", () => {
+    const rules = { capture: { mustStartNextTo: true } };
+    let s = scenario({ units: [unusedFactory(), unit("i", "infantry", BLUE, "0,2")], rules });
+    assert.ok(!(MIDDLE in reachableHexes(viewFor(s, BLUE), "i")));
+    s = play(s, move("i", "0,1"), END, END);
+    assert.ok(MIDDLE in reachableHexes(viewFor(s, BLUE), "i"));
+    const passenger = unit("p", "infantry", BLUE, null);
+    s = scenario({
+      units: [unusedFactory(), unit("t", "transporter", BLUE, "0,1", { cargo: [passenger] })],
+      rules,
+    });
+    assert.ok(!dropSites(viewFor(s, BLUE), "t").includes(MIDDLE));
+  });
+
   test("crystals can be unloaded at a captured factory", () => {
     let s = scenario({
       units: [unusedFactory(), unit("h", "lightHarvester", BLUE, "0,1", { carrying: 30 })],

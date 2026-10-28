@@ -19,7 +19,7 @@ A unit with storage (Light Harvester, Scout Bike) stops next to crystals and har
 In the physical game, two or more harvesters next to the same pile would split it evenly, rounded down to the nearest 5. The app takes turns, so the first player to harvest takes their share and the split never comes up. Phil also suggested harvesting by landing on the crystals instead; `crystals.harvestFrom` is set to `"adjacent"` for now.
 
 ### Driving over crystals
-Units can drive onto or over crystals, and doing so destroys them (`crystals.crushedByMovement`). Of two equally short routes, a unit takes the one that spares the crystals. Crystals you cannot see are destroyed without warning. Before this rule, crystal piles blocked movement and the simulator showed spawned piles walling off the middle of the map by round 30–40.
+Units can drive onto or over crystals, and doing so destroys them (`crystals.crushedByMovement`). A unit takes a route that keeps off crystals whenever one fits within its move, even a longer one (Phil, 28 October 2026). Hexes it can only reach by driving over crystals show with a yellow dashed outline. Crystals you cannot see are destroyed without warning. Before this rule, crystal piles blocked movement and the simulator showed spawned piles walling off the middle of the map by round 30–40.
 
 ### Crystal piles grow and explode
 - Each map starts with crystal piles of 50 (`crystals.startAmount`): 4 fair pairs, one pile of each pair per side, plus one pile equally far from both factories. The old Crystals / Crystal Base / Crystal Cave deposits (180, 500, 560) are gone.
@@ -136,8 +136,13 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 ## Maps
 
 - Fixed map 1, or a generated map. "Map 17" is always the same map: the number is the seed.
-- Shapes (Phil, 28 October 2026): Classic, the 12 block positions of fixed map 1, or rows of blocks from top to bottom: 3-4-4-3 (14 blocks), 3-5-5-3 (16) and 4-5-5-4 (18). Blue's factory is in the bottom-left block and green's in the top-right. "Map 17 (3-4-4-3)" has the id `map-17-3-4-4-3`.
-- Bigger shapes get an extra pair of crystal piles for every 2 blocks over 12, where they fit, and unused factories: one pair on 3-4-4-3 and 3-5-5-3, two pairs on 4-5-5-4. One factory of each pair is nearer each side (at least 4 moves from home, at most half way), and the two mirror each other's distances, like the piles. Piles may sit next to an unused factory.
+- Sizes and shapes (Phil, 28 October 2026): Classic, the 12 block positions of fixed map 1, or rows of blocks from top to bottom.
+  - Small: Classic (12 blocks), 3-4-4-3 (14)
+  - Medium: 3-5-5-3 (16), 4-5-5-4 (18)
+  - Large: 5-6-6-5 (22), 4-5-6-5-4 (24)
+- "Map 17 (3-4-4-3)" has the id `map-17-3-4-4-3`. The picker's "Any" shape picks one of the chosen size.
+- Start positions vary (Phil, 28 October 2026): the two home blocks are a pair of opposite blocks, chosen per map from the pairs at least 75% as far apart as the widest pair (`HOME_SPREAD_SHARE` in `maps.js`), either way round. So blue may start in any corner or edge, not just the bottom left.
+- Bigger shapes get an extra pair of crystal piles for every 2 blocks over 12, where they fit, and unused factories: one pair on 3-4-4-3 and 3-5-5-3, two pairs on the others. One factory of each pair is nearer each side (at least 4 moves from home, at most half way), and the two mirror each other's distances, like the piles. Piles may sit next to an unused factory.
 - Classic maps follow the same pattern as fixed map 1, with the factories in opposite corners. Opposite blocks get the same number of mountains in different places; the cracked chasm sits in one of the two middle blocks, and the other gets a single-hex chasm and a mountain.
 - Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory (unused ones too), each pair of starting piles and of unused factories the same path distance from its own and the enemy factory, and the middle pile the same distance from both. Layouts that fail are redrawn.
 - The simulator shows these checks are not enough on their own (see `docs/simulation.md`).
@@ -146,7 +151,7 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 
 - **Demand surrender** (once per game; Phil, 28 October 2026): the AI plays the game on from the current position 20 times (`surrenderPlayouts`) with slightly varied personalities, seeing the whole board, and surrenders if it wins less than 20% of them (`surrenderBelow`). An unfinished playout counts by its share of what both sides own. Otherwise it says how it rates its chances.
 - **Quit** ends the game as a loss for the player who quits (the engine's `resign` action, never chosen by the AI). It counts as a loss on that map.
-- **Undo** (game screen only): take back your last action this turn; press again to go further back. 5 undos per game (`undosPerGame`). Ending the turn closes the turn's actions off. Anything an undone action revealed stays revealed: you cannot un-see a block you have turned over.
+- **Undo** (game screen only): take back your last action this turn; press again to go further back. 5 undos per game (`undosPerGame`). Ending the turn closes the turn's actions off. Anything an undone action revealed stays revealed: you cannot un-see a block you have turned over. Crystals the undone move drove over come back.
 
 ## Open questions
 

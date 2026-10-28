@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.13";
-import { unitStats, defenceOf } from "./engine.js?v=0.13";
+import { parseKey, toPixel } from "./hex.js?v=0.14";
+import { unitStats, defenceOf } from "./engine.js?v=0.14";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -42,6 +42,8 @@ export const OVERLAY_STYLES = {
   harvest: { stroke: "#7ff3ff", fill: "rgba(127, 243, 255, 0.16)" },
   heal: { stroke: "#7dff8a", fill: "rgba(125, 255, 138, 0.14)" },
   build: { stroke: "#ffd84a", fill: "rgba(255, 216, 74, 0.14)" },
+  // A move that drives over crystals and destroys them.
+  crush: { stroke: "#fff04a", fill: "rgba(255, 240, 74, 0.22)" },
 };
 
 const UNIT_FILES = {

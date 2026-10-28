@@ -384,6 +384,12 @@ h1 {
   gap: 0.5rem;
 }
 
+.map-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
 .map-shape {
   display: grid;
   gap: 0.3rem;
@@ -706,10 +712,22 @@ h1 {
   color: #c4c8cf;
 }
 
-/* Factory upgrades are gold, apart from the units the factory builds. */
+/* Factory upgrades are gold, apart from the units the factory builds. The Airfield and the
+   air units it unlocks are green. */
 .order[data-order="upgrade"] {
   border-color: #ffd84a;
   color: #ffd84a;
+}
+
+.order[data-order="upgrade"][data-type="airfield"],
+.order[data-air] {
+  border-color: #5ee08a;
+  color: #5ee08a;
+}
+
+.order[data-air].active {
+  background-color: #5ee08a;
+  color: var(--bg);
 }
 
 .order.active {
