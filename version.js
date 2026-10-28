@@ -11,6 +11,7 @@ export const CHANGELOG = [
       "Tap a unit for its orders; reachable hexes and targets are outlined.",
       "Fog of war, crystals that spawn and grow, harvesting and building.",
       "Games save automatically; Resume picks up where you left off.",
+      "Choose a map: a new one, fixed map 1, a map by number, or one you played before.",
     ],
   },
   {
