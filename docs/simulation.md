@@ -76,6 +76,15 @@ Fixed map 1, 200 games: the first player wins 57.3% (blue 26.6%); 41 games end w
 
 Capturing is cheap and instant, so factories change hands back and forth: a captured factory can be retaken by one 20-crystal infantry walking in, and the AI keeps sending more. Options if this feels wrong in play: capturing takes a turn (infantry must start their turn next to the factory), or a factory with a defender next to it cannot be captured.
 
+## Evolved personalities (v0.12 rules, `node evolve.js --generations 40 --population 20 --games 10 --seed 1`)
+
+Full tables in `docs/evolution.md`. Games were played on fixed map 1 and generated maps of every shape.
+
+- The five best personalities beat the hand-tuned AI in 86–93% of 100 games each (the run under the v0.11 rules managed 62–76%).
+- All five are impatient (`patience` 0): they buy the best unit they can afford now rather than saving. In practice they build Scout Bikes (34–39%), Tanks (26–30%), Light Medics (16–22%) and harvesters, and almost no anti-air.
+- None of them ever buys a factory upgrade or captures a factory (`captureFactories` 0). Their mix still rates the Heavy Cannon highly (hence the names), but at 110 plus a 100 upgrade it is never affordable on their terms.
+- What this says about the rules: a fast swarm of cheap light units, kept alive by medics, beats everything behind an upgrade, and spending on infantry and capture does not pay off yet. If upgrades and captures are meant to matter, the levers are cheaper upgrades, stronger heavy units, more income from a captured factory, or capture that is harder to undo (so it is worth the cost). Each can be tested in the simulator before changing the game.
+
 ## Generated maps (100 games each, current rules, `--map`)
 
 After return fire became simultaneous and the fixed map's Crystal Cave moved back to the one hex 7 moves from both factories:

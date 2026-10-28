@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.12";
+} from "./hex.js?v=0.13";
 
 // Factories, infantry and transporters (format 6):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
