@@ -4,13 +4,14 @@
 //   --seed   first game seed; game i uses seed + i (default 1)
 //   --quiet  rounds without a life lost that count as a stalled stretch (default 20)
 //   --json   also write every game's record to this file
+//   --map    map to play: fixed-1 (default) or map-<number> for a generated map
 //   --set    override a rule for this run, e.g. --set crystals.spawnPerRound=2 (repeatable;
 //            the value is read as JSON, so numbers, true/false and null work)
 // The first player alternates between games so neither colour always moves first.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { RULES } from "./rules-config.js?v=0.02";
-import { FIXED_MAP_1, buildMap } from "./maps.js?v=0.02";
+import { FIXED_MAP_1, buildMap, mapById } from "./maps.js?v=0.02";
 import { newGame, applyAction, viewFor, unitStats } from "./engine.js?v=0.02";
 import { chooseAction } from "./ai.js?v=0.02";
 
@@ -216,15 +217,18 @@ function parseArgs(argv) {
     seed: Number(args.seed || DEFAULT_SEED),
     quietRounds: Number(args.quiet || DEFAULT_QUIET_ROUNDS),
     json: args.json,
+    mapId: args.map || FIXED_MAP_1.id,
     overrides: args.set,
   };
 }
 
 function main() {
-  const { overrides, ...options } = parseArgs(process.argv.slice(2));
+  const { overrides, mapId, ...options } = parseArgs(process.argv.slice(2));
   const rules = withOverrides(RULES, overrides);
+  const map = mapById(mapId, rules);
   const started = performance.now();
-  const records = runSimulation({ ...options, rules });
+  const records = runSimulation({ ...options, rules, map });
+  console.log(`Map: ${map.name}`);
   const seconds = (performance.now() - started) / 1000;
   if (overrides.length) console.log(`Rule changes: ${overrides.join(", ")}\n`);
   console.log(formatSummary(summarise(records, options)));

@@ -26,6 +26,24 @@
     </nav>
   </section>
 
+  <div id="map-picker" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="map-picker-title">
+      <h2 id="map-picker-title">Choose a map</h2>
+      <div class="map-choices">
+        <button id="map-new" class="start-btn" type="button">New map</button>
+        <button id="map-fixed" class="start-btn" type="button">Fixed map 1</button>
+      </div>
+      <form id="map-number-form" class="map-number">
+        <label for="map-number">Map number</label>
+        <input id="map-number" type="number" min="1" step="1" inputmode="numeric" required />
+        <button class="start-btn" type="submit">Play</button>
+      </form>
+      <h3>Recent maps</h3>
+      <ul id="map-recent" class="map-recent"></ul>
+      <button id="map-cancel" class="start-btn" type="button">Back</button>
+    </div>
+  </div>
+
   <main id="units" class="units" hidden>
     <header class="units-head">
       <button id="home" class="home-btn" type="button" aria-label="Back to title screen">
@@ -66,7 +84,8 @@
       <div class="game-over-card">
         <h2 id="game-over-title"></h2>
         <p id="game-over-text"></p>
-        <button id="play-again" class="start-btn" type="button">Play again</button>
+        <button id="play-again" class="start-btn" type="button">Replay this map</button>
+        <button id="play-new-map" class="start-btn" type="button">New map</button>
         <button id="game-over-home" class="start-btn" type="button">Title screen</button>
       </div>
     </div>

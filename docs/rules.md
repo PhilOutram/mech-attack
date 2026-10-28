@@ -80,6 +80,13 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 - Units can fire at any enemy one of your units can see (spotting). Unexplored hexes between attacker and target do not block the shot.
 - Moves are planned on what you know. A hidden enemy unit in the way stops the move on the last free hex before it.
 
+## Maps
+
+- Fixed map 1, or a generated map. "Map 17" is always the same map: the number is the seed.
+- Generated maps use the same 12 block positions as fixed map 1, with the factories in opposite corners. Opposite blocks get the same number of mountains in different places; the cracked chasm sits in one of the two middle blocks, and the other gets a single-hex chasm and a mountain.
+- Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory, and paired deposits (Crystals, Crystal Base) the same path distance from their own and the enemy factory, with the Crystal Cave the same distance from both. Layouts that fail are redrawn.
+- The simulator shows these checks are not enough on their own (see `docs/simulation.md`).
+
 ## Open questions
 
 - What turns a block over on the table: anything a unit can see, or only a block next to a unit? (`fog.revealRange`)

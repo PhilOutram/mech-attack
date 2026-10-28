@@ -1,7 +1,7 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
 import { RULES } from "./rules-config.js?v=0.02";
-import { FIXED_MAP_1, buildMap } from "./maps.js?v=0.02";
+import { mapById } from "./maps.js?v=0.02";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
@@ -16,6 +16,10 @@ import {
 const HUMAN = 0;
 const AI_PLAYER = 1;
 const SAVE_KEY = "mech-attack.save";
+const RECENT_KEY = "mech-attack.recent-maps";
+const RECENT_LIMIT = 8;
+// Generated maps are numbered from 1 up to this when picked at random.
+const NEW_MAP_RANGE = 99999;
 const ASSET_VERSION = "0.02";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
@@ -66,16 +70,49 @@ function save() {
   }
 }
 
+// Maps played recently, newest first: [{ id, name, wins, losses }].
+export function recentMaps() {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT_KEY));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function noteMap(map, result = null) {
+  const list = recentMaps();
+  const entry = list.find((m) => m.id === map.id) || { id: map.id, name: map.name,
+    wins: 0, losses: 0 };
+  if (result) {
+    if (result.winner === HUMAN) entry.wins += 1;
+    else if (result.winner === AI_PLAYER) entry.losses += 1;
+  }
+  const rest = list.filter((m) => m.id !== map.id);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify([entry, ...rest].slice(0, RECENT_LIMIT)));
+  } catch {
+    // Storage can be full or blocked; the list is only a convenience.
+  }
+}
+
+export function newMapId() {
+  return `map-${1 + Math.floor(Math.random() * NEW_MAP_RANGE)}`;
+}
+
 // ---------------------------------------------------------------------------------------
 // Starting and leaving
 
-export async function openGame({ resume = false, onLeave }) {
+// Opens the game screen: the saved game when resume is set, otherwise a new game on mapId.
+export async function openGame({ resume = false, mapId = "fixed-1", onLeave }) {
   els = els || findElements();
   if (!wired) wire(onLeave);
   state = resume ? loadSave() : null;
   if (!state) {
     const seed = Math.floor(Math.random() * MAX_SEED);
-    state = newGame({ rules: RULES, map: buildMap(FIXED_MAP_1), seed, firstPlayer: HUMAN });
+    const map = mapById(mapId, RULES);
+    state = newGame({ rules: RULES, map, seed, firstPlayer: HUMAN });
+    noteMap(map);
     save();
   }
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
@@ -96,7 +133,7 @@ function findElements() {
     turn: $("game-turn"), crystals: $("game-crystals"), endTurn: $("end-turn"),
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
-    again: $("play-again"), toTitle: $("game-over-home"),
+    again: $("play-again"), newMap: $("play-new-map"), toTitle: $("game-over-home"),
   };
 }
 
@@ -108,7 +145,8 @@ function wire(onLeave) {
   };
   els.home.addEventListener("click", leave);
   els.toTitle.addEventListener("click", leave);
-  els.again.addEventListener("click", () => openGame({ onLeave }));
+  els.again.addEventListener("click", () => openGame({ mapId: state.map.id, onLeave }));
+  els.newMap.addEventListener("click", () => openGame({ mapId: newMapId(), onLeave }));
   els.endTurn.addEventListener("click", () => {
     if (!myTurn()) return;
     act({ type: "endTurn" });
@@ -382,7 +420,7 @@ function rangeHexes(view) {
 }
 
 function renderBar(view) {
-  els.round.textContent = `Round ${view.round}`;
+  els.round.textContent = `${view.map.name} · Round ${view.round}`;
   els.turn.textContent = view.current === HUMAN ? "Your turn" : "Green's turn";
   els.turn.className = view.current === HUMAN ? "turn-blue" : "turn-green";
   els.crystals.textContent = view.players[HUMAN].crystals;
@@ -467,6 +505,7 @@ function renderPanel(view) {
 
 function showGameOver() {
   const { winner, reason } = state.result;
+  noteMap(state.map, state.result);
   els.overTitle.textContent =
     winner === HUMAN ? "You win" : winner === AI_PLAYER ? "Green wins" : "Draw";
   const loser = winner === null ? "" : `${PLAYER_COLOURS[1 - winner].name}: `;

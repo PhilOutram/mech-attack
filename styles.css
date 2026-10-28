@@ -311,6 +311,113 @@ h1 {
   display: none;
 }
 
+/* Map picker, over the splash screen. */
+.map-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.65);
+}
+
+.map-picker[hidden] {
+  display: none;
+}
+
+.map-picker-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 24rem;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 14px;
+  background-color: var(--panel);
+}
+
+.map-picker-card h2,
+.map-picker-card h3 {
+  margin: 0;
+  font-family: var(--title-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-picker-card h2 {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.map-picker-card h3 {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.map-picker-card .start-btn {
+  min-width: 0;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  white-space: normal;
+  animation: none;
+}
+
+.map-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.map-number {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-number label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.map-number input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.map-recent {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-map {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 /* Game screen: bar on top, board in the middle, orders panel at the bottom. */
 .game {
   position: fixed;

@@ -32,6 +32,25 @@
 
 \* from a 1,000-game run.
 
+## Generated maps (100 games each, current rules, `--map`)
+
+After return fire became simultaneous and the fixed map's Crystal Cave moved back to the one hex 7 moves from both factories:
+
+| Map | Blue wins | First player wins |
+|---|---|---|
+| Fixed map 1 | 77.8% | 68.7% |
+| Map 1 | 82.0% | 48.0% |
+| Map 2 | 60.8% | 61.9% |
+| Map 3 | 49.5% | 99.0% |
+| Map 4 | 57.0% | 91.0% |
+| Map 5 | 63.3% | 87.8% |
+| Map 6 | 48.5% | 14.4% |
+| Map 7 | 27.6% | 64.3% |
+| Map 8 | 43.0% | 93.0% |
+| Map 17 | 15.2% | 65.7% |
+
+Every generated map passes the same checks (all hexes reachable, factories not hemmed in, deposits the same path distance from both sides), yet the results range from 15% to 82% for blue. Equal distances are not enough to make a map fair: what matters is which side can threaten the other's harvesters first. The simulator can screen maps (for example, keep only those within 40–60% on both measures) before they are offered.
+
 ## Crystal rule variants (200 games each, line-of-sight fog)
 
 | Crystals rule | Median length | Stalled | First player wins |

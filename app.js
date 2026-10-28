@@ -1,7 +1,7 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
 import { VERSION, CHANGELOG } from "./version.js?v=0.02";
 import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.02";
-import { openGame, hasSavedGame } from "./game.js?v=0.02";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.02";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -24,21 +24,50 @@ renderVersionBadge();
 const resume = document.getElementById("menu-resume");
 refreshMenu();
 
+const picker = document.getElementById("map-picker");
+
 document.getElementById("menu-play").addEventListener("click", () => {
   const replace = !hasSavedGame() || confirm("Start a new game? Your saved game will be lost.");
-  if (replace) play(false);
+  if (replace) showMapPicker();
 });
-resume.addEventListener("click", () => play(true));
+resume.addEventListener("click", () => play({ resume: true }));
 document.getElementById("menu-units").addEventListener("click", showUnits);
 document.getElementById("home").addEventListener("click", showSplash);
+
+document.getElementById("map-new").addEventListener("click", () => play({ mapId: newMapId() }));
+document.getElementById("map-fixed").addEventListener("click", () => play({ mapId: "fixed-1" }));
+document.getElementById("map-cancel").addEventListener("click", () => {
+  picker.hidden = true;
+});
+document.getElementById("map-number-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const number = Number(document.getElementById("map-number").value);
+  if (Number.isInteger(number) && number >= 1) play({ mapId: `map-${number}` });
+});
+document.getElementById("map-recent").addEventListener("click", (e) => {
+  const button = e.target.closest("button[data-map]");
+  if (button) play({ mapId: button.dataset.map });
+});
 
 function refreshMenu() {
   resume.hidden = !hasSavedGame();
 }
 
-function play(fromSave) {
+// Pick a map: a new one, the fixed map, one by number, or one played before.
+function showMapPicker() {
+  const list = recentMaps();
+  document.getElementById("map-recent").innerHTML = list.length
+    ? list.map((m) => `<li><button type="button" class="recent-map" data-map="${m.id}">` +
+        `<span>${m.name}</span><span class="muted">won ${m.wins} · lost ${m.losses}</span>` +
+        `</button></li>`).join("")
+    : `<li class="muted">None yet.</li>`;
+  picker.hidden = false;
+}
+
+function play(options) {
+  picker.hidden = true;
   splash.hidden = true;
-  openGame({ resume: fromSave, onLeave: showSplash });
+  openGame({ ...options, onLeave: showSplash });
 }
 
 function showUnits() {
