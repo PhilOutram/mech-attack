@@ -7,15 +7,16 @@
 // Fog of war: viewFor(state, player) is everything that player knows. Every option offered
 // to a player (moves, targets, crystals) is worked out from their view, so neither the AI
 // nor the UI can learn hidden information from the engine. Two fog modes (rules.fog.mode):
-// - "tiles", as on the table: map blocks (seven-hex clusters) start face down. When any unit
-//   can see a hex of a block, the whole block is turned over for both players, and
-//   everything on a turned-over block stays visible from then on.
+// - "tiles": map blocks (seven-hex clusters) start face down. When one of a player's units
+//   comes close enough to a block, the whole block is turned over for that player only, and
+//   everything on it stays visible to them from then on. The opponent's turned-over blocks
+//   stay hidden.
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
-import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.04";
+import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.05";
 
 // Saved games in any other format are not loaded.
-export const STATE_FORMAT = 3;
+export const STATE_FORMAT = 4;
 export const PLAYER_COLOURS = ["blue", "green"];
 
 // ---------------------------------------------------------------------------------------
@@ -40,13 +41,13 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
       explored: {},
       seenCrystals: {},
       seenFactory: null,
+      // Map blocks this player has turned over (fog mode "tiles").
+      revealed: {},
     })),
     units: {},
     nextUnitId: 1,
     crystals: {},
     hits: {},
-    // Map blocks turned over so far (fog mode "tiles"), shared by both players.
-    revealed: {},
     result: null,
     events: [],
     actions: recordActions ? [] : null,
@@ -163,8 +164,9 @@ function revealRangeOf(state, unit) {
   return fixed === null || fixed === undefined ? unitStats(state, unit).sight : fixed;
 }
 
-function revealFrom(state, at, range) {
-  for (const k of hexesInSight(state, at, range)) state.revealed[blockOf(state, k)] = true;
+function revealFrom(state, player, at, range) {
+  const revealed = state.players[player].revealed;
+  for (const k of hexesInSight(state, at, range)) revealed[blockOf(state, k)] = true;
 }
 
 // Hexes the player can see now: every hex of a turned-over block in fog mode "tiles", or the
@@ -172,7 +174,8 @@ function revealFrom(state, at, range) {
 export function visibleHexes(state, player) {
   if (!tilesFog(state)) return hexesSeenBy(state, player);
   const visible = {};
-  for (const k in state.map.hexes) if (state.revealed[blockOf(state, k)]) visible[k] = true;
+  const revealed = state.players[player].revealed;
+  for (const k in state.map.hexes) if (revealed[blockOf(state, k)]) visible[k] = true;
   return visible;
 }
 
@@ -181,7 +184,7 @@ export function visibleHexes(state, player) {
 export function refreshKnowledge(state) {
   if (tilesFog(state)) {
     for (const unit of Object.values(state.units)) {
-      revealFrom(state, unit.at, revealRangeOf(state, unit));
+      revealFrom(state, unit.owner, unit.at, revealRangeOf(state, unit));
     }
   }
   state.players.forEach((player, p) => {
@@ -447,10 +450,10 @@ function cloneState(state) {
   for (const k in state.crystals) crystals[k] = { ...state.crystals[k] };
   const hits = {};
   for (const id in state.hits) hits[id] = { ...state.hits[id] };
-  const revealed = { ...state.revealed };
   const players = state.players.map((player) => ({
     ...player,
     explored: { ...player.explored },
+    revealed: { ...player.revealed },
     seenCrystals: { ...player.seenCrystals },
     seenFactory: player.seenFactory && { ...player.seenFactory },
   }));
@@ -461,7 +464,6 @@ function cloneState(state) {
     units,
     crystals,
     hits,
-    revealed,
     result: state.result && { ...state.result },
     actions: state.actions ? [...state.actions] : null,
   };
@@ -521,7 +523,7 @@ function applyMove(state, { unitId, to }) {
 
   // Blocks come into sight along the way, not just at the end of the move.
   if (tilesFog(state)) {
-    for (const k of walked) revealFrom(state, k, revealRangeOf(state, unit));
+    for (const k of walked) revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
   }
 
   // Driving onto or over crystals destroys them.

@@ -70,7 +70,7 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 
 - All blocks start face down.
 - When any unit (or a factory) is on a hex of a block or right next to one, the whole block is turned over (`fog.revealRange` 1, Phil's choice). Each side starts with about 3 blocks face up: its home block and the blocks its starting units stand next to.
-- A turned-over block is face up for both players, and everything on it (units, crystals) stays visible from then on.
+- Turned-over blocks are private: a block your units turn over is face up for you only, and everything on it (units, crystals) stays visible to you from then on. You never see the blocks the opponent has turned over, or anything on them, until your own units turn them over (Phil, 28 October 2026).
 - A moving unit turns over the blocks it passes next to along its route, not just where it stops.
 - `fog.revealRange` `null` turns blocks over anywhere within a unit's sight range instead; that leaves 11 of the 12 blocks face up after round 1.
 

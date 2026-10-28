@@ -52,8 +52,8 @@ export function scenario({
 } = {}) {
   const state = newGame({ rules: testRules(rules), map: testMap(terrain), seed });
   // newGame has already turned over the blocks round the factories; start from scratch.
-  state.revealed = {};
   state.players.forEach((player) => {
+    player.revealed = {};
     player.explored = {};
     player.seenCrystals = {};
     player.seenFactory = null;
@@ -71,7 +71,7 @@ export function scenario({
     if (!explored) return;
     for (const k in state.map.hexes) {
       player.explored[k] = true;
-      state.revealed[state.map.hexes[k].cluster] = true;
+      player.revealed[state.map.hexes[k].cluster] = true;
     }
   });
   refreshKnowledge(state);

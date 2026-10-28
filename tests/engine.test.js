@@ -576,11 +576,22 @@ describe("fog of war by map blocks", () => {
     assert.equal(view.map.hexes["0,-2"].terrain, null, "a block two hexes away is face down");
   });
 
-  test("a turned-over block is face up for both players", () => {
+  test("a block one player turns over stays face down for the other", () => {
     const s = scenario({
       units: [unit("h", "lightHarvester", BLUE, "0,0")], explored: false, rules: blindFactories,
     });
-    assert.equal(viewFor(s, GREEN).map.hexes["0,-2"].terrain, "plain");
+    assert.equal(viewFor(s, BLUE).map.hexes["0,-2"].terrain, "plain");
+    assert.equal(viewFor(s, GREEN).map.hexes["0,-2"].terrain, null);
+  });
+
+  test("units on the other player's turned-over blocks stay hidden", () => {
+    const s = scenario({
+      units: [unit("h", "lightHarvester", BLUE, "0,3"), unit("e", "tank", GREEN, "0,-4")],
+      explored: false, rules: blindFactories,
+    });
+    assert.ok(viewFor(s, GREEN).units.e, "green sees its own tank and block");
+    assert.equal(viewFor(s, BLUE).units.e, undefined);
+    assert.equal(viewFor(s, BLUE).map.hexes["0,-4"].terrain, null);
   });
 
   test("everything on a turned-over block stays visible", () => {
