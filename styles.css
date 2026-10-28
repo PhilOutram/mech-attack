@@ -675,6 +675,12 @@ h1 {
   padding: 0.5rem 0.75rem;
 }
 
+/* Undo is grey so it does not read as one of the unit's orders. */
+.order[data-order="undo"] {
+  border-color: #8a8f98;
+  color: #c4c8cf;
+}
+
 .order.active {
   background-color: var(--accent);
   color: var(--bg);

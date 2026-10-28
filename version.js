@@ -10,6 +10,7 @@ export const CHANGELOG = [
       "Ground and air: air units fly over everything; only anti-air attacks can hit them.",
       "New units: Blast Cannon, Sonic Tank, Anti-Aircraft Jeep, Attack Helicopter, Fighter.",
       "Shot previews mention the Blast Cannon's blast and the Sonic Tank's line.",
+      "The Undo button is grey, so it stands apart from the unit's orders.",
     ],
   },
   {
