@@ -81,7 +81,10 @@ describe("random play", () => {
       const actions = legalActions(s);
       const pick = rand() < END_TURN_BIAS ? actions[actions.length - 1]
         : actions[Math.floor(rand() * actions.length)];
+      const before = JSON.stringify(s);
+      const previous = s;
       s = applyAction(s, pick);
+      assert.equal(JSON.stringify(previous), before, `${pick.type} changed its input state`);
 
       const occupied = Object.values(s.units).map((u) => u.at);
       assert.equal(new Set(occupied).size, occupied.length, "two units share a hex");
@@ -143,11 +146,24 @@ describe("movement", () => {
     assert.equal(reach["0,-2"], 2);
   });
 
-  test("enemy units and crystals block movement", () => {
+  test("enemy units block movement", () => {
     const withEnemy = scenario({ units: [tank, unit("e", "scoutBike", GREEN, "0,-1")] });
     assert.equal(reachableHexes(viewFor(withEnemy, BLUE), "a")["0,-2"], 3);
-    const withCrystals = scenario({ units: [tank], crystals: { "0,-1": { amount: 10 } } });
-    assert.equal(reachableHexes(viewFor(withCrystals, BLUE), "a")["0,-2"], 3);
+  });
+
+  test("driving onto or over crystals destroys them", () => {
+    let s = scenario({ units: [tank], crystals: { "0,-1": { amount: 30 } } });
+    assert.equal(reachableHexes(viewFor(s, BLUE), "a")["0,-2"], 2);
+    s = play(s, { type: "move", unitId: "a", to: "0,-2" });
+    assert.equal(s.crystals["0,-1"], undefined);
+    assert.ok(s.events.some((e) => e.type === "crushed" && e.at === "0,-1" && e.amount === 30));
+  });
+
+  test("of two equally short routes, the one that spares the crystals is taken", () => {
+    let s = scenario({ units: [tank], crystals: { "0,-1": { amount: 30 } } });
+    s = play(s, { type: "move", unitId: "a", to: "1,-2" });
+    assert.equal(s.units.a.at, "1,-2");
+    assert.equal(s.crystals["0,-1"].amount, 30);
   });
 
   test("a unit moves once a turn and cannot move after acting", () => {

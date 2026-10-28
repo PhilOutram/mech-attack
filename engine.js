@@ -114,17 +114,32 @@ function blocksSight(state) {
   };
 }
 
+// Terrain never changes during a game, so the hexes visible from a hex at a given sight range
+// are worked out once per map and remembered. Keyed by the map's hexes object, so a map loaded
+// from a save gets its own entry and old maps are released.
+const sightCache = new WeakMap();
+
+function hexesInSight(state, at, sight) {
+  let cache = sightCache.get(state.map.hexes);
+  if (!cache) {
+    cache = {};
+    sightCache.set(state.map.hexes, cache);
+  }
+  const id = `${at}|${sight}`;
+  if (!cache[id]) {
+    const blocks = blocksSight(state);
+    cache[id] = Object.keys(state.map.hexes).filter((k) =>
+      distance(at, k) <= sight && lineOfSight(at, k, blocks));
+  }
+  return cache[id];
+}
+
 // Hexes the player can currently see: within sight range of one of their units, with a
 // clear line of sight.
 export function visibleHexes(state, player) {
   const seen = {};
-  const blocks = blocksSight(state);
   for (const unit of unitsOf(state, player)) {
-    const sight = unitStats(state, unit).sight;
-    for (const k in state.map.hexes) {
-      if (seen[k] || distance(unit.at, k) > sight) continue;
-      if (lineOfSight(unit.at, k, blocks)) seen[k] = true;
-    }
+    for (const k of hexesInSight(state, unit.at, unitStats(state, unit).sight)) seen[k] = true;
   }
   return seen;
 }
@@ -185,7 +200,8 @@ export function viewFor(state, player) {
     viewer: player,
     format: state.format,
     rules: state.rules,
-    map: { ...state.map, hexes },
+    // Factory sites are public, like setting up across the table. Deposit sites are not.
+    map: { id: state.map.id, name: state.map.name, hexes, factories: state.map.factories },
     round: state.round,
     order: state.order,
     turnIndex: state.turnIndex,
@@ -203,17 +219,31 @@ export function viewFor(state, player) {
 // ---------------------------------------------------------------------------------------
 // Options for a unit, worked out from what its owner knows
 
-function moveCostFor(state, unit) {
-  const crystalRules = state.rules.crystals;
+// Units by the hex they stand on.
+function occupancy(state) {
+  const byHex = {};
+  for (const id in state.units) byHex[state.units[id].at] = state.units[id];
+  return byHex;
+}
+
+// Path costs are movement points times PATH_SCALE plus one for each crystal pile driven over,
+// so of two equally short routes the one that crushes fewer crystals wins.
+const PATH_SCALE = 1000;
+
+function moveCostFor(state, unit, byHex = occupancy(state)) {
   return (k) => {
     if (!state.map.hexes[k]) return null;
     const cost = terrainRules(state, k).moveCost;
     if (cost === null) return null;
-    const other = unitAt(state, k);
+    const other = byHex[k];
     if (other && other.owner !== unit.owner) return null;
-    if (crystalRules.blockMovement && state.crystals[k]) return null;
-    return cost;
+    return cost * PATH_SCALE + (state.crystals[k] ? 1 : 0);
   };
+}
+
+function plannedPaths(state, unit, byHex, move = Infinity) {
+  const maxCost = move === Infinity ? Infinity : move * PATH_SCALE + PATH_SCALE - 1;
+  return cheapestPaths(unit.at, moveCostFor(state, unit, byHex), maxCost);
 }
 
 function canMove(state, unit) {
@@ -226,10 +256,11 @@ function canMove(state, unit) {
 export function reachableHexes(view, unitId) {
   const unit = view.units[unitId];
   if (!unit || !canMove(view, unit)) return {};
-  const paths = cheapestPaths(unit.at, moveCostFor(view, unit), unitStats(view, unit).move);
+  const byHex = occupancy(view);
+  const paths = plannedPaths(view, unit, byHex, unitStats(view, unit).move);
   const out = {};
   for (const k in paths) {
-    if (k !== unit.at && !unitAt(view, k)) out[k] = paths[k].cost;
+    if (k !== unit.at && !byHex[k]) out[k] = Math.floor(paths[k].cost / PATH_SCALE);
   }
   return out;
 }
@@ -368,11 +399,33 @@ export function applyAction(state, action) {
   return next;
 }
 
-// The map and rules never change during a game, and logged actions are never changed after
-// they are logged, so these are shared rather than deep-copied.
+// Copies everything an action can change. The map and rules never change during a game,
+// and logged actions, remembered crystal records and events are replaced rather than edited,
+// so those are shared. A new state field that actions change must be copied here too; the
+// tests check that applying actions never changes the input state.
 function cloneState(state) {
-  const { map, rules, actions, ...rest } = state;
-  return { ...structuredClone(rest), map, rules, actions: actions ? [...actions] : null };
+  const units = {};
+  for (const id in state.units) units[id] = { ...state.units[id] };
+  const crystals = {};
+  for (const k in state.crystals) crystals[k] = { ...state.crystals[k] };
+  const hits = {};
+  for (const id in state.hits) hits[id] = { ...state.hits[id] };
+  const players = state.players.map((player) => ({
+    ...player,
+    explored: { ...player.explored },
+    seenCrystals: { ...player.seenCrystals },
+    seenFactory: player.seenFactory && { ...player.seenFactory },
+  }));
+  return {
+    ...state,
+    order: [...state.order],
+    players,
+    units,
+    crystals,
+    hits,
+    result: state.result && { ...state.result },
+    actions: state.actions ? [...state.actions] : null,
+  };
 }
 
 function illegal(message) {
@@ -399,20 +452,21 @@ function applyMove(state, { unitId, to }) {
   const destinations = reachableHexes(view, unitId);
   if (!(to in destinations)) illegal(`${unitId} cannot reach ${to}`);
 
-  const planned = pathTo(cheapestPaths(unit.at, moveCostFor(view, unit), Infinity), to);
-  const realCost = moveCostFor(state, unit);
+  const planned = pathTo(plannedPaths(view, unit, occupancy(view)), to);
+  const byHex = occupancy(state);
   const allowance = unitStats(state, unit).move;
   const from = unit.at;
   const walked = [];
   let spent = 0;
   let stoppedBy = null;
   for (const k of planned) {
-    const cost = realCost(k);
-    if (cost === null) {
-      stoppedBy = unitAt(state, k) ? "unit" : state.crystals[k] ? "crystals" : "terrain";
+    const cost = terrainRules(state, k).moveCost;
+    const other = byHex[k];
+    if (other && other.owner !== unit.owner) {
+      stoppedBy = "unit";
       break;
     }
-    if (spent + cost > allowance) {
+    if (cost === null || spent + cost > allowance) {
       stoppedBy = "terrain";
       break;
     }
@@ -420,11 +474,21 @@ function applyMove(state, { unitId, to }) {
     walked.push(k);
   }
   // Never finish on a hex a friendly unit is passing through.
-  while (walked.length && unitAt(state, walked[walked.length - 1])) walked.pop();
+  while (walked.length && byHex[walked[walked.length - 1]]) walked.pop();
 
   unit.at = walked.length ? walked[walked.length - 1] : from;
   unit.moved = true;
   state.events.push({ type: "move", unitId, from, to: unit.at, path: walked, stoppedBy });
+
+  // Driving onto or over crystals destroys them.
+  if (state.rules.crystals.crushedByMovement) {
+    for (const k of walked) {
+      const pile = state.crystals[k];
+      if (!pile) continue;
+      delete state.crystals[k];
+      state.events.push({ type: "crushed", unitId, at: k, amount: pile.amount });
+    }
+  }
 }
 
 function applyAttack(state, { unitId, targetId }) {

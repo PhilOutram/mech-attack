@@ -18,6 +18,9 @@ A unit with storage (Light Harvester, Scout Bike) stops next to crystals and har
 
 In the physical game, two or more harvesters next to the same pile would split it evenly, rounded down to the nearest 5. The app takes turns, so the first player to harvest takes their share and the split never comes up. Phil also suggested harvesting by landing on the crystals instead; `crystals.harvestFrom` is set to `"adjacent"` for now.
 
+### Driving over crystals
+Units can drive onto or over crystals, and doing so destroys them (`crystals.crushedByMovement`). Of two equally short routes, a unit takes the one that spares the crystals. Crystals you cannot see are destroyed without warning. Before this rule, crystal piles blocked movement and the simulator showed spawned piles walling off the middle of the map by round 30–40.
+
 ### Deposits
 The unit table's figures for deposits are crystals per harvest × number of harvests:
 
@@ -55,7 +58,6 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Rocky ground | Costs 2 movement and adds 5 to defence | `terrain.rocky` |
 | Mountains | Cannot be entered; block line of sight | `terrain.mountain` |
 | Chasms | Cannot be entered; do not block line of sight | `terrain.chasm` |
-| Crystals block movement | A hex holding crystals cannot be entered | `crystals.blockMovement` |
 | Crystal spawns | One new pile of 10 per round, on a random empty open hex at least 3 hexes from both factories | `crystals.spawnPerRound`, `spawnMinDistanceFromFactory` |
 | Pile cap | None | `crystals.maxPile` |
 | Round limit | A game reaching round 100 ends with no winner | `roundCap` |

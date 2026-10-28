@@ -62,7 +62,7 @@ export const RULES = {
 
   crystals: {
     harvestFrom: "adjacent", // stop next to crystals to harvest them
-    blockMovement: true, // provisional: a hex holding crystals cannot be entered
+    crushedByMovement: true, // units can drive over crystals, which destroys them
     spawnPerRound: 1, // provisional
     spawnAmount: 10,
     growthPerRound: 10, // each round a spawned pile is not harvested
