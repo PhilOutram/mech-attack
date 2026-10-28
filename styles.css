@@ -384,6 +384,22 @@ h1 {
   gap: 0.5rem;
 }
 
+.map-shape {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.map-shape select {
+  padding: 0.45rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
 .map-number {
   display: flex;
   align-items: center;
@@ -552,6 +568,14 @@ h1 {
   fill: #ff8a7a;
 }
 
+.upgrade-label {
+  fill: #ffd84a;
+}
+
+.cargo-label {
+  fill: #fff4c2;
+}
+
 .board .units image,
 .board .crystals image,
 .board .effects image {
@@ -675,10 +699,17 @@ h1 {
   padding: 0.5rem 0.75rem;
 }
 
-/* Undo is grey so it does not read as one of the unit's orders. */
-.order[data-order="undo"] {
+/* Undo and Demand surrender are grey so they do not read as a unit's orders. */
+.order[data-order="undo"],
+.order[data-order="surrender"] {
   border-color: #8a8f98;
   color: #c4c8cf;
+}
+
+/* Factory upgrades are gold, apart from the units the factory builds. */
+.order[data-order="upgrade"] {
+  border-color: #ffd84a;
+  color: #ffd84a;
 }
 
 .order.active {

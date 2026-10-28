@@ -39,7 +39,11 @@ export function testRules(overrides = {}) {
   const rules = structuredClone(RULES);
   rules.start.units = [];
   rules.crystals.spawnChoices = [0];
-  for (const section in overrides) Object.assign(rules[section], overrides[section]);
+  for (const section in overrides) {
+    const value = overrides[section];
+    if (value && typeof value === "object") Object.assign(rules[section], value);
+    else rules[section] = value;
+  }
   return rules;
 }
 
@@ -56,7 +60,7 @@ export function scenario({
     player.revealed = {};
     player.explored = {};
     player.seenCrystals = {};
-    player.seenFactory = null;
+    player.seenFactories = {};
   });
   for (const u of units) {
     state.units[u.id] = {

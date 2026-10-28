@@ -8,9 +8,12 @@ export const RULES = {
   lives: 2,
 
   units: {
+    // The Scout Bike's gun hits air as well as ground, so a cheap unit can answer the Attack
+    // Helicopter (Phil, 28 October 2026).
     scoutBike: {
       name: "Scout Bike", cost: 30, move: 6, defence: 10, attack: 15,
       range: [1, 1], storage: 30, healing: 0, sight: 4,
+      hits: "both",
     },
     tank: {
       name: "Tank", cost: 70, move: 4, defence: 25, attack: 25,
@@ -19,6 +22,7 @@ export const RULES = {
     heavyCannon: {
       name: "Heavy Cannon", cost: 110, move: 2, defence: 40, attack: 40,
       range: [1, 3], storage: 0, healing: 0, sight: 3,
+      needs: "heavyWorks",
     },
     artillery: {
       name: "Artillery", cost: 70, move: 2, defence: 10, attack: 30,
@@ -35,22 +39,39 @@ export const RULES = {
     spotterDrone: {
       name: "Spotter Drone", cost: 30, move: 5, defence: 5, attack: 0,
       range: null, storage: 0, healing: 0, sight: 5,
-      air: true, splitMove: true,
+      air: true, splitMove: true, needs: "airfield",
+    },
+    // Infantry (Phil, 28 October 2026): weak and slow, but the only unit that can capture a
+    // factory, by moving into it (the troops are used up). "rides": it can board a
+    // Transporter. Stats provisional.
+    infantry: {
+      name: "Infantry", cost: 20, move: 3, defence: 5, attack: 10,
+      range: [1, 1], storage: 0, healing: 0, sight: 2,
+      captures: true, rides: true,
+    },
+    // Transporter: carries up to "carries" infantry, which board by moving onto it and are
+    // dropped off next to it (or straight into a factory). Infantry inside are lost with it.
+    // Stats provisional.
+    transporter: {
+      name: "Transporter", cost: 50, move: 6, defence: 25, attack: 0,
+      range: null, storage: 0, healing: 0, sight: 3,
+      carries: 2,
     },
     // New units, 28 October 2026. Stats start from the full unit table, costs scaled to the
     // Game 2 prices; all provisional. "hits": what the attack can hit (ground if not given).
+    // "needs": the factory upgrade a factory must have to build the unit.
     // Blast Cannon: cluster bomb (enemies next to the target take splash x attack) and it
     // fires every other turn (reload 1).
     blastCannon: {
       name: "Blast Cannon", cost: 90, move: 3, defence: 10, attack: 40,
       range: [2, 4], storage: 0, healing: 0, sight: 3,
-      splash: 0.5, reload: 1,
+      splash: 0.5, reload: 1, needs: "heavyWorks",
     },
     // Sonic Tank: sonic boom hits every enemy on a straight line up to range 5, ground and air.
     sonicTank: {
       name: "Sonic Tank", cost: 80, move: 4, defence: 20, attack: 15,
       range: [1, 5], storage: 0, healing: 0, sight: 4,
-      hits: "both", line: true,
+      hits: "both", line: true, needs: "heavyWorks",
     },
     antiAircraftJeep: {
       name: "Anti-Aircraft Jeep", cost: 40, move: 5, defence: 15, attack: 30,
@@ -60,25 +81,42 @@ export const RULES = {
     attackHelicopter: {
       name: "Attack Helicopter", cost: 60, move: 5, defence: 10, attack: 20,
       range: [1, 2], storage: 0, healing: 0, sight: 3,
-      air: true,
+      air: true, needs: "airfield",
     },
     fighter: {
       name: "Fighter", cost: 80, move: 7, defence: 15, attack: 30,
       range: [1, 4], storage: 0, healing: 0, sight: 4,
-      air: true, hits: "air",
+      air: true, hits: "air", needs: "airfield",
     },
     lightMedic: {
       name: "Light Medic", cost: 40, move: 5, defence: 15, attack: 0,
       range: null, storage: 0, healing: 25, healRange: 1, sight: 3,
     },
-    // Headquarters factory: builds units and is the target for winning. Defence and sight
-    // come from the Factory row of the full unit table (provisional for Game 2).
+    // Factory: builds units. Each player starts with a home factory; bigger maps also have
+    // unused factories for infantry to capture. Defence and sight come from the Factory row of
+    // the full unit table (provisional for Game 2).
     factory: {
       name: "Factory", cost: null, move: 0, defence: 100, attack: 0,
       range: null, storage: 0, healing: 0, sight: 4,
       isFactory: true,
     },
   },
+
+  // A factory starts out building light ground units only. Each upgrade, bought for one
+  // factory, unlocks the units that need it (Phil, 28 October 2026; costs provisional).
+  factoryUpgrades: {
+    heavyWorks: { name: "Heavy works", cost: 100 },
+    airfield: { name: "Airfield", cost: 100 },
+  },
+
+  // Provisional: whether infantry can capture a player's home factory, or only unused and
+  // captured ones.
+  capture: { homeFactories: false },
+
+  // How a player loses besides running out of units: "homeFactory" when their home factory
+  // is destroyed (or captured), "allFactories" only when they have no factory left. Phil:
+  // depends on the scenario (28 October 2026).
+  winCondition: "homeFactory",
 
   combat: {
     // Lives lost when the attack total on a target in one turn reaches these multiples
@@ -138,6 +176,11 @@ export const RULES = {
 
   // Undos per game for the player on the game screen (the engine does not use this).
   undosPerGame: 5,
+  // Demand surrender (game screen, once per game): the AI plays the game on from the current
+  // position this many times and surrenders if it wins less than this share (Phil, 28 October
+  // 2026).
+  surrenderPlayouts: 20,
+  surrenderBelow: 0.2,
 
   // Provisional: a game reaching this round ends with no winner.
   roundCap: 100,

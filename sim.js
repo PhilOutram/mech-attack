@@ -10,10 +10,10 @@
 // The first player alternates between games so neither colour always moves first.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "./rules-config.js?v=0.11";
-import { FIXED_MAP_1, buildMap, mapById } from "./maps.js?v=0.11";
-import { newGame, applyAction, viewFor, unitStats } from "./engine.js?v=0.11";
-import { chooseAction } from "./ai.js?v=0.11";
+import { RULES } from "./rules-config.js?v=0.12";
+import { FIXED_MAP_1, buildMap, mapById } from "./maps.js?v=0.12";
+import { newGame, applyAction, viewFor, unitStats } from "./engine.js?v=0.12";
+import { chooseAction, DEFAULT_PERSONALITY } from "./ai.js?v=0.12";
 
 const DEFAULT_GAMES = 100;
 const DEFAULT_SEED = 1;
@@ -24,23 +24,40 @@ const MAX_ACTIONS_PER_TURN = 500;
 const REPORT_ROUNDS = [1, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100];
 const PERCENT = 100;
 
-// Plays one game and records a snapshot of both players at the end of every round.
-export function runGame({ rules = RULES, map = buildMap(FIXED_MAP_1), seed, firstPlayer = 0 }) {
-  let state = newGame({ rules, map, seed, firstPlayer, recordActions: false });
+// Plays one game and records a snapshot of both players at the end of every round, the units
+// each player built, the factory upgrades they bought and the factories they captured.
+// personalities: the AI personality for player 0 and player 1.
+export function runGame({
+  rules = RULES, map = buildMap(FIXED_MAP_1), seed, firstPlayer = 0,
+  personalities = [DEFAULT_PERSONALITY, DEFAULT_PERSONALITY], roundCap,
+}) {
+  const gameRules = roundCap ? { ...rules, roundCap } : rules;
+  let state = newGame({ rules: gameRules, map, seed, firstPlayer, recordActions: false });
   const rounds = [];
+  const built = [{}, {}];
+  const upgrades = [{}, {}];
+  const captures = [0, 0];
   let destroyed = [0, 0];
   let livesLost = 0;
   let actionsThisTurn = 0;
 
   while (!state.result) {
-    const action = chooseAction(viewFor(state, state.current));
+    const mover = state.current;
+    const action = chooseAction(viewFor(state, mover), personalities[mover]);
     state = applyAction(state, action);
+    if (action.type === "build") {
+      built[mover][action.unitType] = (built[mover][action.unitType] || 0) + 1;
+    }
+    if (action.type === "upgrade") {
+      upgrades[mover][action.upgrade] = (upgrades[mover][action.upgrade] || 0) + 1;
+    }
     actionsThisTurn = action.type === "endTurn" ? 0 : actionsThisTurn + 1;
     if (actionsThisTurn > MAX_ACTIONS_PER_TURN) {
       throw new Error(`Seed ${seed}: AI exceeded ${MAX_ACTIONS_PER_TURN} actions in a turn`);
     }
     for (const event of state.events) {
       if (event.type === "destroyed") destroyed[event.owner] += 1;
+      if (event.type === "capture") captures[event.owner] += 1;
       if (event.type === "hit") livesLost += event.livesBefore - event.livesAfter;
       if (event.type === "newRound" || event.type === "gameOver") {
         rounds.push(snapshot(state, destroyed, livesLost));
@@ -49,7 +66,7 @@ export function runGame({ rules = RULES, map = buildMap(FIXED_MAP_1), seed, firs
       }
     }
   }
-  return { seed, firstPlayer, result: state.result, rounds };
+  return { seed, firstPlayer, result: state.result, rounds, built, upgrades, captures };
 }
 
 function snapshot(state, destroyed, livesLost) {

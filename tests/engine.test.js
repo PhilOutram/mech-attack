@@ -833,7 +833,7 @@ describe("winning", () => {
   test("a player with no units who cannot afford one loses", () => {
     let s = scenario({
       units: [unit("a", "heavyCannon", BLUE, "0,0"), unit("e", "scoutBike", GREEN, "0,-2")],
-      playerCrystals: [0, 20],
+      playerCrystals: [0, 10],
     });
     s = play(s, attack("a", "e"));
     assert.equal(s.result.winner, BLUE);

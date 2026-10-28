@@ -1,8 +1,19 @@
-export const VERSION = "v0.11";
+export const VERSION = "v0.12";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.12",
+    date: "2026-10-28",
+    notes: [
+      "Factory upgrades: Heavy works unlocks heavy units, Airfield unlocks air units.",
+      "Bigger map shapes with unused factories for Infantry to capture.",
+      "New units: Infantry, and a Transporter to carry them.",
+      "Demand surrender once a game; the Scout Bike now hits air units too.",
+      "The AI plays with evolved personalities.",
+    ],
+  },
   {
     version: "v0.11",
     date: "2026-10-28",

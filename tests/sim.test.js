@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RULES } from "../rules-config.js";
 import { runGame, summarise, withOverrides } from "../sim.js";
+import { evolve } from "../evolve.js";
 
 const snapshot = (crystals, units, livesLost = 0) => ({
   players: crystals.map((c, p) => ({ crystals: c, worth: c, units: units[p], destroyed: 0 })),
@@ -43,4 +44,12 @@ test("rule overrides change a copy and reject unknown rules", () => {
   assert.equal(rules.fog.revealRange, null);
   assert.equal(RULES.crystals.growthPerTurn, 5);
   assert.throws(() => withOverrides(RULES, ["crystals.spawnRate=2"]));
+});
+
+test("a tiny evolution run completes and ranks its personalities", () => {
+  const result = evolve({ generations: 1, population: 4, games: 1, seed: 3, benchmarkGames: 2,
+    keep: 2 });
+  assert.equal(result.history.length, 1);
+  assert.equal(result.best.length, 2);
+  for (const b of result.best) assert.ok(b.winRateVsDefault >= 0 && b.winRateVsDefault <= 1);
 });

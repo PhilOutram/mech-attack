@@ -1,9 +1,12 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { RULES } from "../rules-config.js";
-import { FIXED_MAP_1, buildMap } from "../maps.js";
+import { FIXED_MAP_1, buildMap, mapById, seededRandom } from "../maps.js";
 import { newGame, applyAction, legalActions, viewFor } from "../engine.js";
-import { chooseAction, playTurn } from "../ai.js";
+import {
+  chooseAction, playTurn, playout, randomPersonality, mutatePersonality, crossPersonalities,
+  DEFAULT_PERSONALITY, PERSONALITY_RANGES,
+} from "../ai.js";
 import { scenario } from "./helpers.js";
 
 const BLUE = 0;
@@ -106,5 +109,70 @@ describe("AI choices", () => {
     const without = scenario({ units: own, rules: sightFog });
     assert.equal(viewFor(withHidden, BLUE).units.e, undefined);
     assert.deepEqual(choose(withHidden), choose(without));
+  });
+});
+
+describe("AI and factories", () => {
+  test("infantry move into an unused factory they can reach", () => {
+    const s = scenario({
+      units: [unit("n", "factory", null, "0,0", { upgrades: [] }),
+        unit("i", "infantry", BLUE, "0,2")],
+      playerCrystals: [0, 100],
+    });
+    assert.deepEqual(choose(s), { type: "move", unitId: "i", to: "0,0" });
+  });
+
+  test("it buys the factory upgrade its wanted unit needs", () => {
+    const personality = {
+      ...DEFAULT_PERSONALITY, harvestersEarly: 1,
+      mix: Object.fromEntries(Object.keys(DEFAULT_PERSONALITY.mix).map((type) =>
+        [type, type === "heavyCannon" ? 1 : 0])),
+    };
+    const s = scenario({
+      units: [unit("h", "lightHarvester", BLUE, "3,0")], playerCrystals: [250, 100],
+    });
+    assert.deepEqual(chooseAction(viewFor(s, BLUE), personality), {
+      type: "upgrade", factoryId: s.players[BLUE].factoryId, upgrade: "heavyWorks",
+    });
+  });
+
+  test("every action it picks is legal on a map with unused factories", () => {
+    const map = mapById("map-3-3-4-4-3", RULES);
+    let s = newGame({ rules: RULES, map, seed: 3, recordActions: false });
+    while (!s.result) {
+      const action = choose(s);
+      const legal = legalActions(s).some((a) => JSON.stringify(a) === JSON.stringify(action));
+      assert.ok(legal, `${JSON.stringify(action)} is not a legal action`);
+      s = applyAction(s, action);
+    }
+  });
+});
+
+describe("personalities", () => {
+  const inRange = (p) => {
+    for (const gene in PERSONALITY_RANGES) {
+      const [low, high, whole] = PERSONALITY_RANGES[gene];
+      assert.ok(p[gene] >= low && p[gene] <= high, `${gene} ${p[gene]}`);
+      if (whole) assert.equal(p[gene], Math.round(p[gene]));
+    }
+    for (const type in p.mix) assert.ok(p.mix[type] >= 0 && p.mix[type] <= 1);
+    assert.ok(p.harvestersMax >= p.harvestersEarly);
+  };
+
+  test("random, mutated and crossed personalities keep every gene in range", () => {
+    const random = seededRandom(9);
+    for (let i = 0; i < 20; i++) {
+      const a = randomPersonality(random);
+      const b = mutatePersonality(a, random, 1);
+      inRange(a);
+      inRange(b);
+      inRange(crossPersonalities(a, b, random));
+    }
+  });
+
+  test("a playout scores the position between 0 and 1", () => {
+    const s = newGame({ rules: RULES, map: buildMap(FIXED_MAP_1), seed: 4 });
+    const score = playout(s, GREEN, [DEFAULT_PERSONALITY, DEFAULT_PERSONALITY], seededRandom(2));
+    assert.ok(score >= 0 && score <= 1);
   });
 });

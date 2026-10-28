@@ -1,8 +1,8 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.11";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.11";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.11";
-import { confirmDialog } from "./dialog.js?v=0.11";
+import { VERSION, CHANGELOG } from "./version.js?v=0.12";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.12";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.12";
+import { confirmDialog } from "./dialog.js?v=0.12";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -40,7 +40,12 @@ resume.addEventListener("click", () => play({ resume: true }));
 document.getElementById("menu-units").addEventListener("click", showUnits);
 document.getElementById("home").addEventListener("click", showSplash);
 
-document.getElementById("map-new").addEventListener("click", () => play({ mapId: newMapId() }));
+// The shape chosen in the picker applies to New map and to a map typed by number.
+const shapeSelect = document.getElementById("map-shape");
+const shapedId = (number) =>
+  (shapeSelect.value === "classic" ? `map-${number}` : `map-${number}-${shapeSelect.value}`);
+document.getElementById("map-new").addEventListener("click", () =>
+  play({ mapId: newMapId(shapeSelect.value) }));
 document.getElementById("map-fixed").addEventListener("click", () => play({ mapId: "fixed-1" }));
 document.getElementById("map-cancel").addEventListener("click", () => {
   picker.hidden = true;
@@ -48,7 +53,7 @@ document.getElementById("map-cancel").addEventListener("click", () => {
 document.getElementById("map-number-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const number = Number(document.getElementById("map-number").value);
-  if (Number.isInteger(number) && number >= 1) play({ mapId: `map-${number}` });
+  if (Number.isInteger(number) && number >= 1) play({ mapId: shapedId(number) });
 });
 document.getElementById("map-recent").addEventListener("click", (e) => {
   const button = e.target.closest("button[data-map]");

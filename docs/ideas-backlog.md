@@ -58,9 +58,17 @@ Idea: crystals spring up at random as 10 units and grow by 10 units every turn t
 - Instead of hand-writing more AI rules (such as how to scout for a hidden enemy), give the AI's strategy random elements, run lots of games and let it learn what works.
 - It feels formulaic, especially with few units: mix up how the AI plays.
 - Context: in the camera version (idea 4) the AI sees the board from a photo after each turn and shows its moves and explosions on screen, so the AI working only from what it can see is right.
+- Built (v0.12): the AI's choices are driven by a personality of tunable genes; `evolve.js` breeds personalities by self-play and the game picks one of the best each game. Results in `docs/evolution.md`.
 
 ### 10. Where is the strategy? (added 28 October)
 - Units improve in a straight line (bigger costs more and does more). There should be more asymmetric units with real strengths and weaknesses.
+- Built: the ground/air rule and five new units (v0.11); factory upgrades that unlock heavy and air units, so buying a tier is a choice against buying units now (v0.12, a first step towards escalation 6a).
+
+### 11. Map shapes, unused factories and upgrades (added 28 October)
+- Map shapes with rows of blocks: 3-4-4-3, 4-5-5-4, 3-5-5-3.
+- Bigger maps with unused factories that only Infantry can capture. Troops are weak and vulnerable, so need looking after; they can ride in a Transporter, which costs more.
+- Factory upgrades to unlock air and heavy units: the Attack Helicopter was too strong when it could be bought from the start. A common unit should be able to hit air: the Scout Bike now does.
+- Built in v0.12. Still open: whether the Transporter should fly (the unit table's A3 Transport is an air unit), and whether capturing should take longer than one move.
 
 ## Companion app
 - Live at https://philoutram.github.io/mech-attack/ (repo philoutram/mech-attack).

@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.11";
-import { unitStats, defenceOf } from "./engine.js?v=0.11";
+import { parseKey, toPixel } from "./hex.js?v=0.12";
+import { unitStats, defenceOf } from "./engine.js?v=0.12";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -25,6 +25,10 @@ export const PLAYER_COLOURS = {
   0: { name: "Blue", file: "blue", ring: "#3b8cff" },
   1: { name: "Green", file: "green", ring: "#42c25a" },
 };
+// Ring round an unused factory, which belongs to nobody.
+const NEUTRAL_RING = "#b9b2a8";
+// Factory upgrade letters shown on the factory: H = Heavy works, A = Airfield.
+const UPGRADE_LETTERS = { heavyWorks: "H", airfield: "A" };
 
 // Plain fills used when no tile image is available.
 const TERRAIN_FILL = {
@@ -53,6 +57,8 @@ const UNIT_FILES = {
   antiAircraftJeep: "anti-aircraft-jeep",
   attackHelicopter: "attack-helicopter",
   fighter: "fighter",
+  infantry: "infantry",
+  transporter: "transporter",
 };
 
 export function unitImage(type, owner) {
@@ -204,9 +210,9 @@ function drawUnits(view, selectedId) {
     const unit = view.units[id];
     const stats = unitStats(view, unit);
     const [x, y] = hexCentre(unit.at);
-    const colour = PLAYER_COLOURS[unit.owner];
+    const ring = unit.owner === null ? NEUTRAL_RING : PLAYER_COLOURS[unit.owner].ring;
     const done = unit.owner === view.viewer && view.current === view.viewer &&
-      unit.moved && unit.acted;
+      unit.moved && unit.acted && !stats.isFactory;
     const opacity = done ? ` opacity="${DONE_OPACITY}"` : "";
     if (id === selectedId) {
       out += polygon(unit.at, { scale: SELECTED_INSET, stroke: "#fff", width: 4,
@@ -215,9 +221,10 @@ function drawUnits(view, selectedId) {
     if (stats.isFactory) {
       // The factory art is square; it is clipped to the hex and ringed in the owner's colour.
       const size = HEX_SIZE * 2 * FACTORY_SCALE;
-      out += image("units/factory.svg", x, y, size, size,
-        `clip-path="url(#hex-clip)"${opacity}`);
-      out += polygon(unit.at, { scale: SELECTED_INSET, stroke: colour.ring, width: 6 });
+      out += image("units/factory.svg", x, y, size, size, 'clip-path="url(#hex-clip)"');
+      out += polygon(unit.at, { scale: SELECTED_INSET, stroke: ring, width: 6 });
+      const letters = (unit.upgrades || []).map((u) => UPGRADE_LETTERS[u]).join(" ");
+      if (letters) out += label(letters, x, y + HEX_HEIGHT * 0.36, "board-label upgrade-label");
     } else {
       const size = HEX_HEIGHT * UNIT_SCALE;
       // Green's tokens face down the board, towards blue.
@@ -226,6 +233,11 @@ function drawUnits(view, selectedId) {
       if (unit.setUp) out += label("SET", x, y - HEX_HEIGHT * 0.36, "board-label setup-label");
       if (unit.carrying > 0) {
         out += label(unit.carrying, x, y + HEX_HEIGHT * 0.42, "board-label crystal-label");
+      }
+      // Infantry on board a transporter.
+      if (unit.cargo && unit.cargo.length) {
+        out += label(`+${unit.cargo.length}`, x, y + HEX_HEIGHT * 0.42,
+          "board-label cargo-label");
       }
     }
     if (unit.lives < view.rules.lives) {

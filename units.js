@@ -40,6 +40,12 @@ export const UNITS = [
   // Not in the unit table: added 28 October 2026 with the ground/air rule.
   u("L6", "Anti-Aircraft Jeep", "Anti-air", "L", 40, 5, 15, 30, 3, 0, 0, 3,
     "Hits air units only", "anti-aircraft-jeep-green.svg"),
+  // Not in the unit table: added 28 October 2026 with unused factories (placeholder art).
+  u("L7", "Infantry", "Capture", "L", 20, 3, 5, 10, 1, 0, 0, 2,
+    "Captures a factory by moving into it; can ride in a Transporter", "infantry-green.svg"),
+  u("L8", "Transporter", "Transport", "L", 50, 6, 25, 0, 0, 0, 0, 3,
+    "Carries 2 Infantry and drops them off next to it or into a factory",
+    "transporter-green.svg"),
   u("A1", "Fighter", "Offensive", "L", 78, 7, null, 30, 4, null, null, null,
     "Flies; hits air units only", "fighter-green.svg"),
   u("A2", "Attack Helicopter", "Offensive", "L", 30, 5, null, null, 2, null, null, null,
@@ -72,6 +78,9 @@ export const NOTES = [
   "Multiple units can attack one unit - add their scores.",
   "Units with range up to 3 return fire on anything attacking from an adjacent hex.",
   "A Light Factory can only make light units.",
+  "In the app game, a factory builds light ground units. Heavy works (100) unlocks the Heavy " +
+    "Cannon, Blast Cannon and Sonic Tank; Airfield (100) unlocks the air units. Each factory " +
+    "is upgraded on its own.",
   "A Medic can heal a wound for a unit whose defence is less than or equal to its Healing " +
     "value.",
   "Fort, Turret and Factory units must be constructed before they become operational, " +

@@ -38,10 +38,11 @@ Options for later, not built yet:
 ### Ground and air
 Settled with Phil, 28 October 2026: the rules are the same for every unit, and units differ by their stats. The one extra rule:
 - A unit is ground or air. Air units fly: every hex costs 1, they pass over mountains, chasms, other units and crystals (without crushing them), can stop on any hex without another unit, and get no cover from rocky ground.
-- Every attack hits ground units, air units, or (Sonic Tank only) both. An air unit can only be hit by an attack that hits air. Return fire follows the same rule.
+- Every attack hits ground units, air units, or both (the Sonic Tank and the Scout Bike). An air unit can only be hit by an attack that hits air. Return fire follows the same rule.
+- The Scout Bike hits air as well as ground (Phil, 28 October 2026), so a cheap unit can answer the Attack Helicopter.
 
 ### Spotter Drone
-Cost 30, move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter and the Sonic Tank can hit it. It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+Cost 30, move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Sonic Tank and the Scout Bike can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
 
 ### Units added on 28 October 2026
 Stats start from the full unit table, with costs scaled to the Game 2 prices. The numbers are provisional; the abilities were confirmed by Phil.
@@ -56,8 +57,37 @@ Stats start from the full unit table, with costs scaled to the Game 2 prices. Th
 
 Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
 
+### Factory upgrades
+Settled with Phil, 28 October 2026: a factory starts out building light ground units only. Two upgrades, bought separately for each factory:
+
+| Upgrade | Cost (provisional) | Unlocks |
+|---|---|---|
+| Heavy works | 100 | Heavy Cannon, Blast Cannon, Sonic Tank |
+| Airfield | 100 | Attack Helicopter, Fighter, Spotter Drone (provisional) |
+
+A unit's `needs` stat names the upgrade it needs (`factoryUpgrades` in the config). Buying an upgrade is not a unit's action and can happen any time in your turn. The factory shows H and A for its upgrades.
+
+### Unused factories, Infantry and the Transporter
+Settled with Phil, 28 October 2026: bigger maps have unused factories, and only Infantry can capture them. Troops are weak and vulnerable and need looking after; a Transporter can carry them, for more money.
+
+- An unused factory belongs to nobody. It cannot be attacked.
+- Infantry capture a factory by moving into it. The troops are used up, and the factory becomes theirs, with its damage and upgrades. It builds and takes unloaded crystals like a home factory.
+- A captured factory can be captured back the same way.
+- Infantry board their own Transporter by moving onto it. The Transporter drops its passengers one at a time onto a free hex next to it, or straight into a factory next to it to capture it. A dropped unit has finished for the turn; the Transporter can still move if it has not. Passengers are lost if the Transporter is destroyed.
+
+| Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
+|---|---|---|---|---|---|---|---|
+| Infantry | 20 | 3 | 5 | 10 | 1 | 2 | Captures factories; rides in a Transporter |
+| Transporter | 50 | 6 | 25 | – | – | 3 | Carries 2 Infantry |
+
+All the numbers are provisional, as is everything not listed as Phil's.
+
 ### Winning
-You win by destroying the enemy factory. A player with no units who cannot afford the cheapest unit also loses.
+You win by destroying the enemy's home factory. A player with no units who cannot afford the cheapest unit also loses. Phil: whether losing your home factory loses the game while you still hold a captured one depends on the win condition or the scenario, so it is a setting (`winCondition`):
+- `"homeFactory"` (default): you lose when your home factory is destroyed or captured.
+- `"allFactories"`: you lose only when you have no factory left.
+
+Home factories cannot be captured for now (`capture.homeFactories`, provisional).
 
 ### Map
 Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and pile distances but different layouts, so exploring one side tells you nothing exact about the other. Generated maps follow the same pattern (see Maps).
@@ -72,7 +102,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 
 | Rule | Current setting | Config |
 |---|---|---|
-| Headquarters | Each player starts with a factory (headquarters). It builds units on free hexes next to it, cannot move, has defence 100 and sight 4 (the Factory row of the full unit table) and two lives like any unit. Claiming unused factories on the map is a possible later addition. | `units.factory` |
+| Factories | Each player starts with a home factory. A factory builds units on free hexes next to it, cannot move, has defence 100 and sight 4 (the Factory row of the full unit table) and two lives like any unit. | `units.factory` |
 | Starting position | Factory, Light Harvester, Scout Bike, Tank and 50 crystals. Whoever moves second gets 40 more (settled with Phil, 28 October 2026), to make up for the first player's first shot in round 2. | `start` |
 | Building | Any number of units per turn, limited by crystals and free hexes next to the factory. A new unit cannot move or act until its owner's next turn. | |
 | Turn order for a unit | Move once, then take one action (attack, heal, harvest, unload, set up or pack up). Acting ends the unit's turn. | |
@@ -106,17 +136,21 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 ## Maps
 
 - Fixed map 1, or a generated map. "Map 17" is always the same map: the number is the seed.
-- Generated maps use the same 12 block positions as fixed map 1, with the factories in opposite corners. Opposite blocks get the same number of mountains in different places; the cracked chasm sits in one of the two middle blocks, and the other gets a single-hex chasm and a mountain.
-- Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory, each pair of starting piles the same path distance from its own and the enemy factory, and the middle pile the same distance from both. Layouts that fail are redrawn.
+- Shapes (Phil, 28 October 2026): Classic, the 12 block positions of fixed map 1, or rows of blocks from top to bottom: 3-4-4-3 (14 blocks), 3-5-5-3 (16) and 4-5-5-4 (18). Blue's factory is in the bottom-left block and green's in the top-right. "Map 17 (3-4-4-3)" has the id `map-17-3-4-4-3`.
+- Bigger shapes get an extra pair of crystal piles for every 2 blocks over 12, where they fit, and unused factories: one pair on 3-4-4-3 and 3-5-5-3, two pairs on 4-5-5-4. One factory of each pair is nearer each side (at least 4 moves from home, at most half way), and the two mirror each other's distances, like the piles. Piles may sit next to an unused factory.
+- Classic maps follow the same pattern as fixed map 1, with the factories in opposite corners. Opposite blocks get the same number of mountains in different places; the cracked chasm sits in one of the two middle blocks, and the other gets a single-hex chasm and a mountain.
+- Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory (unused ones too), each pair of starting piles and of unused factories the same path distance from its own and the enemy factory, and the middle pile the same distance from both. Layouts that fail are redrawn.
 - The simulator shows these checks are not enough on their own (see `docs/simulation.md`).
 
-## Quitting and undo
+## Quitting, surrender and undo
 
+- **Demand surrender** (once per game; Phil, 28 October 2026): the AI plays the game on from the current position 20 times (`surrenderPlayouts`) with slightly varied personalities, seeing the whole board, and surrenders if it wins less than 20% of them (`surrenderBelow`). An unfinished playout counts by its share of what both sides own. Otherwise it says how it rates its chances.
 - **Quit** ends the game as a loss for the player who quits (the engine's `resign` action, never chosen by the AI). It counts as a loss on that map.
 - **Undo** (game screen only): take back your last action this turn; press again to go further back. 5 undos per game (`undosPerGame`). Ending the turn closes the turn's actions off. Anything an undone action revealed stays revealed: you cannot un-see a block you have turned over.
 
 ## Open questions
 
-- Factory claiming: start with a headquarters factory (current), or start near unused factories and claim one?
+- The unit table's Transport (A3) is an air unit. Should the Transporter fly? It is a ground unit for now; flying would be one stat (`air: true`), and it would then need an Airfield.
+- Capturing is instant and cheap, so in the simulator factories change hands a lot (about 4 captures a game on 3-4-4-3). Should capturing take longer, for example infantry must start their turn next to the factory, or a factory with a unit next to it cannot be captured?
 - Should the damaged side of a tile change a unit's stats? Currently it does not.
 - Is the "firing" token art with the muzzle flash the same as the damaged side of the physical tile?

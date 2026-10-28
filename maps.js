@@ -4,7 +4,8 @@
 // a fair random map from a seed, so "Map 17" is always the same map.
 import {
   key, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance, neighbourKeys,
-} from "./hex.js?v=0.11";
+  toPixel,
+} from "./hex.js?v=0.12";
 
 // Fixed map 1: 12 clusters, 84 hexes, about 11 hexes wide and 11 tall.
 // Paired clusters (point-reflected through the middle of the map) have the same number of
@@ -74,6 +75,8 @@ export function buildMap(def) {
     name: def.name,
     hexes,
     factories: def.factories.map((clusterId) => centres[clusterId]),
+    // Unused factories, in pairs like the deposits: [{ at, pair }].
+    neutralFactories: def.neutralFactories || [],
     starts: def.starts,
     deposits: def.deposits,
   };
@@ -107,11 +110,20 @@ export function mapProblems(map, terrainRules) {
       problems.push(`${k} cannot be reached`);
     }
   }
-  map.factories.forEach((f, p) => {
+  const neutral = map.neutralFactories || [];
+  [...map.factories, ...neutral.map((f) => f.at)].forEach((f) => {
     const free = neighbourKeys(f).filter((k) => isOpen(map, terrainRules, k));
-    if (free.length < MIN_FREE_FACTORY_NEIGHBOURS) problems.push(`factory ${p} is hemmed in`);
+    if (free.length < MIN_FREE_FACTORY_NEIGHBOURS) problems.push(`factory at ${f} is hemmed in`);
   });
   if (blue[map.factories[1]] !== green[map.factories[0]]) problems.push("factories differ");
+  // Each pair of unused factories: one nearer each side, mirroring each other's distances.
+  const factoryPairs = {};
+  for (const f of neutral) (factoryPairs[f.pair] ||= []).push(f.at);
+  for (const id in factoryPairs) {
+    const [a, b] = factoryPairs[id];
+    const fair = factoryPairs[id].length === 2 && blue[a] === green[b] && green[a] === blue[b];
+    if (!fair) problems.push(`unused factory pair ${id} is unfair`);
+  }
 
   // Paired piles (same pair number) must mirror each other's distances; an unpaired pile
   // must be equally far from both factories.
@@ -134,15 +146,105 @@ export function mapProblems(map, terrainRules) {
 // ---------------------------------------------------------------------------------------
 // Generated maps
 
-// The same 12 block positions as fixed map 1. Each pair is point-reflected through the middle
-// of the map, blue's side first; the first pair are the home blocks.
-const BLOCKS = {
-  A: [1, -2], L: [0, 2], B: [0, -1], K: [1, 1], C: [-1, 0], J: [2, 0],
-  D: [1, -1], I: [0, 1], F: [-1, 1], G: [2, -1], E: [0, 0], H: [1, 0],
+// Map shapes (Phil, 28 October 2026): the classic 12-block layout of fixed map 1, or rows of
+// blocks from top to bottom. The bigger shapes have pairs of unused factories for infantry
+// to capture, one of each pair nearer each side.
+export const MAP_SHAPES = {
+  classic: { name: "Classic", rows: null, factoryPairs: 0 },
+  "3-4-4-3": { name: "3-4-4-3", rows: [3, 4, 4, 3], factoryPairs: 1 },
+  "3-5-5-3": { name: "3-5-5-3", rows: [3, 5, 5, 3], factoryPairs: 1 },
+  "4-5-5-4": { name: "4-5-5-4", rows: [4, 5, 5, 4], factoryPairs: 2 },
 };
-const HOME_PAIR = ["L", "A"];
-const OUTER_PAIRS = [["K", "B"], ["C", "J"], ["I", "D"], ["F", "G"]];
-const MIDDLE_PAIR = ["E", "H"];
+
+// The classic layout: the same 12 block positions as fixed map 1. Each pair is point-reflected
+// through the middle of the map, blue's side first; home holds the two factory blocks.
+const CLASSIC_LAYOUT = {
+  blocks: {
+    A: [1, -2], L: [0, 2], B: [0, -1], K: [1, 1], C: [-1, 0], J: [2, 0],
+    D: [1, -1], I: [0, 1], F: [-1, 1], G: [2, -1], E: [0, 0], H: [1, 0],
+  },
+  home: ["L", "A"],
+  pairs: [["K", "B"], ["C", "J"], ["I", "D"], ["F", "G"]],
+  middle: ["E", "H"],
+};
+
+// Lattice positions searched when laying out rows of blocks.
+const LAYOUT_SPAN = 8;
+// Cluster centres along a row are this lattice step apart (about 11 degrees off horizontal).
+const ROW_STEP = [3, -2];
+const ROW_TOLERANCE = 0.01;
+
+// A layout of rows of blocks, e.g. [3, 4, 4, 3]. The clusters tile on a slanted grid, so the
+// lattice is turned until rows run left to right, and each row takes the blocks nearest the
+// middle. Blue's factory goes in the bottom-left block and green's in the top-right; the other
+// blocks are paired with the block opposite them through the middle of the map.
+function rowsLayout(rows) {
+  const [wx, wy] = toPixel(ROW_STEP[0], ROW_STEP[1], 1);
+  const angle = -Math.atan2(wy, wx);
+  const points = [];
+  for (let i = -LAYOUT_SPAN; i <= LAYOUT_SPAN; i++) {
+    for (let j = -LAYOUT_SPAN; j <= LAYOUT_SPAN; j++) {
+      const [x, y] = toPixel(...clusterCentre(i, j), 1);
+      points.push({ at: [i, j], x: x * Math.cos(angle) - y * Math.sin(angle),
+        y: x * Math.sin(angle) + y * Math.cos(angle) });
+    }
+  }
+  const rowYs = [...new Set(points.map((pt) => Math.round(pt.y / ROW_TOLERANCE)))]
+    .sort((a, b) => a - b).map((y) => y * ROW_TOLERANCE);
+  const middleRow = rowYs.reduce((best, y, i) =>
+    (Math.abs(y) < Math.abs(rowYs[best]) ? i : best), 0);
+  const first = middleRow - Math.floor(rows.length / 2);
+  const chosen = [];
+  rows.forEach((count, r) => {
+    const inRow = points.filter((pt) => Math.abs(pt.y - rowYs[first + r]) < ROW_TOLERANCE)
+      .sort((a, b) => Math.abs(a.x) - Math.abs(b.x) || a.x - b.x)
+      .slice(0, count)
+      .sort((a, b) => a.x - b.x);
+    chosen.push(...inRow.map((pt) => ({ ...pt, row: r })));
+  });
+
+  const blocks = {};
+  chosen.forEach((pt, n) => {
+    pt.id = String.fromCharCode(65 + n);
+    blocks[pt.id] = pt.at;
+  });
+  const lastRow = chosen.filter((pt) => pt.row === rows.length - 1);
+  const firstRow = chosen.filter((pt) => pt.row === 0);
+  const home = [lastRow[0].id, firstRow[firstRow.length - 1].id];
+
+  // Pair each other block with the one nearest its reflection through the middle.
+  const cx = chosen.reduce((sum, pt) => sum + pt.x, 0) / chosen.length;
+  const cy = chosen.reduce((sum, pt) => sum + pt.y, 0) / chosen.length;
+  const free = chosen.filter((pt) => !home.includes(pt.id));
+  const pairs = [];
+  while (free.length > 1) {
+    const a = free.shift();
+    const tx = 2 * cx - a.x;
+    const ty = 2 * cy - a.y;
+    let best = 0;
+    free.forEach((pt, i) => {
+      if (Math.hypot(pt.x - tx, pt.y - ty) < Math.hypot(free[best].x - tx, free[best].y - ty)) {
+        best = i;
+      }
+    });
+    const b = free.splice(best, 1)[0];
+    pairs.push({ ids: [a.id, b.id], spread: Math.max(Math.hypot(a.x - cx, a.y - cy),
+      Math.hypot(b.x - cx, b.y - cy)) });
+  }
+  // The pair nearest the middle holds the chasm.
+  pairs.sort((a, b) => a.spread - b.spread);
+  return { blocks, home, middle: pairs[0].ids, pairs: pairs.slice(1).map((pr) => pr.ids) };
+}
+
+const layouts = {};
+
+function layoutFor(shape) {
+  if (!layouts[shape]) {
+    const rows = MAP_SHAPES[shape].rows;
+    layouts[shape] = rows ? rowsLayout(rows) : CLASSIC_LAYOUT;
+  }
+  return layouts[shape];
+}
 // Mountains per block, drawn for each pair (both blocks get the same number). The home blocks
 // keep enough room round the factory.
 const HOME_MOUNTAINS = [0, 1, 2];
@@ -150,6 +252,11 @@ const OUTER_MOUNTAINS = [0, 1, 2, 2, 3, 3, 4];
 // The cracked chasm cluster from the tile sheet: crack through N, centre and SW.
 const CHASM_CLUSTER = { centre: "chasm", ring: { N: "chasm", SW: "chasm" } };
 const MAX_ATTEMPTS = 500;
+// Unused factories come in pairs like the piles: path cost from the nearer home factory at
+// least this far (and at most half way), the other home at least margin further. Factories
+// are kept FACTORY_SPACING apart.
+const FACTORY_PAIR_BAND = { distance: [4, Infinity], margin: 1 };
+const FACTORY_SPACING = 4;
 // Starting crystal piles come in pairs, one per side, plus one equally far from both. For each
 // pair: its path cost from the owner's factory, and how much further the enemy's must be.
 const PILE_PAIR_BANDS = [
@@ -159,6 +266,11 @@ const PILE_PAIR_BANDS = [
   { distance: [5, 7], margin: 1 },
 ];
 const PILE_SPACING = 2;
+// Bigger maps get an extra pair of piles for every this many blocks over the classic 12, at
+// any distance from home up to half way, a little nearer the owner, where they fit.
+const CLASSIC_BLOCKS = 12;
+const BLOCKS_PER_EXTRA_PAIR = 2;
+const EXTRA_PAIR_BAND = { distance: [3, Infinity], margin: 1 };
 
 export function seededRandom(seed) {
   let state = seed >>> 0;
@@ -190,63 +302,93 @@ function mountainRing(random, count) {
   return ring;
 }
 
-function randomClusters(random) {
+function randomClusters(random, layout) {
   const clusters = {};
   const home = pick(random, HOME_MOUNTAINS);
-  for (const id of HOME_PAIR) {
+  for (const id of layout.home) {
     clusters[id] = { centre: "plain", ring: mountainRing(random, home) };
   }
-  for (const pair of OUTER_PAIRS) {
+  for (const pair of layout.pairs) {
     const count = pick(random, OUTER_MOUNTAINS);
     for (const id of pair) clusters[id] = { centre: "rocky", ring: mountainRing(random, count) };
   }
   // One middle block holds the cracked chasm; its partner gets a single-hex chasm and a
   // mountain, so both block three hexes.
-  const [chasmBlock, partner] = random() < 0.5 ? MIDDLE_PAIR : [...MIDDLE_PAIR].reverse();
+  const [chasmBlock, partner] = random() < 0.5 ? layout.middle : [...layout.middle].reverse();
   clusters[chasmBlock] = structuredClone(CHASM_CLUSTER);
   const [chasmDir, mountainDir] = shuffled(random, DIRECTION_NAMES);
   const ring = { [chasmDir]: "chasm", [mountainDir]: "mountain" };
   clusters[partner] = { centre: "rocky", ring };
-  return Object.entries(BLOCKS).map(([id, at]) => ({ id, at, ...clusters[id] }));
+  return Object.entries(layout.blocks).map(([id, at]) => ({ id, at, ...clusters[id] }));
 }
 
-// A pair of pile sites, one per side, with matching distances: own distance in range and the
-// enemy at least margin further. null if there is none.
-function pilePair(random, costs, taken, { distance: [nearest, furthest], margin }) {
+// A pair of sites, one per side, with matching distances: own distance in range and the enemy
+// at least margin further. Sites are at least spacing from taken hexes and each other, and
+// must pass allowed. null if there is none.
+function pilePair(random, costs, taken, { distance: [nearest, furthest], margin },
+  { spacing = PILE_SPACING, allowed = () => true } = {}) {
   const [blue, green] = costs;
-  const free = (k) => !taken.some((t) => distance(t, k) < PILE_SPACING);
+  const free = (k) => allowed(k) && !taken.some((t) => distance(t, k) < spacing);
   const options = [];
   for (const a in blue) {
-    if (!free(a) || blue[a] < nearest || blue[a] > furthest || green[a] < blue[a] + margin) {
+    if (blue[a] < nearest || blue[a] > furthest || green[a] < blue[a] + margin || !free(a)) {
       continue;
     }
     for (const b in green) {
-      if (b !== a && free(b) && green[b] === blue[a] && blue[b] === green[a] &&
-        distance(a, b) >= PILE_SPACING) options.push([a, b]);
+      if (b !== a && green[b] === blue[a] && blue[b] === green[a] &&
+        distance(a, b) >= spacing && free(b)) options.push([a, b]);
     }
   }
   return options.length ? pick(random, options) : null;
 }
 
 // Starting piles for a map: one pair per band, then one in the middle. null if they will not
-// fit. Exported so fixed maps can be given piles the same way.
-export function placeStartPiles(random, map, terrainRules) {
+// fit; an extra pair that does not fit is left out. A pile may sit next to an unused factory
+// but not on it. Exported so fixed maps can be given piles the same way.
+export function placeStartPiles(random, map, terrainRules, extraPairs = 0) {
   const costs = map.factories.map((f) => pathCosts(map, terrainRules, f));
   // Keep the factories' surroundings clear for starting units and building.
   const taken = map.factories.flatMap((f) => [f, ...neighbourKeys(f)]);
   const piles = [];
-  for (const [pair, band] of PILE_PAIR_BANDS.entries()) {
-    const sites = pilePair(random, costs, taken, band);
+  const halfWay = Math.ceil(costs[0][map.factories[1]] / 2);
+  const extra = { ...EXTRA_PAIR_BAND, distance: [EXTRA_PAIR_BAND.distance[0], halfWay] };
+  const bands = [...PILE_PAIR_BANDS, ...Array.from({ length: extraPairs }, () => extra)];
+  const unused = (map.neutralFactories || []).map((f) => f.at);
+  const allowed = (k) => !unused.includes(k);
+  for (const [pair, band] of bands.entries()) {
+    const sites = pilePair(random, costs, taken, band, { allowed });
+    if (!sites && band === extra) continue;
     if (!sites) return null;
     taken.push(...sites);
     piles.push({ at: sites[0], pair }, { at: sites[1], pair });
   }
   const [blue, green] = costs;
-  const middle = Object.keys(blue).filter((k) =>
-    blue[k] === green[k] && !taken.some((t) => distance(t, k) < PILE_SPACING));
+  const middle = Object.keys(blue).filter((k) => blue[k] === green[k] && allowed(k) &&
+    !taken.some((t) => distance(t, k) < PILE_SPACING));
   if (!middle.length) return null;
   piles.push({ at: pick(random, middle), pair: null });
   return piles;
+}
+
+// Unused factory sites: count pairs of open hexes with room round them, one nearer each side
+// and mirroring each other's distances from the home factories. null if they will not fit.
+function placeNeutralFactories(random, map, terrainRules, count) {
+  const costs = map.factories.map((f) => pathCosts(map, terrainRules, f));
+  const halfWay = Math.ceil(costs[0][map.factories[1]] / 2);
+  const band = { ...FACTORY_PAIR_BAND, distance: [FACTORY_PAIR_BAND.distance[0], halfWay] };
+  const roomy = (k) => isOpen(map, terrainRules, k) &&
+    neighbourKeys(k).filter((n) => isOpen(map, terrainRules, n)).length >=
+      MIN_FREE_FACTORY_NEIGHBOURS;
+  const taken = [...map.factories];
+  const out = [];
+  for (let pair = 0; pair < count; pair++) {
+    const sites = pilePair(random, costs, taken, band,
+      { spacing: FACTORY_SPACING, allowed: roomy });
+    if (!sites) return null;
+    taken.push(...sites);
+    out.push({ at: sites[0], pair }, { at: sites[1], pair });
+  }
+  return out;
 }
 
 // Starting hexes: the free neighbours of each factory nearest the enemy.
@@ -260,16 +402,27 @@ function startHexes(map, terrainRules, count) {
   });
 }
 
-// A fair random map. The same seed always gives the same map. Layouts that fail the checks
-// in mapProblems are thrown away and redrawn.
-export function generateMap(seed, terrainRules, startUnits) {
+// A fair random map of the given shape. The same seed and shape always give the same map.
+// Layouts that fail the checks in mapProblems are thrown away and redrawn.
+export function generateMap(seed, terrainRules, startUnits, shape = "classic") {
   const random = seededRandom(seed);
+  const layout = layoutFor(shape);
+  const classic = shape === "classic";
+  const id = classic ? `map-${seed}` : `map-${seed}-${shape}`;
+  const name = classic ? `Map ${seed}` : `Map ${seed} (${MAP_SHAPES[shape].name})`;
+  const blockCount = Object.keys(layout.blocks).length;
+  const extraPairs = Math.max(0,
+    Math.round((blockCount - CLASSIC_BLOCKS) / BLOCKS_PER_EXTRA_PAIR));
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const map = buildMap({
-      id: `map-${seed}`, name: `Map ${seed}`, clusters: randomClusters(random),
-      factories: HOME_PAIR, starts: [[], []], deposits: [],
+      id, name, clusters: randomClusters(random, layout),
+      factories: layout.home, starts: [[], []], deposits: [],
     });
-    const deposits = placeStartPiles(random, map, terrainRules);
+    const neutral =
+      placeNeutralFactories(random, map, terrainRules, MAP_SHAPES[shape].factoryPairs);
+    if (!neutral) continue;
+    map.neutralFactories = neutral;
+    const deposits = placeStartPiles(random, map, terrainRules, extraPairs);
     if (!deposits) continue;
     map.deposits = deposits;
     map.starts = startHexes(map, terrainRules, startUnits);
@@ -278,10 +431,15 @@ export function generateMap(seed, terrainRules, startUnits) {
   throw new Error(`No fair map found for seed ${seed}`);
 }
 
-// The map for an id: "fixed-1", or "map-<seed>" for a generated map.
+// The map for an id: "fixed-1", "map-<seed>" for a classic generated map, or
+// "map-<seed>-<shape>" (e.g. "map-17-3-4-4-3") for another shape.
 export function mapById(id, rules) {
   if (id === FIXED_MAP_1.id) return buildMap(FIXED_MAP_1);
-  const seed = Number(String(id).replace(/^map-/, ""));
-  if (!Number.isInteger(seed) || seed < 1) throw new Error(`Unknown map: ${id}`);
-  return generateMap(seed, rules.terrain, rules.start.units.length);
+  const match = /^map-(\d+)(?:-(.+))?$/.exec(String(id));
+  const seed = match ? Number(match[1]) : NaN;
+  const shape = (match && match[2]) || "classic";
+  if (!Number.isInteger(seed) || seed < 1 || !MAP_SHAPES[shape]) {
+    throw new Error(`Unknown map: ${id}`);
+  }
+  return generateMap(seed, rules.terrain, rules.start.units.length, shape);
 }

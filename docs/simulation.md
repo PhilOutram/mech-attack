@@ -62,6 +62,20 @@ Starting the second player with about 40–50 extra crystals evens it out. Phil 
 - The rule-based AI mostly builds the cheaper new units: 253 Attack Helicopters and 164 Anti-Aircraft Jeeps, but 1 Blast Cannon and no Sonic Tanks. It seldom saves up for expensive units, so the splash and line attacks were barely tested. The learning AI (idea 9) is the better way to find out what each unit is worth.
 - The first player now wins 37.5% and blue 30.9%: the 40-crystal bonus was tuned before these units existed and needs rechecking.
 
+## Factory upgrades and unused factories (v0.12, hand-tuned AI)
+
+Fixed map 1, 200 games: the first player wins 57.3% (blue 26.6%); 41 games end with a home factory destroyed, 158 with a player out of units. The 40-crystal bonus still roughly holds for the first player, but blue's seat on fixed map 1 is weak with this AI.
+
+30 games on each shape (maps 1–30, default AI both sides):
+
+| Shape | Captures per game | Infantry built per game | Upgrades bought (30 games) |
+|---|---|---|---|
+| Classic | – (no unused factories) | 0 | Airfield 26, Heavy works 6 |
+| 3-4-4-3 | 4.0 | 10 | Airfield 20, Heavy works 3 |
+| 4-5-5-4 | 5.9 | 21 | Airfield 20, Heavy works 6 |
+
+Capturing is cheap and instant, so factories change hands back and forth: a captured factory can be retaken by one 20-crystal infantry walking in, and the AI keeps sending more. Options if this feels wrong in play: capturing takes a turn (infantry must start their turn next to the factory), or a factory with a defender next to it cannot be captured.
+
 ## Generated maps (100 games each, current rules, `--map`)
 
 After return fire became simultaneous and the fixed map's Crystal Cave moved back to the one hex 7 moves from both factories:

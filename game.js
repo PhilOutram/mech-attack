@@ -1,28 +1,30 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.11";
-import { mapById } from "./maps.js?v=0.11";
+import { RULES } from "./rules-config.js?v=0.12";
+import { mapById, seededRandom } from "./maps.js?v=0.12";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
-  firesBack, STATE_FORMAT,
-} from "./engine.js?v=0.11";
-import { chooseAction } from "./ai.js?v=0.11";
-import { distance } from "./hex.js?v=0.11";
+  firesBack, dropSites, factoryBuilds, upgradeOptions, STATE_FORMAT,
+} from "./engine.js?v=0.12";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.12";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.12";
+import { distance } from "./hex.js?v=0.12";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.11";
-import { confirmDialog } from "./dialog.js?v=0.11";
+} from "./board.js?v=0.12";
+import { confirmDialog } from "./dialog.js?v=0.12";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
 const SAVE_KEY = "mech-attack.save";
 const RECENT_KEY = "mech-attack.recent-maps";
-const UNDO_KEY = "mech-attack.undos";
+// Per-game extras kept beside the save: undos left and whether surrender was demanded.
+const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.11";
+const ASSET_VERSION = "0.12";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -32,9 +34,12 @@ const MAX_ZOOM = 4;
 const WHEEL_ZOOM_RATE = 0.0015;
 const MAX_SEED = 2 ** 31;
 const MESSAGE_LINES = 2;
+const PERCENT = 100;
 
 const REASONS = {
-  factoryDestroyed: "the factory was destroyed",
+  factoryDestroyed: "the home factory was destroyed",
+  factoryCaptured: "the home factory was captured",
+  noFactories: "no factories left",
   noUnits: "no units left and not enough crystals to build one",
   roundCap: "the round limit was reached",
   resigned: "quit the game",
@@ -46,6 +51,10 @@ const ui = { selectedId: null, mode: null, buildType: null, busy: false, effects
 // Undo: states before each of your actions this turn, and how many undos the game has left.
 let history = [];
 let undosLeft = 0;
+// Demand surrender can be used once per game.
+let surrenderUsed = false;
+// The AI's personality for this game.
+let aiPersonality = DEFAULT_PERSONALITY;
 let fitBox = null;
 let viewBox = null;
 let els = null;
@@ -81,20 +90,29 @@ function gameId() {
   return `${state.map.id}:${state.seed}`;
 }
 
-function loadUndos() {
+// Undos left and whether surrender was demanded, for the current game; a new game starts
+// afresh.
+function loadExtras() {
   try {
-    const saved = JSON.parse(localStorage.getItem(UNDO_KEY));
-    return saved && saved.game === gameId() ? saved.left : RULES.undosPerGame;
+    const saved = JSON.parse(localStorage.getItem(EXTRAS_KEY));
+    if (saved && saved.game === gameId()) {
+      undosLeft = saved.undosLeft;
+      surrenderUsed = saved.surrenderUsed;
+      return;
+    }
   } catch {
-    return RULES.undosPerGame;
+    // Unreadable: fall through to a fresh start.
   }
+  undosLeft = RULES.undosPerGame;
+  surrenderUsed = false;
 }
 
-function saveUndos() {
+function saveExtras() {
   try {
-    localStorage.setItem(UNDO_KEY, JSON.stringify({ game: gameId(), left: undosLeft }));
+    localStorage.setItem(EXTRAS_KEY,
+      JSON.stringify({ game: gameId(), undosLeft, surrenderUsed }));
   } catch {
-    // Storage can be full or blocked; undos still work until the page is closed.
+    // Storage can be full or blocked; the game carries on until the page is closed.
   }
 }
 
@@ -124,8 +142,25 @@ function noteMap(map, result = null) {
   }
 }
 
-export function newMapId() {
-  return `map-${1 + Math.floor(Math.random() * NEW_MAP_RANGE)}`;
+// The AI's personality for a game: one of the evolved ones, picked by the game's seed so a
+// resumed game keeps the same opponent. Genes an evolved personality lacks (bred before the
+// gene existed) come from the default.
+function personalityFor(seed) {
+  const list = EVOLVED_PERSONALITIES;
+  if (!list.length) return DEFAULT_PERSONALITY;
+  return { ...DEFAULT_PERSONALITY, ...list[seed % list.length].personality };
+}
+
+// A new random map id of the given shape ("classic" or e.g. "3-4-4-3").
+export function newMapId(shape = "classic") {
+  const number = 1 + Math.floor(Math.random() * NEW_MAP_RANGE);
+  return shape === "classic" ? `map-${number}` : `map-${number}-${shape}`;
+}
+
+// The shape of a map id, so New game keeps the shape just played.
+function shapeOf(mapId) {
+  const match = /^map-\d+-(.+)$/.exec(mapId);
+  return match ? match[1] : "classic";
 }
 
 // ---------------------------------------------------------------------------------------
@@ -143,11 +178,17 @@ export async function openGame({ resume = false, mapId = "fixed-1", onLeave }) {
     noteMap(map);
     save();
   }
+  aiPersonality = personalityFor(state.seed);
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."] });
   history = [];
-  undosLeft = resume ? loadUndos() : RULES.undosPerGame;
-  saveUndos();
+  if (resume) {
+    loadExtras();
+  } else {
+    undosLeft = RULES.undosPerGame;
+    surrenderUsed = false;
+  }
+  saveExtras();
   els.screen.hidden = false;
   els.over.hidden = true;
   preloadArt();
@@ -178,7 +219,8 @@ function wire(onLeave) {
   els.home.addEventListener("click", leave);
   els.toTitle.addEventListener("click", leave);
   els.again.addEventListener("click", () => openGame({ mapId: state.map.id, onLeave }));
-  els.newMap.addEventListener("click", () => openGame({ mapId: newMapId(), onLeave }));
+  els.newMap.addEventListener("click", () =>
+    openGame({ mapId: newMapId(shapeOf(state.map.id)), onLeave }));
   els.endTurn.addEventListener("click", () => {
     if (!myTurn()) return;
     act({ type: "endTurn" });
@@ -246,17 +288,49 @@ function undo() {
       revealed: { ...knew.revealed },
       explored: { ...knew.explored },
       seenCrystals: { ...knew.seenCrystals },
-      seenFactory: knew.seenFactory,
+      seenFactories: { ...knew.seenFactories },
     })),
     events: [],
   };
   undosLeft -= 1;
-  saveUndos();
+  saveExtras();
   save();
   ui.selectedId = null;
   ui.mode = null;
   ui.buildType = null;
   say(`Undone. ${undosLeft} undo${undosLeft === 1 ? "" : "s"} left this game.`);
+  render();
+}
+
+// Demand surrender (once per game): the AI plays the game on from here several times and
+// surrenders if it wins too few of them.
+async function demandSurrender() {
+  if (!myTurn() || surrenderUsed) return;
+  surrenderUsed = true;
+  saveExtras();
+  ui.busy = true;
+  say("Green is considering your demand…");
+  render();
+  const random = seededRandom(state.seed + state.round);
+  const personalities = [];
+  personalities[HUMAN] = DEFAULT_PERSONALITY;
+  personalities[AI_PLAYER] = aiPersonality;
+  let total = 0;
+  for (let i = 0; i < RULES.surrenderPlayouts; i++) {
+    total += playout(state, AI_PLAYER, personalities, random);
+    await sleep(0); // let the screen breathe between playouts
+  }
+  ui.busy = false;
+  const chance = total / RULES.surrenderPlayouts;
+  if (chance < RULES.surrenderBelow) {
+    state = applyAction(state, { type: "resign", player: AI_PLAYER });
+    history = [];
+    save();
+    render();
+    showGameOver();
+    return;
+  }
+  say(`Green refuses: it rates its chances at ${Math.round(chance * PERCENT)}%.`);
   render();
 }
 
@@ -286,7 +360,7 @@ async function runAiTurn() {
   render();
   while (!state.result && state.current === AI_PLAYER) {
     const before = viewFor(state, HUMAN);
-    state = applyAction(state, chooseAction(viewFor(state, AI_PLAYER)));
+    state = applyAction(state, chooseAction(viewFor(state, AI_PLAYER), aiPersonality));
     const after = viewFor(state, HUMAN);
     const seen = showEvents(state.events, before, after);
     if (seen) {
@@ -308,10 +382,12 @@ function sleep(ms) {
 // ---------------------------------------------------------------------------------------
 // Events: messages and explosions for what blue can see
 
+const OWNER_WORDS = { [HUMAN]: "Your", [AI_PLAYER]: "Green", null: "Unused" };
+
 function unitName(view, unitId, fallbackType, owner) {
   const unit = view.units[unitId];
   const type = unit ? unit.type : fallbackType;
-  const who = (unit ? unit.owner : owner) === HUMAN ? "Your" : "Green";
+  const who = OWNER_WORDS[unit ? unit.owner : owner];
   return `${who} ${type ? RULES.units[type].name : "unit"}`;
 }
 
@@ -366,6 +442,21 @@ function showEvents(events, before, after) {
       lines.push(`${unitName(after, e.unitId)} built.`);
     } else if (e.type === "heal" && seen(after.units[e.unitId]?.at)) {
       lines.push(`${unitName(after, e.targetId)} repaired.`);
+    } else if (e.type === "capture" && (seen(e.at) || e.from === HUMAN)) {
+      any = true;
+      const whose = e.from === null ? "an unused" : e.from === HUMAN ? "your" : "Green's";
+      lines.push(`${e.owner === HUMAN ? "Your infantry" : "Green's infantry"} captured ` +
+        `${whose} factory.`);
+    } else if (e.type === "board" && seen(e.at)) {
+      any = true;
+      lines.push(`Infantry boarded ${unitName(after, e.transporterId).toLowerCase()}.`);
+    } else if (e.type === "drop" && seen(e.at)) {
+      any = true;
+      lines.push(`${unitName(after, e.transporterId)} dropped off infantry.`);
+    } else if (e.type === "upgrade" && seen(e.at)) {
+      any = true;
+      const upgrade = RULES.factoryUpgrades[e.upgrade].name;
+      lines.push(`${unitName(after, e.factoryId)} added ${upgrade}.`);
     }
   }
   for (const line of lines) say(line);
@@ -395,6 +486,7 @@ const MODES = {
   fire: { label: "Fire", style: "fire" },
   harvest: { label: "Harvest", style: "harvest" },
   heal: { label: "Repair", style: "heal" },
+  drop: { label: "Drop off", style: "move" },
 };
 
 function targetsFor(view, mode, unitId) {
@@ -402,7 +494,12 @@ function targetsFor(view, mode, unitId) {
   if (mode === "fire") return attackTargets(view, unitId).map((id) => view.units[id].at);
   if (mode === "harvest") return harvestTargets(view, unitId);
   if (mode === "heal") return healTargets(view, unitId).map((id) => view.units[id].at);
-  if (mode === "build") return buildSites(view, HUMAN);
+  if (mode === "drop") return dropSites(view, unitId);
+  if (mode === "build") {
+    // Next to the selected factory only.
+    const factory = view.units[unitId];
+    return buildSites(view, HUMAN, ui.buildType).filter((k) => distance(k, factory.at) === 1);
+  }
   return [];
 }
 
@@ -417,6 +514,7 @@ function actionFor(view, mode, unitId, k) {
   if (mode === "fire") return { type: "attack", unitId, targetId: unitOn.id };
   if (mode === "harvest") return { type: "harvest", unitId, at: k };
   if (mode === "heal") return { type: "heal", unitId, targetId: unitOn.id };
+  if (mode === "drop") return { type: "drop", unitId, at: k };
   if (mode === "build") return { type: "build", unitType: ui.buildType, at: k };
   return null;
 }
@@ -454,8 +552,12 @@ function onPanelClick(event) {
     render();
   } else if (order === "unload" || order === "setUp" || order === "packUp") {
     act({ type: order, unitId });
+  } else if (order === "upgrade") {
+    act({ type: "upgrade", factoryId: unitId, upgrade: type });
   } else if (order === "undo") {
     undo();
+  } else if (order === "surrender") {
+    demandSurrender();
   }
 }
 
@@ -536,8 +638,45 @@ function statLine(stats) {
   if (stats.reload) parts.push("Fires every other turn");
   if (stats.storage) parts.push(`Storage ${stats.storage}`);
   if (stats.healing) parts.push(`Repair ${stats.healing}`);
+  if (stats.captures) parts.push("Captures factories");
+  if (stats.carries) parts.push(`Carries ${stats.carries} infantry`);
   parts.push(`Sight ${stats.sight}`);
   return parts.join(" · ");
+}
+
+// What a factory upgrade unlocks, e.g. "Heavy Cannon, Blast Cannon, Sonic Tank".
+function unlocks(upgrade) {
+  return Object.values(RULES.units).filter((s) => s.needs === upgrade).map((s) => s.name)
+    .join(", ");
+}
+
+// A factory's panel: its upgrades, then the units it can build. Unused and enemy factories
+// show only what they are.
+function factoryPanel(view, unit, head) {
+  if (unit.owner !== HUMAN) {
+    const hint = unit.owner === null ? "Move infantry into it to capture it." : "";
+    els.panel.innerHTML = `${head}<p class="panel-hint">${hint}</p>`;
+    return;
+  }
+  const crystals = view.players[HUMAN].crystals;
+  const upgradeOrders = upgradeOptions(view, unit.id).map((upgrade) => {
+    const { name: upgradeName, cost } = RULES.factoryUpgrades[upgrade];
+    const label = `Add ${upgradeName}<span class="cost">${cost}</span>`;
+    return orderButton("upgrade", label, myTurn() && cost <= crystals, false,
+      ` data-type="${upgrade}" title="Unlocks ${unlocks(upgrade)}"`);
+  }).join("");
+  const buildOrders = buildableTypes(view).filter((type) => factoryBuilds(view, unit, type))
+    .map((type) => {
+      const cost = view.rules.units[type].cost;
+      const label = `<img src="${unitImage(type, HUMAN)}" alt="">` +
+        `${view.rules.units[type].name}<span class="cost">${cost}</span>`;
+      const sites = buildSites(view, HUMAN, type).some((k) => distance(k, unit.at) === 1);
+      const active = ui.mode === "build" && ui.buildType === type;
+      return orderButton("build", label, myTurn() && sites && cost <= crystals, active,
+        ` data-type="${type}"`);
+    }).join("");
+  els.panel.innerHTML = `${head}<div class="orders build-orders">${upgradeOrders}` +
+    `${buildOrders}</div><div class="orders">${undoButton()}</div>`;
 }
 
 function orderButton(order, label, enabled, active = false, extra = "") {
@@ -558,49 +697,47 @@ function renderPanel(view) {
       ? "Tap a unit to see its orders, or your factory to build. Drag to pan, pinch or " +
         "scroll to zoom."
       : "Green is taking its turn.";
-    const undoRow = history.length ? `<div class="orders">${undoButton()}</div>` : "";
-    els.panel.innerHTML = `<p class="panel-hint">${hint}</p>${undoRow}`;
+    const undo = history.length ? undoButton() : "";
+    const surrender = orderButton("surrender",
+      surrenderUsed ? "Surrender demanded" : "Demand surrender", myTurn() && !surrenderUsed);
+    els.panel.innerHTML = `<p class="panel-hint">${hint}</p>` +
+      `<div class="orders">${undo}${surrender}</div>`;
     return;
   }
   const stats = unitStats(view, unit);
   const mine = unit.owner === HUMAN;
-  const lives = unit.lives < view.rules.lives ? "Damaged" : "Undamaged";
-  const carrying = stats.storage ? ` · Carrying ${unit.carrying}/${stats.storage}` : "";
-  const setUp = unit.setUp ? " · Set up" : "";
-  const reloading = unit.cooldown > 0 ? " · Reloading" : "";
-  const head = `<div class="panel-head">` +
-    (stats.isFactory ? `<img src="units/factory.svg" alt="">`
-      : `<img src="${unitImage(unit.type, unit.owner)}" alt="">`) +
-    `<div><h2>${mine ? "Your" : "Green"} ${stats.name}</h2>` +
-    `<p>${lives}${carrying}${setUp}${reloading}</p>` +
+  const status = [unit.lives < view.rules.lives ? "Damaged" : "Undamaged"];
+  let name = `${OWNER_WORDS[unit.owner]} ${stats.name}`;
+  if (stats.isFactory) {
+    const home = view.players.some((p) => p.factoryId === unit.id);
+    name = `${OWNER_WORDS[unit.owner]} ${home ? "home factory" : "factory"}`;
+    const upgrades = unit.upgrades.map((u) => RULES.factoryUpgrades[u].name);
+    status.push(upgrades.length ? upgrades.join(" · ") : "Light units only");
+  }
+  if (stats.storage) status.push(`Carrying ${unit.carrying}/${stats.storage}`);
+  if (stats.carries) status.push(`Infantry on board ${unit.cargo.length}/${stats.carries}`);
+  if (unit.setUp) status.push("Set up");
+  if (unit.cooldown > 0) status.push("Reloading");
+  const image = stats.isFactory ? "units/factory.svg" : unitImage(unit.type, unit.owner);
+  const head = `<div class="panel-head"><img src="${image}" alt="">` +
+    `<div><h2>${name}</h2><p>${status.join(" · ")}</p>` +
     `<p class="stats">${statLine(stats)}</p></div></div>`;
 
+  if (stats.isFactory) {
+    factoryPanel(view, unit, head);
+    return;
+  }
   if (!mine) {
     els.panel.innerHTML = head;
     return;
   }
 
   let orders = "";
-  if (stats.isFactory) {
-    const crystals = view.players[HUMAN].crystals;
-    const sites = buildSites(view, HUMAN).length > 0;
-    orders = buildableTypes(view).map((type) => {
-      const cost = view.rules.units[type].cost;
-      const label = `<img src="${unitImage(type, HUMAN)}" alt="">${view.rules.units[type].name}` +
-        `<span class="cost">${cost}</span>`;
-      const active = ui.mode === "build" && ui.buildType === type;
-      return orderButton("build", label, myTurn() && sites && cost <= crystals, active,
-        ` data-type="${type}"`);
-    }).join("");
-    els.panel.innerHTML = `${head}<div class="orders build-orders">${orders}</div>` +
-      `<div class="orders">${undoButton()}</div>`;
-    return;
-  }
-
   for (const mode in MODES) {
     if (mode === "harvest" && !stats.storage) continue;
     if (mode === "heal" && !stats.healing) continue;
     if (mode === "fire" && !stats.attack) continue;
+    if (mode === "drop" && !stats.carries) continue;
     const enabled = myTurn() && targetsFor(view, mode, unit.id).length > 0;
     orders += orderButton(mode, MODES[mode].label, enabled, ui.mode === mode);
   }
@@ -625,9 +762,11 @@ function showGameOver() {
     winner === HUMAN ? "You win" : winner === AI_PLAYER ? "Green wins" : "Draw";
   const round = `(round ${state.result.round})`;
   const loser = winner === null ? "" : `${PLAYER_COLOURS[1 - winner].name}: `;
-  els.overText.textContent = reason === "resigned" && winner === AI_PLAYER
-    ? `You quit ${round}.`
-    : `${loser}${REASONS[reason]} ${round}.`;
+  let text = `${loser}${REASONS[reason]} ${round}.`;
+  if (reason === "resigned") {
+    text = winner === AI_PLAYER ? `You quit ${round}.` : `Green surrendered ${round}.`;
+  }
+  els.overText.textContent = text;
   els.over.hidden = false;
 }
 
