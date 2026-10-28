@@ -368,6 +368,16 @@ h1 {
   animation: none;
 }
 
+.confirm-text {
+  margin: 0;
+  color: var(--text);
+}
+
+.map-picker-card .confirm-yes {
+  background-color: var(--accent);
+  color: var(--bg);
+}
+
 .map-choices {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -720,6 +730,26 @@ h1 {
 .game-over-card p {
   margin: 0;
   color: var(--muted);
+}
+
+/* Narrow screens: the bar holds the home button, round, crystals, Quit and End turn on one
+   row, so the map name is left out and the buttons are tighter. */
+@media (max-width: 520px) {
+  .map-name {
+    display: none;
+  }
+
+  .game-bar {
+    gap: 0.45rem;
+  }
+
+  .end-turn {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .quit-game {
+    padding: 0.5rem 0.55rem;
+  }
 }
 
 /* Landscape: the map gets a square on the right, as tall as the screen; the bar, messages

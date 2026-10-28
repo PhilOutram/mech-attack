@@ -96,6 +96,9 @@ export const RULES = {
   // 28 October 2026).
   fog: { mode: "tiles", revealRange: 1 },
 
+  // Undos per game for the player on the game screen (the engine does not use this).
+  undosPerGame: 5,
+
   // Provisional: a game reaching this round ends with no winner.
   roundCap: 100,
 };

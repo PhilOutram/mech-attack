@@ -684,6 +684,15 @@ describe("winning", () => {
     assert.equal(s.result.reason, "noUnits");
   });
 
+  test("a player who quits loses, and quitting is never offered to the AI", () => {
+    const s = scenario({
+      units: [unit("a", "tank", BLUE, "0,0"), unit("e", "tank", GREEN, "3,-6")],
+    });
+    assert.equal(legalActions(s).some((a) => a.type === "resign"), false);
+    const over = play(s, { type: "resign", player: BLUE });
+    assert.deepEqual(over.result, { winner: GREEN, reason: "resigned", round: 1 });
+  });
+
   test("reaching the round cap ends the game with no winner", () => {
     let s = scenario({
       units: [unit("a", "tank", BLUE, "0,0"), unit("e", "tank", GREEN, "3,-6")],

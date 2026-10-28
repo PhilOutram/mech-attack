@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.06" />
+  <link rel="stylesheet" href="styles.css?v=0.07" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -70,6 +70,7 @@
       <div class="game-crystals" title="Your crystals">
         <img src="units/crystals.svg" alt="Crystals" /><span id="game-crystals"></span>
       </div>
+      <button id="quit-game" class="end-turn quit-game" type="button">Quit</button>
       <button id="end-turn" class="end-turn" type="button">End turn</button>
     </header>
     <div class="board-wrap">
@@ -91,6 +92,18 @@
     </div>
   </main>
 
-  <script src="app.js?v=0.06" type="module"></script>
+  <div id="confirm-dialog" class="map-picker" hidden>
+    <div class="map-picker-card" role="alertdialog" aria-labelledby="confirm-title"
+      aria-describedby="confirm-text">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-text" class="confirm-text"></p>
+      <div class="map-choices">
+        <button id="confirm-no" class="start-btn" type="button"></button>
+        <button id="confirm-yes" class="start-btn confirm-yes" type="button"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=0.07" type="module"></script>
 </body>
 </html>

@@ -5,8 +5,8 @@
 import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, applyAction, viewFor,
-} from "./engine.js?v=0.06";
-import { neighbourKeys, distance } from "./hex.js?v=0.06";
+} from "./engine.js?v=0.07";
+import { neighbourKeys, distance } from "./hex.js?v=0.07";
 
 // Worth of one life of the enemy factory, compared with unit costs in crystals.
 const FACTORY_LIFE_VALUE = 200;

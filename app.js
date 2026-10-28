@@ -1,7 +1,8 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.06";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.06";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.06";
+import { VERSION, CHANGELOG } from "./version.js?v=0.07";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.07";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.07";
+import { confirmDialog } from "./dialog.js?v=0.07";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -26,8 +27,13 @@ refreshMenu();
 
 const picker = document.getElementById("map-picker");
 
-document.getElementById("menu-play").addEventListener("click", () => {
-  const replace = !hasSavedGame() || confirm("Start a new game? Your saved game will be lost.");
+document.getElementById("menu-play").addEventListener("click", async () => {
+  const replace = !hasSavedGame() || await confirmDialog({
+    title: "New game?",
+    text: "You have a game in progress. Starting a new one ends it.",
+    confirm: "New game",
+    cancel: "Keep it",
+  });
   if (replace) showMapPicker();
 });
 resume.addEventListener("click", () => play({ resume: true }));

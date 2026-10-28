@@ -1,26 +1,28 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.06";
-import { mapById } from "./maps.js?v=0.06";
+import { RULES } from "./rules-config.js?v=0.07";
+import { mapById } from "./maps.js?v=0.07";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, STATE_FORMAT,
-} from "./engine.js?v=0.06";
-import { chooseAction } from "./ai.js?v=0.06";
-import { distance } from "./hex.js?v=0.06";
+} from "./engine.js?v=0.07";
+import { chooseAction } from "./ai.js?v=0.07";
+import { distance } from "./hex.js?v=0.07";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.06";
+} from "./board.js?v=0.07";
+import { confirmDialog } from "./dialog.js?v=0.07";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
 const SAVE_KEY = "mech-attack.save";
 const RECENT_KEY = "mech-attack.recent-maps";
+const UNDO_KEY = "mech-attack.undos";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.06";
+const ASSET_VERSION = "0.07";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -35,11 +37,15 @@ const REASONS = {
   factoryDestroyed: "the factory was destroyed",
   noUnits: "no units left and not enough crystals to build one",
   roundCap: "the round limit was reached",
+  resigned: "quit the game",
 };
 
 let state = null;
 const ui = { selectedId: null, mode: null, buildType: null, busy: false, effects: [],
   messages: [] };
+// Undo: states before each of your actions this turn, and how many undos the game has left.
+let history = [];
+let undosLeft = 0;
 let fitBox = null;
 let viewBox = null;
 let els = null;
@@ -67,6 +73,28 @@ function save() {
     else localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch {
     // Storage can be full or blocked; the game carries on without saving.
+  }
+}
+
+// Undos left in the current game, kept with an id for the game so a new game starts afresh.
+function gameId() {
+  return `${state.map.id}:${state.seed}`;
+}
+
+function loadUndos() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(UNDO_KEY));
+    return saved && saved.game === gameId() ? saved.left : RULES.undosPerGame;
+  } catch {
+    return RULES.undosPerGame;
+  }
+}
+
+function saveUndos() {
+  try {
+    localStorage.setItem(UNDO_KEY, JSON.stringify({ game: gameId(), left: undosLeft }));
+  } catch {
+    // Storage can be full or blocked; undos still work until the page is closed.
   }
 }
 
@@ -117,6 +145,9 @@ export async function openGame({ resume = false, mapId = "fixed-1", onLeave }) {
   }
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."] });
+  history = [];
+  undosLeft = resume ? loadUndos() : RULES.undosPerGame;
+  saveUndos();
   els.screen.hidden = false;
   els.over.hidden = true;
   preloadArt();
@@ -134,6 +165,7 @@ function findElements() {
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
     again: $("play-again"), newMap: $("play-new-map"), toTitle: $("game-over-home"),
+    quit: $("quit-game"),
   };
 }
 
@@ -152,6 +184,7 @@ function wire(onLeave) {
     act({ type: "endTurn" });
     runAiTurn();
   });
+  els.quit.addEventListener("click", quitGame);
   els.panel.addEventListener("click", onPanelClick);
   wireBoardInput();
   window.addEventListener("resize", () => {
@@ -168,6 +201,7 @@ function myTurn() {
 
 function act(action) {
   const before = viewFor(state, HUMAN);
+  const previous = state;
   try {
     state = applyAction(state, action);
   } catch (error) {
@@ -175,6 +209,9 @@ function act(action) {
     render();
     return false;
   }
+  // Undo can step back through this turn's actions; ending the turn closes them off.
+  if (action.type === "endTurn") history = [];
+  else history.push(previous);
   showEvents(state.events, before, viewFor(state, HUMAN));
   save();
   afterAction(action);
@@ -194,6 +231,50 @@ function afterAction(action) {
   const view = viewFor(state, HUMAN);
   if (!view.units[ui.selectedId]) ui.selectedId = null;
   ui.mode = ui.selectedId ? defaultMode(view, view.units[ui.selectedId]) : null;
+}
+
+// Takes back your last action this turn. What it revealed stays revealed: you cannot un-see
+// a block you have turned over, just as on the table.
+function undo() {
+  if (!myTurn() || !history.length || undosLeft <= 0) return;
+  const previous = history.pop();
+  const knew = state.players[HUMAN];
+  state = {
+    ...previous,
+    players: previous.players.map((player, p) => (p !== HUMAN ? player : {
+      ...player,
+      revealed: { ...knew.revealed },
+      explored: { ...knew.explored },
+      seenCrystals: { ...knew.seenCrystals },
+      seenFactory: knew.seenFactory,
+    })),
+    events: [],
+  };
+  undosLeft -= 1;
+  saveUndos();
+  save();
+  ui.selectedId = null;
+  ui.mode = null;
+  ui.buildType = null;
+  say(`Undone. ${undosLeft} undo${undosLeft === 1 ? "" : "s"} left this game.`);
+  render();
+}
+
+// Quit: asks first, then ends the game as a loss for you.
+async function quitGame() {
+  if (!state || state.result) return;
+  const sure = await confirmDialog({
+    title: "Quit this game?",
+    text: "Quitting counts as a loss on this map.",
+    confirm: "Quit",
+    cancel: "Keep playing",
+  });
+  if (!sure || !state || state.result) return;
+  state = applyAction(state, { type: "resign", player: HUMAN });
+  history = [];
+  save();
+  render();
+  showGameOver();
 }
 
 async function runAiTurn() {
@@ -370,6 +451,8 @@ function onPanelClick(event) {
     render();
   } else if (order === "unload" || order === "setUp" || order === "packUp") {
     act({ type: order, unitId });
+  } else if (order === "undo") {
+    undo();
   }
 }
 
@@ -424,7 +507,7 @@ function rangeHexes(view) {
 }
 
 function renderBar(view) {
-  els.round.textContent = `${view.map.name} · Round ${view.round}`;
+  els.round.innerHTML = `<span class="map-name">${view.map.name} · </span>Round ${view.round}`;
   els.turn.textContent = view.current === HUMAN ? "Your turn" : "Green's turn";
   els.turn.className = view.current === HUMAN ? "turn-blue" : "turn-green";
   els.crystals.textContent = view.players[HUMAN].crystals;
@@ -446,13 +529,21 @@ function orderButton(order, label, enabled, active = false, extra = "") {
     `${extra}${enabled ? "" : " disabled"}>${label}</button>`;
 }
 
+// Undo sits with the orders; it shows how many undos the game has left.
+function undoButton() {
+  const enabled = myTurn() && history.length > 0 && undosLeft > 0;
+  return orderButton("undo", `Undo (${undosLeft})`, enabled);
+}
+
 function renderPanel(view) {
   const unit = view.units[ui.selectedId];
   if (!unit) {
-    els.panel.innerHTML = `<p class="panel-hint">${myTurn()
+    const hint = myTurn()
       ? "Tap a unit to see its orders, or your factory to build. Drag to pan, pinch or " +
         "scroll to zoom."
-      : "Green is taking its turn."}</p>`;
+      : "Green is taking its turn.";
+    const undoRow = history.length ? `<div class="orders">${undoButton()}</div>` : "";
+    els.panel.innerHTML = `<p class="panel-hint">${hint}</p>${undoRow}`;
     return;
   }
   const stats = unitStats(view, unit);
@@ -483,7 +574,8 @@ function renderPanel(view) {
       return orderButton("build", label, myTurn() && sites && cost <= crystals, active,
         ` data-type="${type}"`);
     }).join("");
-    els.panel.innerHTML = `${head}<div class="orders build-orders">${orders}</div>`;
+    els.panel.innerHTML = `${head}<div class="orders build-orders">${orders}</div>` +
+      `<div class="orders">${undoButton()}</div>`;
     return;
   }
 
@@ -502,6 +594,7 @@ function renderPanel(view) {
       ? orderButton("packUp", "Pack up", myTurn() && canPackUp(view, unit.id))
       : orderButton("setUp", "Set up", myTurn() && canSetUp(view, unit.id));
   }
+  orders += undoButton();
   const finished = `<p class="panel-hint">Finished for this turn.</p>`;
   const done = unit.moved && unit.acted ? finished : "";
   els.panel.innerHTML = `${head}<div class="orders">${orders}</div>${done}`;
@@ -512,8 +605,11 @@ function showGameOver() {
   noteMap(state.map, state.result);
   els.overTitle.textContent =
     winner === HUMAN ? "You win" : winner === AI_PLAYER ? "Green wins" : "Draw";
+  const round = `(round ${state.result.round})`;
   const loser = winner === null ? "" : `${PLAYER_COLOURS[1 - winner].name}: `;
-  els.overText.textContent = `${loser}${REASONS[reason]} (round ${state.result.round}).`;
+  els.overText.textContent = reason === "resigned" && winner === AI_PLAYER
+    ? `You quit ${round}.`
+    : `${loser}${REASONS[reason]} ${round}.`;
   els.over.hidden = false;
 }
 

@@ -89,6 +89,11 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 - Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory, each pair of starting piles the same path distance from its own and the enemy factory, and the middle pile the same distance from both. Layouts that fail are redrawn.
 - The simulator shows these checks are not enough on their own (see `docs/simulation.md`).
 
+## Quitting and undo
+
+- **Quit** ends the game as a loss for the player who quits (the engine's `resign` action, never chosen by the AI). It counts as a loss on that map.
+- **Undo** (game screen only): take back your last action this turn; press again to go further back. 5 undos per game (`undosPerGame`). Ending the turn closes the turn's actions off. Anything an undone action revealed stays revealed: you cannot un-see a block you have turned over.
+
 ## Open questions
 
 - Factory claiming: start with a headquarters factory (current), or start near unused factories and claim one?
