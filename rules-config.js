@@ -64,9 +64,12 @@ export const RULES = {
     harvestFrom: "adjacent", // stop next to crystals to harvest them
     crushedByMovement: true, // units can drive over crystals, which destroys them
     startAmount: 50, // each of the map's starting piles
-    spawnPerRound: 1, // provisional
+    // After each turn, every pile not harvested during that turn grows by growthPerTurn.
+    growthPerTurn: 5,
+    // How many new piles spawn after each turn: one of these, drawn at the start of each
+    // round, so the same number appears before both players' turns (provisional).
+    spawnChoices: [0, 1],
     spawnAmount: 10,
-    growthPerRound: 10, // every pile, each round it is not harvested
     explodeAt: 80, // a pile that grows to this explodes and its crystals are lost
     spawnMinDistanceFromFactory: 3, // provisional
   },

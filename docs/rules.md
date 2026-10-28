@@ -23,9 +23,11 @@ Units can drive onto or over crystals, and doing so destroys them (`crystals.cru
 
 ### Crystal piles grow and explode
 - Each map starts with crystal piles of 50 (`crystals.startAmount`): 4 fair pairs, one pile of each pair per side, plus one pile equally far from both factories. The old Crystals / Crystal Base / Crystal Cave deposits (180, 500, 560) are gone.
-- New piles of 10 spawn during the game.
-- Every pile grows by 10 at the end of each round in which it is not harvested.
-- A pile that reaches 80 (`crystals.explodeAt`) explodes and its crystals are lost. A starting pile left alone explodes at the end of its third round (50, 60, 70, 80). A pile's number turns red when it will explode at the end of the round.
+- Crystals change between goes, never during them, so neither player gets an advantage (Phil, 28 October 2026). After every turn, yours and the AI's:
+  - every pile not harvested during that turn grows by 5 (`crystals.growthPerTurn`), so 10 a round;
+  - a pile that reaches 80 (`crystals.explodeAt`) explodes and its crystals are lost;
+  - new piles of 10 spawn on random empty hexes. How many is drawn once at the start of each round from `crystals.spawnChoices` (provisional: 0 or 1), and that same number appears after both players' turns, so each player gets the same number of new piles before their turn.
+- A starting pile left alone explodes after three rounds (50, 55, ... 80). A pile's number turns red when it will explode at the end of the current turn.
 - A harvest takes as much as the unit can carry.
 
 Options for later, not built yet:
@@ -59,7 +61,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Rocky ground | Costs 2 movement and adds 5 to defence | `terrain.rocky` |
 | Mountains | Cannot be entered; block line of sight | `terrain.mountain` |
 | Chasms | Cannot be entered; do not block line of sight | `terrain.chasm` |
-| Crystal spawns | One new pile of 10 per round, on a random empty open hex at least 3 hexes from both factories | `crystals.spawnPerRound`, `spawnMinDistanceFromFactory` |
+| Crystal spawns | 0 or 1 new piles of 10 after each turn (the same number after both turns of a round), on a random empty open hex at least 3 hexes from both factories | `crystals.spawnChoices`, `spawnMinDistanceFromFactory` |
 | Round limit | A game reaching round 100 ends with no winner | `roundCap` |
 | Carried crystals | Lost when the carrying unit is destroyed | |
 

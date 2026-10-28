@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.05";
-import { unitStats, defenceOf } from "./engine.js?v=0.05";
+import { parseKey, toPixel } from "./hex.js?v=0.06";
+import { unitStats, defenceOf } from "./engine.js?v=0.06";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -180,13 +180,13 @@ function drawCrystals(view) {
   for (const k in view.crystals) {
     const pile = view.crystals[k];
     const [x, y] = hexCentre(k);
-    const { explodeAt, growthPerRound } = view.rules.crystals;
+    const { explodeAt, growthPerTurn } = view.rules.crystals;
     const share = Math.min(1, pile.amount / explodeAt);
     const scale = CRYSTAL_MIN_SCALE + (CRYSTAL_MAX_SCALE - CRYSTAL_MIN_SCALE) * share;
     const size = HEX_HEIGHT * scale;
     out += image("units/crystals.svg", x, y - HEX_HEIGHT * 0.06, size, size);
-    // Red when the pile will explode at the end of this round unless someone harvests it.
-    const warn = pile.amount + growthPerRound >= explodeAt ? " crystal-warning" : "";
+    // Red when the pile will explode at the end of this turn unless someone harvests it.
+    const warn = pile.amount + growthPerTurn >= explodeAt ? " crystal-warning" : "";
     out += label(pile.amount, x, y + HEX_HEIGHT * 0.38, `board-label crystal-label${warn}`);
   }
   return out;

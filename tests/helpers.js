@@ -38,7 +38,7 @@ export function testMap(terrain = {}) {
 export function testRules(overrides = {}) {
   const rules = structuredClone(RULES);
   rules.start.units = [];
-  rules.crystals.spawnPerRound = 0;
+  rules.crystals.spawnChoices = [0];
   for (const section in overrides) Object.assign(rules[section], overrides[section]);
   return rules;
 }
@@ -64,7 +64,7 @@ export function scenario({
     };
   }
   for (const k in crystals) {
-    state.crystals[k] = { harvestedThisRound: false, ...crystals[k] };
+    state.crystals[k] = { harvestedThisTurn: false, ...crystals[k] };
   }
   state.players.forEach((player, p) => {
     player.crystals = playerCrystals[p];

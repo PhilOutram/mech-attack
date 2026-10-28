@@ -4,7 +4,7 @@
 // a fair random map from a seed, so "Map 17" is always the same map.
 import {
   key, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance, neighbourKeys,
-} from "./hex.js?v=0.05";
+} from "./hex.js?v=0.06";
 
 // Fixed map 1: 12 clusters, 84 hexes, about 11 hexes wide and 11 tall.
 // Paired clusters (point-reflected through the middle of the map) have the same number of

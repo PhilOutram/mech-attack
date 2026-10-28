@@ -5,15 +5,15 @@
 //   --quiet  rounds without a life lost that count as a stalled stretch (default 20)
 //   --json   also write every game's record to this file
 //   --map    map to play: fixed-1 (default) or map-<number> for a generated map
-//   --set    override a rule for this run, e.g. --set crystals.spawnPerRound=2 (repeatable;
+//   --set    override a rule for this run, e.g. --set crystals.growthPerTurn=10 (repeatable;
 //            the value is read as JSON, so numbers, true/false and null work)
 // The first player alternates between games so neither colour always moves first.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "./rules-config.js?v=0.05";
-import { FIXED_MAP_1, buildMap, mapById } from "./maps.js?v=0.05";
-import { newGame, applyAction, viewFor, unitStats } from "./engine.js?v=0.05";
-import { chooseAction } from "./ai.js?v=0.05";
+import { RULES } from "./rules-config.js?v=0.06";
+import { FIXED_MAP_1, buildMap, mapById } from "./maps.js?v=0.06";
+import { newGame, applyAction, viewFor, unitStats } from "./engine.js?v=0.06";
+import { chooseAction } from "./ai.js?v=0.06";
 
 const DEFAULT_GAMES = 100;
 const DEFAULT_SEED = 1;

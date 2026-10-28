@@ -13,10 +13,10 @@
 //   stay hidden.
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
-import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.05";
+import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.06";
 
 // Saved games in any other format are not loaded.
-export const STATE_FORMAT = 4;
+export const STATE_FORMAT = 5;
 export const PLAYER_COLOURS = ["blue", "green"];
 
 // ---------------------------------------------------------------------------------------
@@ -48,6 +48,8 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
     nextUnitId: 1,
     crystals: {},
     hits: {},
+    // New piles that spawn after each turn this round (drawn at the start of the round).
+    spawnsPerTurn: 0,
     result: null,
     events: [],
     actions: recordActions ? [] : null,
@@ -60,8 +62,9 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
   });
   for (const deposit of map.deposits) {
     const amount = rules.crystals.startAmount;
-    state.crystals[deposit.at] = { amount, harvestedThisRound: false };
+    state.crystals[deposit.at] = { amount, harvestedThisTurn: false };
   }
+  state.spawnsPerTurn = drawSpawnsPerTurn(state);
   refreshKnowledge(state);
   return state;
 }
@@ -622,7 +625,7 @@ function applyHarvest(state, { unitId, at }) {
   const free = unitStats(state, unit).storage - unit.carrying;
   const amount = Math.min(free, pile.amount);
   pile.amount -= amount;
-  pile.harvestedThisRound = true;
+  pile.harvestedThisTurn = true;
   if (pile.amount <= 0) delete state.crystals[at];
   unit.carrying += amount;
   finishAction(unit);
@@ -670,6 +673,7 @@ function applyBuild(state, { unitType, at }) {
 
 function applyEndTurn(state) {
   unloadAtFactory(state, state.current);
+  crystalsBetweenTurns(state);
   state.hits = {};
   state.events.push({ type: "endTurn", player: state.current });
   state.turnIndex += 1;
@@ -699,24 +703,35 @@ function unloadAtFactory(state, player) {
 }
 
 // ---------------------------------------------------------------------------------------
-// End of round: crystals grow, explode and spawn
+// Between turns: crystals grow, explode and spawn
 
-// Every pile not harvested this round grows. One that reaches the explode level explodes and
-// its crystals are lost.
-function endRound(state) {
+// After every turn, each pile not harvested during that turn grows; one that reaches the
+// explode level explodes and its crystals are lost. Then new piles spawn. Doing this after
+// every turn, not once a round, means neither player gets the growth or the new piles first.
+function crystalsBetweenTurns(state) {
   const rules = state.rules.crystals;
   for (const k in state.crystals) {
     const pile = state.crystals[k];
-    if (!pile.harvestedThisRound) pile.amount += rules.growthPerRound;
-    pile.harvestedThisRound = false;
+    if (!pile.harvestedThisTurn) pile.amount += rules.growthPerTurn;
+    pile.harvestedThisTurn = false;
     if (pile.amount >= rules.explodeAt) {
       delete state.crystals[k];
       state.events.push({ type: "crystalsExploded", at: k, amount: pile.amount });
     }
   }
-  for (let i = 0; i < rules.spawnPerRound; i++) spawnCrystals(state);
+  for (let i = 0; i < state.spawnsPerTurn; i++) spawnCrystals(state);
+}
 
+// How many piles spawn after each turn this round. Drawn once a round, so both players see
+// the same number appear before their turn.
+function drawSpawnsPerTurn(state) {
+  const choices = state.rules.crystals.spawnChoices;
+  return choices[Math.floor(random(state) * choices.length)];
+}
+
+function endRound(state) {
   state.round += 1;
+  state.spawnsPerTurn = drawSpawnsPerTurn(state);
   state.events.push({ type: "newRound", round: state.round });
   if (state.round > state.rules.roundCap) {
     state.result = { winner: null, reason: "roundCap", round: state.round };
@@ -738,7 +753,7 @@ function spawnCrystals(state) {
   if (!sites.length) return;
   const at = sites[Math.floor(random(state) * sites.length)];
   const amount = state.rules.crystals.spawnAmount;
-  state.crystals[at] = { amount, harvestedThisRound: false };
+  state.crystals[at] = { amount, harvestedThisTurn: false };
   state.events.push({ type: "spawn", at, amount });
 }
 

@@ -443,22 +443,24 @@ describe("crystals", () => {
     assert.equal(s.units.h.carrying, 0);
   });
 
-  test("every pile grows each round it is not harvested", () => {
+  test("every pile grows by 5 after each player's turn", () => {
     let s = scenario({
       units: [harvester],
       crystals: { "3,-3": { amount: 10 }, "-3,0": { amount: 50 } },
     });
-    s = play(s, END, END);
-    assert.equal(s.crystals["3,-3"].amount, 20);
+    s = play(s, END);
+    assert.equal(s.crystals["3,-3"].amount, 15, "after blue's turn");
+    s = play(s, END);
+    assert.equal(s.crystals["3,-3"].amount, 20, "after green's turn");
     assert.equal(s.crystals["-3,0"].amount, 60);
-    s = play(s, END, END);
-    assert.equal(s.crystals["3,-3"].amount, 30);
   });
 
-  test("a harvested pile does not grow that round", () => {
+  test("a pile harvested during a turn does not grow at the end of that turn", () => {
     let s = scenario({ units: [harvester], crystals: { "0,-1": { amount: 100 } } });
-    s = play(s, { type: "harvest", unitId: "h", at: "0,-1" }, END, END);
+    s = play(s, { type: "harvest", unitId: "h", at: "0,-1" }, END);
     assert.equal(s.crystals["0,-1"].amount, 10);
+    s = play(s, END);
+    assert.equal(s.crystals["0,-1"].amount, 15, "it grows again after the next turn");
   });
 
   test("a pile that grows to the explode level explodes and is lost", () => {
@@ -479,15 +481,31 @@ describe("crystals", () => {
     assert.equal(s.crystals["3,-3"], undefined);
   });
 
-  test("new piles spawn each round away from the factories", () => {
-    let s = scenario({ units: [harvester], rules: { crystals: { spawnPerRound: 1 } } });
-    s = play(s, END, END);
-    const piles = Object.entries(s.crystals);
-    assert.equal(piles.length, 1);
-    const [at, pile] = piles[0];
-    assert.equal(pile.amount, RULES.crystals.spawnAmount);
-    for (const f of s.map.factories) {
-      assert.ok(distance(at, f) >= RULES.crystals.spawnMinDistanceFromFactory);
+  test("the same number of new piles spawns after each player's turn", () => {
+    let s = scenario({ units: [harvester], rules: { crystals: { spawnChoices: [1] } } });
+    s = play(s, END);
+    assert.equal(Object.keys(s.crystals).length, 1, "one before green's turn");
+    s = play(s, END);
+    assert.equal(Object.keys(s.crystals).length, 2, "one before blue's next turn");
+    for (const [at, pile] of Object.entries(s.crystals)) {
+      assert.ok(pile.amount >= RULES.crystals.spawnAmount);
+      for (const f of s.map.factories) {
+        assert.ok(distance(at, f) >= RULES.crystals.spawnMinDistanceFromFactory);
+      }
+    }
+  });
+
+  test("the spawn count is drawn once a round and used after both turns", () => {
+    const map = buildMap(FIXED_MAP_1);
+    let s = newGame({ rules: RULES, map, seed: 3, recordActions: false });
+    for (let round = 0; round < 20; round++) {
+      const count = s.spawnsPerTurn;
+      assert.ok(RULES.crystals.spawnChoices.includes(count));
+      for (let turn = 0; turn < 2; turn++) {
+        s = applyAction(s, END);
+        const spawned = s.events.filter((e) => e.type === "spawn").length;
+        assert.equal(spawned, count, `round ${round + 1}, turn ${turn + 1}`);
+      }
     }
   });
 });

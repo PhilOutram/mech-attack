@@ -1,8 +1,16 @@
-export const VERSION = "v0.05";
+export const VERSION = "v0.06";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.06",
+    date: "2026-10-28",
+    notes: [
+      "Crystals grow by 5 after every turn, yours and the AI's, instead of 10 a round.",
+      "New piles appear between goes, the same number before each player's turn.",
+    ],
+  },
   {
     version: "v0.05",
     date: "2026-10-28",
