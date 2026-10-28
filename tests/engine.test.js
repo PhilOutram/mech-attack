@@ -219,6 +219,53 @@ describe("movement", () => {
   });
 });
 
+describe("spotter drones", () => {
+  const drone = unit("d", "spotterDrone", BLUE, "0,0");
+
+  test("a drone flies over mountains, chasms and enemy units at 1 a hex", () => {
+    const s = scenario({
+      units: [drone, unit("e", "tank", GREEN, "0,-1")],
+      terrain: { "0,-2": "mountain", "0,-3": "chasm", "1,-1": "rocky" },
+    });
+    const reach = reachableHexes(viewFor(s, BLUE), "d");
+    assert.equal(reach["0,-2"], 2, "over the enemy tank onto a mountain");
+    assert.equal(reach["0,-3"], 3);
+    assert.equal(reach["1,-1"], 1, "rocky ground costs a drone 1");
+    assert.equal(reach["0,-1"], undefined, "it cannot stop on another unit");
+  });
+
+  test("a drone can split its move until its move points are used", () => {
+    let s = scenario({ units: [drone, unit("g", "tank", GREEN, "3,-6")] });
+    s = play(s, { type: "move", unitId: "d", to: "0,-2" });
+    const reach = reachableHexes(viewFor(s, BLUE), "d");
+    assert.equal(reach["0,-5"], 3, "3 points left after moving 2");
+    assert.equal(reach["0,-6"], undefined);
+    s = play(s, { type: "move", unitId: "d", to: "0,-5" });
+    assert.deepEqual(reachableHexes(viewFor(s, BLUE), "d"), {});
+    s = play(s, END, END);
+    assert.equal(Object.keys(reachableHexes(viewFor(s, BLUE), "d")).length > 0, true);
+  });
+
+  test("a drone does not crush crystals or get cover from rocky ground", () => {
+    let s = scenario({
+      units: [drone, unit("g", "tank", GREEN, "3,-6")],
+      crystals: { "0,-1": { amount: 30 } }, terrain: { "0,-2": "rocky" },
+    });
+    s = play(s, { type: "move", unitId: "d", to: "0,-2" });
+    assert.equal(s.crystals["0,-1"].amount, 30);
+    assert.equal(defenceOf(s, s.units.d), RULES.units.spotterDrone.defence);
+  });
+
+  test("any unit in range can shoot a drone", () => {
+    let s = scenario({
+      units: [unit("t", "tank", BLUE, "0,0"), unit("d", "spotterDrone", GREEN, "0,-2"),
+        unit("g", "tank", GREEN, "3,-6")],
+    });
+    s = play(s, attack("t", "d"));
+    assert.equal(s.units.d, undefined, "25 is well over twice its defence of 5");
+  });
+});
+
 describe("combat", () => {
   test("an attack below defence costs no life", () => {
     let s = scenario({

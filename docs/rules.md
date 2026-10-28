@@ -35,6 +35,12 @@ Options for later, not built yet:
 - Scattering the crystals when a pile explodes: one small pile on a random neighbouring hex, or a small pile on every neighbouring hex.
 - Linking the two: damage only on the hexes that crystals scatter onto.
 
+### Spotter Drone
+Cost 30, move 5, defence 5, no attack, sight 5 (from the unit table). Settled with Phil, 28 October 2026:
+- It flies: every hex costs 1 to cross, and it passes over mountains, chasms, other units and crystals (without crushing them). It can stop on any hex without another unit, including a mountain or chasm. It gets no cover from rocky ground.
+- Any unit in range can shoot it. With defence 5, one Scout Bike shot destroys it.
+- It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+
 ### Winning
 You win by destroying the enemy factory. A player with no units who cannot afford the cheapest unit also loses.
 

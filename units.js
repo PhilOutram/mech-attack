@@ -54,7 +54,8 @@ export const UNITS = [
   u("M1", "Light Medic", "Medic", "L", 62, 8, 10, 0, 1, 0, 10, 3, "", "light-medic.png"),
   u("M2", "Heavy Medic", "Medic", "H", 86, 4, 30, 0, 1, 0, 30, 3),
   u("R1", "Scout Bike", "Reconnaissance", "L", 68, 7, 10, 15, 1, 5, 0, 4, "", "scout-bike.png"),
-  u("R2", "Spotter Drone", "Reconnaissance", "L", 30, 5, 5, 0, 0, 0, 0, 5),
+  u("R2", "Spotter Drone", "Reconnaissance", "L", 30, 5, 5, 0, 0, 0, 0, 5, "Flies",
+    "spotter-drone-green.svg"),
 ];
 
 export const NOTES = [

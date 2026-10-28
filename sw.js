@@ -1,10 +1,12 @@
 // Minimal offline-first service worker.
 // Bump the version in CACHE whenever you change the cached files, and keep ASSETS
 // in sync with the files the app needs to work offline.
-const CACHE = "mech-attack-v0.09";
+const CACHE = "mech-attack-v0.10";
 const UNIT_TYPES = [
   "scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester", "light-medic",
 ];
+// Unit tokens in each player's colour (the Spotter Drone has no older PNG).
+const TOKEN_TYPES = [...UNIT_TYPES, "spotter-drone"];
 const TILES = [
   "plain-1", "plain-2", "rocky-1", "rocky-2", "rocky-3", "mountain-1",
   "chasm-n", "chasm-centre", "chasm-sw", "chasm-single",
@@ -12,28 +14,28 @@ const TILES = [
 const ASSETS = [
   ".",
   "index.html",
-  "styles.css?v=0.09",
-  "app.js?v=0.09",
-  "version.js?v=0.09",
-  "units.js?v=0.09",
-  "game.js?v=0.09",
-  "dialog.js?v=0.09",
-  "board.js?v=0.09",
-  "engine.js?v=0.09",
-  "ai.js?v=0.09",
-  "hex.js?v=0.09",
-  "maps.js?v=0.09",
-  "rules-config.js?v=0.09",
+  "styles.css?v=0.10",
+  "app.js?v=0.10",
+  "version.js?v=0.10",
+  "units.js?v=0.10",
+  "game.js?v=0.10",
+  "dialog.js?v=0.10",
+  "board.js?v=0.10",
+  "engine.js?v=0.10",
+  "ai.js?v=0.10",
+  "hex.js?v=0.10",
+  "maps.js?v=0.10",
+  "rules-config.js?v=0.10",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
   "icon-maskable.png",
   "apple-touch-icon.png",
   "splash.jpg",
-  "tiles/tiles.json?v=0.09",
+  "tiles/tiles.json?v=0.10",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
-  ...UNIT_TYPES.flatMap((u) => [`units/${u}-blue.svg`, `units/${u}-green.svg`]),
+  ...TOKEN_TYPES.flatMap((u) => [`units/${u}-blue.svg`, `units/${u}-green.svg`]),
   "units/factory.svg",
   "units/crystals.svg",
   "units/explosion.svg",

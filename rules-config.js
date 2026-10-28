@@ -29,6 +29,13 @@ export const RULES = {
       name: "Light Harvester", cost: 50, move: 6, defence: 15, attack: 0,
       range: null, storage: 90, healing: 0, sight: 2,
     },
+    // Flies over terrain, units and crystals (Phil, 28 October 2026). splitMove: it can move,
+    // look, and move again until its 5 move points are used.
+    spotterDrone: {
+      name: "Spotter Drone", cost: 30, move: 5, defence: 5, attack: 0,
+      range: null, storage: 0, healing: 0, sight: 5,
+      flies: true, splitMove: true,
+    },
     lightMedic: {
       name: "Light Medic", cost: 40, move: 5, defence: 15, attack: 0,
       range: null, storage: 0, healing: 25, healRange: 1, sight: 3,

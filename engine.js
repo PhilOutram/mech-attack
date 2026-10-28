@@ -13,7 +13,7 @@
 //   stay hidden.
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
-import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.09";
+import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.10";
 
 // Saved games in any other format are not loaded.
 export const STATE_FORMAT = 5;
@@ -76,6 +76,7 @@ function addUnit(state, type, owner, at) {
     id, type, owner, at,
     lives: state.rules.lives,
     moved: false,
+    moveUsed: 0,
     acted: false,
     setUp: false,
     carrying: 0,
@@ -111,8 +112,10 @@ function terrainRules(state, k) {
   return state.rules.terrain[terrain || "plain"];
 }
 
+// Flying units get no cover from the ground below them.
 export function defenceOf(state, unit) {
-  return unitStats(state, unit).defence + terrainRules(state, unit.at).defenceBonus;
+  const stats = unitStats(state, unit);
+  return stats.defence + (stats.flies ? 0 : terrainRules(state, unit.at).defenceBonus);
 }
 
 function blocksSight(state) {
@@ -275,6 +278,8 @@ function occupancy(state) {
 const PATH_SCALE = 1000;
 
 function moveCostFor(state, unit, byHex = occupancy(state)) {
+  // Flying units cross any hex for 1, over terrain, units and crystals.
+  if (unitStats(state, unit).flies) return (k) => (state.map.hexes[k] ? PATH_SCALE : null);
   return (k) => {
     if (!state.map.hexes[k]) return null;
     const cost = terrainRules(state, k).moveCost;
@@ -290,9 +295,17 @@ function plannedPaths(state, unit, byHex, move = Infinity) {
   return cheapestPaths(unit.at, moveCostFor(state, unit, byHex), maxCost);
 }
 
-function canMove(state, unit) {
+// Movement points the unit has left this turn. Most units move once; a unit that splits its
+// move (splitMove) can keep moving, looking around between moves, until it has used them all.
+function moveLeft(state, unit) {
   const stats = unitStats(state, unit);
-  return !unit.moved && !unit.acted && !unit.setUp && stats.move > 0;
+  if (unit.acted || unit.setUp || stats.move <= 0) return 0;
+  if (stats.splitMove) return stats.move - (unit.moveUsed || 0);
+  return unit.moved ? 0 : stats.move;
+}
+
+function canMove(state, unit) {
+  return moveLeft(state, unit) > 0;
 }
 
 // Destination hexes and their movement cost. Friendly units can be passed through but not
@@ -301,7 +314,7 @@ export function reachableHexes(view, unitId) {
   const unit = view.units[unitId];
   if (!unit || !canMove(view, unit)) return {};
   const byHex = occupancy(view);
-  const paths = plannedPaths(view, unit, byHex, unitStats(view, unit).move);
+  const paths = plannedPaths(view, unit, byHex, moveLeft(view, unit));
   const out = {};
   for (const k in paths) {
     if (k !== unit.at && !byHex[k]) out[k] = Math.floor(paths[k].cost / PATH_SCALE);
@@ -490,8 +503,9 @@ function finishAction(unit) {
   unit.moved = true;
 }
 
-// The path is planned on what the player knows. Walking it on the real board, the unit stops
-// early at anything hidden in the way: an enemy unit, crystals or impassable ground.
+// The path is planned on what the player knows. Walking it on the real board, a ground unit
+// stops early at anything hidden in the way: an enemy unit or impassable ground. A flying unit
+// passes over everything but cannot stop on a hex that turns out to be occupied.
 function applyMove(state, { unitId, to }) {
   const unit = ownUnit(state, unitId);
   const view = viewFor(state, state.current);
@@ -500,15 +514,16 @@ function applyMove(state, { unitId, to }) {
 
   const planned = pathTo(plannedPaths(view, unit, occupancy(view)), to);
   const byHex = occupancy(state);
-  const allowance = unitStats(state, unit).move;
+  const allowance = moveLeft(state, unit);
+  const flies = Boolean(unitStats(state, unit).flies);
   const from = unit.at;
   const walked = [];
   let spent = 0;
   let stoppedBy = null;
   for (const k of planned) {
-    const cost = terrainRules(state, k).moveCost;
+    const cost = flies ? 1 : terrainRules(state, k).moveCost;
     const other = byHex[k];
-    if (other && other.owner !== unit.owner) {
+    if (!flies && other && other.owner !== unit.owner) {
       stoppedBy = "unit";
       break;
     }
@@ -524,6 +539,7 @@ function applyMove(state, { unitId, to }) {
 
   unit.at = walked.length ? walked[walked.length - 1] : from;
   unit.moved = true;
+  unit.moveUsed = (unit.moveUsed || 0) + spent;
   state.events.push({ type: "move", unitId, from, to: unit.at, path: walked, stoppedBy });
 
   // Blocks come into sight along the way, not just at the end of the move.
@@ -531,8 +547,8 @@ function applyMove(state, { unitId, to }) {
     for (const k of walked) revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
   }
 
-  // Driving onto or over crystals destroys them.
-  if (state.rules.crystals.crushedByMovement) {
+  // Driving onto or over crystals destroys them; flying over them does not.
+  if (state.rules.crystals.crushedByMovement && !flies) {
     for (const k of walked) {
       const pile = state.crystals[k];
       if (!pile) continue;
@@ -699,6 +715,7 @@ function applyEndTurn(state) {
   state.current = state.order[state.turnIndex];
   for (const unit of unitsOf(state, state.current)) {
     unit.moved = false;
+    unit.moveUsed = 0;
     unit.acted = false;
   }
 }

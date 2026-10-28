@@ -5,8 +5,8 @@
 import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, applyAction, viewFor,
-} from "./engine.js?v=0.09";
-import { neighbourKeys, distance } from "./hex.js?v=0.09";
+} from "./engine.js?v=0.10";
+import { neighbourKeys, distance } from "./hex.js?v=0.10";
 
 // Worth of one life of the enemy factory, compared with unit costs in crystals.
 const FACTORY_LIFE_VALUE = 200;
@@ -19,7 +19,11 @@ const HARVESTERS_EARLY = 2;
 const HARVESTERS_MAX = 3;
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
 // Target share of each combat unit type in the army.
-const ARMY_MIX = { tank: 0.4, heavyCannon: 0.2, artillery: 0.2, scoutBike: 0.1, lightMedic: 0.1 };
+const ARMY_MIX = {
+  tank: 0.3, heavyCannon: 0.2, artillery: 0.2, scoutBike: 0.1, spotterDrone: 0.1, lightMedic: 0.1,
+};
+// Units that explore the map, then watch the enemy factory.
+const SCOUT_TYPES = ["scoutBike", "spotterDrone"];
 // Medics are only bought once the army has this many combat units.
 const ARMY_SIZE_FOR_MEDIC = 3;
 // Enemy units this close to the AI's factory are dealt with first.
@@ -314,7 +318,7 @@ function goalsFor(ctx, unit, claimedPiles) {
     if (unit.carrying > 0 && myFactory) return neighbourKeys(myFactory.at);
   }
 
-  if (unit.type === "scoutBike") {
+  if (SCOUT_TYPES.includes(unit.type)) {
     const unexplored = Object.keys(view.map.hexes).filter((k) => !view.map.hexes[k].terrain);
     if (unexplored.length) return unexplored;
     return hexesAround(view, ctx.enemyFactorySite, SCOUT_WATCH_DISTANCE, SCOUT_WATCH_DISTANCE);
