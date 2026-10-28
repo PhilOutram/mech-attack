@@ -1,0 +1,10 @@
+{
+  "name": "mech-attack",
+  "private": true,
+  "type": "module",
+  "description": "Mech Attack companion app, game engine and balance simulator",
+  "scripts": {
+    "test": "node --test",
+    "sim": "node sim.js"
+  }
+}
