@@ -52,7 +52,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Starting position | Factory, Light Harvester, Scout Bike, Tank and 50 crystals | `start` |
 | Building | Any number of units per turn, limited by crystals and free hexes next to the factory. A new unit cannot move or act until its owner's next turn. | |
 | Turn order for a unit | Move once, then take one action (attack, heal, harvest, unload, set up or pack up). Acting ends the unit's turn. | |
-| Return fire | A unit with a maximum range of 3 or less that is attacked from an adjacent hex and survives hits back once at its full attack. Artillery (minimum range 2), harvesters, medics and factories never return fire. | `combat.returnFireMaxRange` |
+| Return fire | A unit with a maximum range of 3 or less that is attacked from an adjacent hex hits back once at its full attack, **even if the attack destroys it** (settled with Phil, 28 October 2026: otherwise whoever starts an even fight gets a free killing shot). Artillery (minimum range 2), harvesters, medics and factories never return fire. Still provisional: the range limit of 3. | `combat.returnFireMaxRange` |
 | Artillery set-up | Setting up takes the unit's action, so it fires from the next turn. Set-up artillery cannot move; packing up also takes an action and it moves again from the next turn. | `needsSetup` |
 | Healing | A medic restores one life to an adjacent damaged unit whose defence is at or below the medic's healing value. A medic cannot heal itself or a factory. | `healing`, `healRange` |
 | Rocky ground | Costs 2 movement and adds 5 to defence | `terrain.rocky` |

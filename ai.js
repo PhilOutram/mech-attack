@@ -118,7 +118,7 @@ function bestAttack({ view, mine }) {
       const combined = livesAfterHit(view, target, ready[target.id]);
       if (combined.lives < target.lives) score = SETUP_ATTACK_SCORE;
     }
-    if (after.lives > 0) score -= returnFireLoss(view, unit, target);
+    score -= returnFireLoss(view, unit, target);
     if (score > bestScore) {
       bestScore = score;
       best = { type: "attack", unitId: unit.id, targetId: target.id };

@@ -327,13 +327,14 @@ describe("return fire", () => {
     assert.equal(s.units.a.lives, 2);
   });
 
-  test("no return fire from a destroyed target", () => {
+  test("a target destroyed by the attack still fires back", () => {
     let s = scenario({
-      units: [unit("a", "heavyCannon", BLUE, "0,0"), unit("e", "scoutBike", GREEN, "0,-1"),
+      units: [unit("a", "tank", BLUE, "0,0"), unit("e", "tank", GREEN, "0,-1", { lives: 1 }),
         unit("g", "tank", GREEN, "3,-6")],
     });
     s = play(s, attack("a", "e"));
-    assert.equal(s.units.a.lives, 2);
+    assert.equal(s.units.e, undefined);
+    assert.equal(s.units.a.lives, 1, "the destroyed tank's 25 reaches the attacker's defence");
   });
 
   test("units without a short-range attack do not hit back", () => {

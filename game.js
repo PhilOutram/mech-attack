@@ -364,7 +364,7 @@ function shotPreviews(view) {
     const target = view.units[id];
     const { total, defence, lives } = livesAfterHit(view, target, attack);
     let text = lives === 0 ? "Destroy" : lives < target.lives ? "Flip" : `${total}/${defence}`;
-    if (lives > 0 && firesBack(view, unit, target)) text += " (fires back)";
+    if (firesBack(view, unit, target)) text += " (fires back)";
     return { at: target.at, text };
   });
 }

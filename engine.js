@@ -550,7 +550,9 @@ function applyAttack(state, { unitId, targetId }) {
   state.events.push({ type: "fire", unitId, targetId, attack });
   hit(state, target, attack);
 
-  if (state.units[targetId] && firesBack(state, unit, target)) {
+  // Return fire is simultaneous: the target hits back even if this attack destroys it, so
+  // starting an even fight gives no free shot.
+  if (firesBack(state, unit, target)) {
     const attackBack = unitStats(state, target).attack;
     state.events.push({ type: "returnFire", unitId: targetId, targetId: unitId,
       attack: attackBack });
@@ -558,8 +560,8 @@ function applyAttack(state, { unitId, targetId }) {
   }
 }
 
-// Return fire: a target with a short range that survives an attack from an adjacent hex hits
-// back once. The caller checks that the target survives. Works on a view too.
+// Return fire: a target with a short range attacked from an adjacent hex hits back once,
+// whether or not the attack destroys it. Works on a view too.
 export function firesBack(state, attacker, target) {
   const stats = unitStats(state, target);
   return distance(attacker.at, target.at) === 1 &&
