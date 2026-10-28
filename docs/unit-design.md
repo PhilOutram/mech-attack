@@ -1,76 +1,64 @@
-# Unit design: counters and terrain
+# Unit design: stat profiles, and ground or air
 
-Draft, 28 October 2026. Not built yet; for Phil to decide.
+Second draft, 28 October 2026. Not built yet; for Phil to decide.
 
-## The problem
+## Principles (Phil, 28 October 2026)
 
-The Game 2 units scale in a straight line. Per crystal, the Tank and the Heavy Cannon are identical (0.36 attack and 0.36 defence each); the Heavy Cannon is a bigger, slower Tank. Nothing counters anything, so the only real choice is how much to spend, and games end when one side runs out of units: in 1,000 simulated games the factory was destroyed once.
+- The rules stay the same for every unit. No per-unit special cases such as damage bonuses or terrain exceptions.
+- Units differ by their stats: some move well, some defend well, some attack well, and few are good at everything.
+- One extra rule, easy to remember: a unit is either ground or air, and each attack either hits ground units or hits air units.
 
-## The idea: a loop of counters
+## The air rule
 
-Each fighting unit is good against one other and bad against another, so the right army depends on what the opponent builds:
+- **Air units** fly: every hex costs 1, they pass over terrain, units and crystals, and they get no cover from rocky ground. (The Spotter Drone already works this way.)
+- **Every attack hits either ground or air, never both.** Most units hit ground. Anti-air units hit air only, and are useless against ground units.
+- So an air unit can only be shot by an anti-air unit. Return fire follows the same rule: a unit can only fire back at an attacker it is able to hit.
 
-**Scout Bike → Artillery → Heavy Cannon → Tank → Scout Bike**
+That gives one clear choice for both players: build air units, and the opponent must build anti-air to answer them; build anti-air, and it does nothing against a ground army.
 
-- Scout Bikes raid: they catch Artillery and harvesters.
-- Artillery breaks Heavy Cannons from a distance.
-- Heavy Cannons shrug off light fire, beat Tanks and knock down factories.
-- Tanks hunt Scout Bikes and are the only units quick over rocky ground.
+Change from now: at the moment any unit can shoot the Spotter Drone. Under this rule only anti-air units could.
 
-## Proposed changes
+## Stat profiles
 
-| Unit | Role | New strength | New weakness | Terrain |
-|---|---|---|---|---|
-| Scout Bike | Raider | Double damage against harvesters, medics and Artillery (30: destroys a harvester or Artillery in one shot) | Cannot hurt a Heavy Cannon (its 15 is below the armour) | Wheels: rocky costs 2 |
-| Tank | Line and hunter | Tracks: rocky ground costs 1, so it is the fastest unit over rough ground | Loses to a Heavy Cannon one on one | Tracks: rocky costs 1 |
-| Heavy Cannon | Siege | Armour 20: any single shot below 20 does nothing. Double damage against factories (80) | Slow (move 2); Artillery does double damage to it | Too heavy for rocky ground: cannot enter it |
-| Artillery | Long-range support | Double damage against Heavy Cannons (60) | Cannot hit drones; fragile (defence 10); set-up turn | Wheels: rocky costs 2 |
-| Light Harvester | Economy | unchanged | Prime raiding target | Wheels: rocky costs 2 |
-| Light Medic | Repair | unchanged | | Wheels: rocky costs 2 |
-| Spotter Drone | Scout | unchanged (flies) | Artillery cannot hit it; anyone else can | Flies |
+Proposed numbers. Existing units keep their Game 2 stats; new units take their starting figures from the full unit table where it has them. The simulator will tune the costs.
 
-Costs stay as they are for now; the simulator will show whether any unit is too strong or too weak at its price.
+| Unit | Ground or air | Hits | Cost | Move | Defence | Attack | Range | Good at | Weak at |
+|---|---|---|---|---|---|---|---|---|---|
+| Scout Bike | ground | ground | 30 | **6** | 10 | 15 | 1 | movement | attack, defence |
+| Tank | ground | ground | 70 | 4 | 25 | 25 | 1–2 | all-round | nothing stands out |
+| Heavy Cannon | ground | ground | 110 | 2 | **40** | **40** | 1–3 | attack and defence | movement, cost |
+| Heavy Tank (new) | ground | ground | 80 | 3 | **50** | 15 | 1 | defence: holds ground | attack |
+| Artillery | ground | ground | 70 | 2 | 10 | **30** | **2–5** | attack at range | defence, movement |
+| Anti-Air Gun (new) | ground | **air** | 40 | 3 | 20 | **30** | 1–3 | stopping air units | useless against ground |
+| Light Harvester | ground | – | 50 | 6 | 15 | – | – | carrying crystals (90) | fighting |
+| Light Medic | ground | – | 40 | 5 | 15 | – | 1 | repair (25) | fighting |
+| Spotter Drone | **air** | – | 30 | 5 | 5 | – | – | scouting, flying | fighting |
+| Attack Helicopter (new) | **air** | ground | 60 | **5** | 10 | 20 | 1–2 | fast raids nothing on the ground can answer | anti-air |
+| Fighter (new) | **air** | **air** | 80 | **7** | 15 | 30 | 1–3 | hunting air units | useless against ground |
 
-### How the loop plays out (with the two-lives rule)
+How the choices fit together:
+- **Ground armies** trade off movement (Scout Bike), defence (Heavy Tank), attack (Artillery) and all-round strength (Tank, and the expensive, slow Heavy Cannon).
+- **Air** is a separate front. An Attack Helicopter can raid harvesters and Artillery freely until the opponent builds an Anti-Air Gun or a Fighter. Building those spends crystals that do nothing against tanks.
+- **Spotter Drones** can only be stopped by anti-air too, which makes them reliable scouts at a price.
 
-| Attacker → target | Attack | Target defence | Result |
-|---|---|---|---|
-| Scout Bike → Light Harvester | 15 × 2 = 30 | 15 | destroyed |
-| Scout Bike → Artillery | 15 × 2 = 30 | 10 | destroyed |
-| Artillery → Heavy Cannon | 30 × 2 = 60 | 40 | loses a life; with a Tank's 25 the same turn (85) it is destroyed |
-| Heavy Cannon → Tank | 40 | 25 | loses a life |
-| Tank → Heavy Cannon | 25 | 40 | nothing alone; counts towards a combined attack |
-| Scout Bike → Heavy Cannon | 15 | 40, armour 20 | nothing, and it does not count towards a combined attack |
-| Tank → Scout Bike | 25 | 10 | destroyed |
-| Heavy Cannon → Factory | 40 × 2 = 80 | 100 | nothing alone; with one Tank (105) the factory loses a life |
+## Art needed
 
-### Terrain
-
-Rocky ground stops being the same for everyone:
-- Tracked (Tank): costs 1, and gives +5 defence as now.
-- Wheeled (Scout Bike, Artillery, Light Harvester, Light Medic): costs 2, as now.
-- Heavy Cannon: cannot enter.
-- Flying (Spotter Drone): costs 1, no defence bonus.
-
-Mountains and chasms stay impassable for ground units.
+- Heavy Tank: "Heavy Tank 2" SVGs already exist in four colours.
+- Anti-Air Gun, Attack Helicopter, Fighter: new token art.
 
 ## How it is built
 
-All of it is data on each unit in `rules-config.js`, so any part can be switched off or retuned without engine changes:
-- `armour`: shots below this value are ignored.
-- `damageVs`: attack multipliers by target type, e.g. `{ support: 2, artillery: 2 }`.
-- `cannotTarget`: e.g. `["air"]`.
-- `moveCosts`: per-unit terrain costs, e.g. `{ rocky: 1 }` or `{ rocky: null }`.
-- Unit types for targeting: `light`, `heavy`, `air`, `support`, `factory`.
+- Each unit in `rules-config.js` gains `air: true` (if it flies) and `hits: "ground"` or `hits: "air"` (if it attacks).
+- The engine checks one thing when offering targets and return fire: can this attack hit this target's layer?
+- The game screen marks air units (for example a shadow under the token) so it is clear what can hit them.
 
 ## How we test it
 
-- The simulator: win rates by seat and colour, game length, and how games end (factory destruction should become a real way to win).
-- Which units the AI builds and which units make kills. Once the learning AI exists, which units evolved AIs choose shows what is too strong or too weak.
-- The game screen shows the multiplier in the shot preview (for example "×2 Flip") so the counters are visible while playing.
+- The simulator: fairness by seat and colour, game length and how games end.
+- Which units the AI builds and which units make kills; later, which units the learning AI chooses.
 
 ## Questions for Phil
 
-1. Does the loop feel right for Mech Attack, or should some roles be different?
-2. Heavy Cannon on rocky ground: forbidden, or just slow (costs 3)?
-3. Should the factory be easier to destroy in other ways too, or is the Heavy Cannon's siege bonus enough?
+1. Is the unit list right, or should some be left out to start with (for example add the Anti-Air Gun and Attack Helicopter first, the Fighter later)?
+2. Can an Attack Helicopter land on, or fly over, a mountain? (Proposed: yes, like the drone.)
+3. Should air units be able to carry or harvest crystals? (Proposed: no.)
