@@ -103,6 +103,34 @@ describe("random play", () => {
   });
 });
 
+describe("first-player options", () => {
+  test("the second player can start with extra crystals", () => {
+    const rules = { ...RULES, start: { ...RULES.start, secondPlayerCrystals: 40 } };
+    const s = newGame({ rules, map: buildMap(FIXED_MAP_1), firstPlayer: GREEN });
+    assert.equal(s.players[GREEN].crystals, RULES.start.crystals);
+    assert.equal(s.players[BLUE].crystals, RULES.start.crystals + 40);
+  });
+
+  test("with alternating turn order, whoever moved last moves first next round", () => {
+    const rules = { ...RULES, turnOrder: "alternate" };
+    let s = newGame({ rules, map: buildMap(FIXED_MAP_1), recordActions: false });
+    s = play(s, END, END);
+    assert.equal(s.round, 2);
+    assert.equal(s.current, GREEN);
+    s = play(s, END, END);
+    assert.equal(s.current, BLUE);
+  });
+
+  test("with return fire in range, a target hits back at a ranged attacker", () => {
+    let s = scenario({
+      units: [unit("a", "tank", BLUE, "0,0"), unit("e", "tank", GREEN, "0,-2")],
+      rules: { combat: { returnFire: "inRange" } },
+    });
+    s = play(s, attack("a", "e"));
+    assert.equal(s.units.a.lives, 1, "the green tank fires back from 2 hexes");
+  });
+});
+
 describe("turns and rounds", () => {
   test("end turn passes play over and a round ends after both players", () => {
     let s = scenario({

@@ -54,6 +54,14 @@ Idea: crystals spring up at random as 10 units and grow by 10 units every turn t
 - Examples: Mars weather (no effect); electrical storm (no ranged attacks that turn); dust storm (movement halved).
 - The app background shows an animation of the brewing event, the way weather apps show current conditions.
 
+### 9. An AI that learns rather than being taught (added 28 October)
+- Instead of hand-writing more AI rules (such as how to scout for a hidden enemy), give the AI's strategy random elements, run lots of games and let it learn what works.
+- It feels formulaic, especially with few units: mix up how the AI plays.
+- Context: in the camera version (idea 4) the AI sees the board from a photo after each turn and shows its moves and explosions on screen, so the AI working only from what it can see is right.
+
+### 10. Where is the strategy? (added 28 October)
+- Units improve in a straight line (bigger costs more and does more). There should be more asymmetric units with real strengths and weaknesses.
+
 ## Companion app
 - Live at https://philoutram.github.io/mech-attack/ (repo philoutram/mech-attack).
 - As of v0.01 (26 October 2026): a static installable web app with a splash screen and a units reference screen listing all 21 units from the unit table (units.js), with art for six units. No build step; plain HTML, CSS and JavaScript modules.

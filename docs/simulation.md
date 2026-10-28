@@ -32,6 +32,30 @@
 
 \* from a 1,000-game run.
 
+## Why the first player wins (v0.06 rules, 28 October 2026)
+
+300 AI games on fixed map 1, first player alternating:
+
+- The first player wins 76%.
+- The first player fires the first shot in 100% of games, always in round 2, and makes the first kill in 100%. Whoever fires first wins 76%.
+- The second player loses twice as many Light Harvesters (812 against 391) and harvests about 30% fewer crystals.
+
+Cause: with alternating turns, both sides move into range of each other in round 1, and the first player acts first in round 2. It gets the first shot, usually at a harvester near the middle piles, and the second player never recovers.
+
+Fixes tried (all in `rules-config.js`, off by default):
+
+| Option | First player wins |
+|---|---|
+| None | 76% |
+| `turnOrder: "alternate"` (A B, B A, A B ...) | 11%: the player who moves last in a round moves twice in a row and gets the first shot instead |
+| `combat.returnFire: "inRange"` (fire back at any attacker in range) | 86%: makes striking first worth even more |
+| `start.secondPlayerCrystals: 30` | 67% |
+| `start.secondPlayerCrystals: 40` | 67% fixed map 1; 46–51% on maps 2, 6 and 17 |
+| `start.secondPlayerCrystals: 50` | 59% fixed map 1; 39–46% on maps 2, 6 and 17 |
+| `start.secondPlayerCrystals: 60` | 43% fixed map 1 |
+
+Starting the second player with about 40–50 extra crystals evens it out. Fixes that would change the game more and are not built: reaction (opportunity) fire, where a unit that did not fire on its own turn may fire at an enemy that moves into its range; or resolving all attacks at the end of a round, closer to the simultaneous moves of the table game.
+
 ## Generated maps (100 games each, current rules, `--map`)
 
 After return fire became simultaneous and the fixed map's Crystal Cave moved back to the one hex 7 moves from both factories:

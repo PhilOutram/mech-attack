@@ -50,6 +50,9 @@ export const RULES = {
     // Provisional: a unit with maximum range up to this value, attacked from an adjacent
     // hex and still alive, hits back once at its full attack.
     returnFireMaxRange: 3,
+    // Which attackers are fired back at: "adjacent" (only one on a neighbouring hex), or
+    // "inRange" (any attacker within the target's own firing range). Option for testing.
+    returnFire: "adjacent",
   },
 
   // moveCost null = cannot be entered. defenceBonus is added to a unit's defence on that hex.
@@ -77,10 +80,16 @@ export const RULES = {
   start: {
     crystals: 50, // provisional
     units: ["lightHarvester", "scoutBike", "tank"], // provisional
+    secondPlayerCrystals: 0, // option: extra starting crystals for whoever moves second
   },
 
-  // "tiles": as on the table, a seven-hex block is turned over for both players as soon as
-  // any unit can see one of its hexes, and everything on it stays visible.
+  // "fixed": the same player moves first every round. "alternate": the order flips each round
+  // (A B, B A, A B ...), so whoever moved last in a round moves first in the next. Option for
+  // testing the first player's advantage.
+  turnOrder: "fixed",
+
+  // "tiles": a seven-hex block is turned over, for that player only, when one of their units
+  // comes within revealRange of it; everything on it then stays visible to them.
   // "sight": each player sees only what their units can see now.
   // revealRange (tiles mode only): how close a unit must be to a block to turn it over.
   // null = within the unit's sight range; 1 = only blocks it is on or next to (Phil's choice,

@@ -60,6 +60,7 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
     player.factoryId = factory.id;
     rules.start.units.forEach((type, i) => addUnit(state, type, p, map.starts[p][i]));
   });
+  state.players[otherPlayer].crystals += rules.start.secondPlayerCrystals || 0;
   for (const deposit of map.deposits) {
     const amount = rules.crystals.startAmount;
     state.crystals[deposit.at] = { amount, harvestedThisTurn: false };
@@ -564,7 +565,12 @@ function applyAttack(state, { unitId, targetId }) {
 // whether or not the attack destroys it. Works on a view too.
 export function firesBack(state, attacker, target) {
   const stats = unitStats(state, target);
-  return distance(attacker.at, target.at) === 1 &&
+  const d = distance(attacker.at, target.at);
+  if (state.rules.combat.returnFire === "inRange") {
+    return stats.attack > 0 && Boolean(stats.range) && d >= stats.range[0] &&
+      d <= stats.range[1] && (!stats.needsSetup || target.setUp);
+  }
+  return d === 1 &&
     stats.attack > 0 &&
     Boolean(stats.range) &&
     stats.range[0] <= 1 &&
@@ -731,6 +737,7 @@ function drawSpawnsPerTurn(state) {
 
 function endRound(state) {
   state.round += 1;
+  if (state.rules.turnOrder === "alternate") state.order = [...state.order].reverse();
   state.spawnsPerTurn = drawSpawnsPerTurn(state);
   state.events.push({ type: "newRound", round: state.round });
   if (state.round > state.rules.roundCap) {
