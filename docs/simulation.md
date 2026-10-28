@@ -56,6 +56,12 @@ Fixes tried (all in `rules-config.js`, off by default):
 
 Starting the second player with about 40–50 extra crystals evens it out. Phil chose 40, now the default: over 1,000 games on fixed map 1 the first player wins 61.6% (down from 76%) and blue 50.5%. Fixed map 1 is the hardest of the maps tried for the second player. Fixes that would change the game more and are not built: reaction (opportunity) fire, where a unit that did not fire on its own turn may fire at an enemy that moves into its range; or resolving all attacks at the end of a round, closer to the simultaneous moves of the table game.
 
+## With the new units (v0.11, 300 games, fixed map 1)
+
+- 15 of 300 games ended with a factory destroyed (almost none before): Attack Helicopters can only be hit by anti-air, so they can wear a factory down.
+- The rule-based AI mostly builds the cheaper new units: 253 Attack Helicopters and 164 Anti-Aircraft Jeeps, but 1 Blast Cannon and no Sonic Tanks. It seldom saves up for expensive units, so the splash and line attacks were barely tested. The learning AI (idea 9) is the better way to find out what each unit is worth.
+- The first player now wins 37.5% and blue 30.9%: the 40-crystal bonus was tuned before these units existed and needs rechecking.
+
 ## Generated maps (100 games each, current rules, `--map`)
 
 After return fire became simultaneous and the fixed map's Crystal Cave moved back to the one hex 7 moves from both factories:

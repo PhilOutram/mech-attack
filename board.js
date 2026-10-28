@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.10";
-import { unitStats, defenceOf } from "./engine.js?v=0.10";
+import { parseKey, toPixel } from "./hex.js?v=0.11";
+import { unitStats, defenceOf } from "./engine.js?v=0.11";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -48,6 +48,11 @@ const UNIT_FILES = {
   lightHarvester: "light-harvester",
   lightMedic: "light-medic",
   spotterDrone: "spotter-drone",
+  blastCannon: "blast-cannon",
+  sonicTank: "sonic-tank",
+  antiAircraftJeep: "anti-aircraft-jeep",
+  attackHelicopter: "attack-helicopter",
+  fighter: "fighter",
 };
 
 export function unitImage(type, owner) {

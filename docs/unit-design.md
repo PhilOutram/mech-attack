@@ -1,6 +1,6 @@
 # Unit design: stat profiles, and ground or air
 
-Second draft, 28 October 2026. Not built yet; for Phil to decide.
+Second draft, 28 October 2026. Built in v0.11 with Phil's changes: the Heavy Tank is left out (too close to the Heavy Cannon); the Anti-Air Gun became the Anti-Aircraft Jeep; the Blast Cannon (cluster bomb, fires every other turn) and Sonic Tank (sonic boom, hits ground and air) were added with their abilities; the Attack Helicopter's attack is 20. The current rules are in `docs/rules.md`.
 
 ## Principles (Phil, 28 October 2026)
 

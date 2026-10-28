@@ -29,12 +29,43 @@ export const RULES = {
       name: "Light Harvester", cost: 50, move: 6, defence: 15, attack: 0,
       range: null, storage: 90, healing: 0, sight: 2,
     },
-    // Flies over terrain, units and crystals (Phil, 28 October 2026). splitMove: it can move,
-    // look, and move again until its 5 move points are used.
+    // Air unit: flies over terrain, units and crystals; only attacks that hit air can hit it
+    // (Phil, 28 October 2026). splitMove: it can move, look, and move again until its 5 move
+    // points are used.
     spotterDrone: {
       name: "Spotter Drone", cost: 30, move: 5, defence: 5, attack: 0,
       range: null, storage: 0, healing: 0, sight: 5,
-      flies: true, splitMove: true,
+      air: true, splitMove: true,
+    },
+    // New units, 28 October 2026. Stats start from the full unit table, costs scaled to the
+    // Game 2 prices; all provisional. "hits": what the attack can hit (ground if not given).
+    // Blast Cannon: cluster bomb (enemies next to the target take splash x attack) and it
+    // fires every other turn (reload 1).
+    blastCannon: {
+      name: "Blast Cannon", cost: 90, move: 3, defence: 10, attack: 40,
+      range: [2, 4], storage: 0, healing: 0, sight: 3,
+      splash: 0.5, reload: 1,
+    },
+    // Sonic Tank: sonic boom hits every enemy on a straight line up to range 5, ground and air.
+    sonicTank: {
+      name: "Sonic Tank", cost: 80, move: 4, defence: 20, attack: 15,
+      range: [1, 5], storage: 0, healing: 0, sight: 4,
+      hits: "both", line: true,
+    },
+    antiAircraftJeep: {
+      name: "Anti-Aircraft Jeep", cost: 40, move: 5, defence: 15, attack: 30,
+      range: [1, 3], storage: 0, healing: 0, sight: 3,
+      hits: "air",
+    },
+    attackHelicopter: {
+      name: "Attack Helicopter", cost: 60, move: 5, defence: 10, attack: 20,
+      range: [1, 2], storage: 0, healing: 0, sight: 3,
+      air: true,
+    },
+    fighter: {
+      name: "Fighter", cost: 80, move: 7, defence: 15, attack: 30,
+      range: [1, 4], storage: 0, healing: 0, sight: 4,
+      air: true, hits: "air",
     },
     lightMedic: {
       name: "Light Medic", cost: 40, move: 5, defence: 15, attack: 0,

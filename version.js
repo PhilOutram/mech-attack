@@ -1,8 +1,17 @@
-export const VERSION = "v0.10";
+export const VERSION = "v0.11";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.11",
+    date: "2026-10-28",
+    notes: [
+      "Ground and air: air units fly over everything; only anti-air attacks can hit them.",
+      "New units: Blast Cannon, Sonic Tank, Anti-Aircraft Jeep, Attack Helicopter, Fighter.",
+      "Shot previews mention the Blast Cannon's blast and the Sonic Tank's line.",
+    ],
+  },
   {
     version: "v0.10",
     date: "2026-10-28",

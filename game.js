@@ -1,18 +1,18 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.10";
-import { mapById } from "./maps.js?v=0.10";
+import { RULES } from "./rules-config.js?v=0.11";
+import { mapById } from "./maps.js?v=0.11";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, STATE_FORMAT,
-} from "./engine.js?v=0.10";
-import { chooseAction } from "./ai.js?v=0.10";
-import { distance } from "./hex.js?v=0.10";
+} from "./engine.js?v=0.11";
+import { chooseAction } from "./ai.js?v=0.11";
+import { distance } from "./hex.js?v=0.11";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.10";
-import { confirmDialog } from "./dialog.js?v=0.10";
+} from "./board.js?v=0.11";
+import { confirmDialog } from "./dialog.js?v=0.11";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -22,7 +22,7 @@ const UNDO_KEY = "mech-attack.undos";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.10";
+const ASSET_VERSION = "0.11";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -322,16 +322,19 @@ function showEvents(events, before, after) {
   const lines = [];
   let any = false;
   for (const e of events) {
-    if (e.type === "fire" || e.type === "returnFire") {
+    if (["fire", "returnFire", "splash", "lineHit"].includes(e.type)) {
       const from = (before.units[e.unitId] || after.units[e.unitId] || {}).at;
       const to = (before.units[e.targetId] || after.units[e.targetId] || {}).at;
       if (!seen(from) && !seen(to)) continue;
       any = true;
       if (from && seen(from)) effects.push({ at: from, size: 0.42 });
       if (to && seen(to)) effects.push({ at: to, size: 0.75 });
-      const verb = e.type === "returnFire" ? "returned fire on" : "fired on";
-      lines.push(`${unitName(before, e.unitId)} ${verb} ${unitName(before, e.targetId)} ` +
-        `(${e.attack}).`);
+      const verb = { fire: "fired on", returnFire: "returned fire on",
+        splash: "caught in the blast:", lineHit: "also hit by the sonic boom:" }[e.type];
+      lines.push(e.type === "splash" || e.type === "lineHit"
+        ? `${unitName(before, e.targetId)} ${verb} ${e.attack}.`
+        : `${unitName(before, e.unitId)} ${verb} ${unitName(before, e.targetId)} ` +
+          `(${e.attack}).`);
     } else if (e.type === "hit" && e.livesAfter > 0) {
       const unit = before.units[e.unitId];
       if (!unit || !seen(unit.at)) continue;
@@ -490,6 +493,9 @@ function shotPreviews(view) {
     const { total, defence, lives } = livesAfterHit(view, target, attack);
     let text = lives === 0 ? "Destroy" : lives < target.lives ? "Flip" : `${total}/${defence}`;
     if (firesBack(view, unit, target)) text += " (fires back)";
+    const stats = unitStats(view, unit);
+    if (stats.splash) text += " + blast";
+    if (stats.line) text += " + line";
     return { at: target.at, text };
   });
 }
@@ -514,10 +520,20 @@ function renderBar(view) {
   els.endTurn.disabled = !myTurn();
 }
 
+const HITS = { ground: "ground", air: "air only", both: "ground and air" };
+
 function statLine(stats) {
   const range = stats.range ? stats.range.join("–").replace(/^(\d)–\1$/, "$1") : "-";
-  const parts = [`Move ${stats.move}`, `Defence ${stats.defence}`];
-  if (stats.attack) parts.push(`Attack ${stats.attack}`, `Range ${range}`);
+  const parts = [];
+  if (stats.air) parts.push("Flies");
+  parts.push(`Move ${stats.move}`, `Defence ${stats.defence}`);
+  if (stats.attack) {
+    const hits = HITS[stats.hits || "ground"];
+    parts.push(`Attack ${stats.attack}`, `Range ${range}`, `Hits ${hits}`);
+  }
+  if (stats.splash) parts.push("Cluster bomb");
+  if (stats.line) parts.push("Sonic boom");
+  if (stats.reload) parts.push("Fires every other turn");
   if (stats.storage) parts.push(`Storage ${stats.storage}`);
   if (stats.healing) parts.push(`Repair ${stats.healing}`);
   parts.push(`Sight ${stats.sight}`);
@@ -551,11 +567,13 @@ function renderPanel(view) {
   const lives = unit.lives < view.rules.lives ? "Damaged" : "Undamaged";
   const carrying = stats.storage ? ` · Carrying ${unit.carrying}/${stats.storage}` : "";
   const setUp = unit.setUp ? " · Set up" : "";
+  const reloading = unit.cooldown > 0 ? " · Reloading" : "";
   const head = `<div class="panel-head">` +
     (stats.isFactory ? `<img src="units/factory.svg" alt="">`
       : `<img src="${unitImage(unit.type, unit.owner)}" alt="">`) +
     `<div><h2>${mine ? "Your" : "Green"} ${stats.name}</h2>` +
-    `<p>${lives}${carrying}${setUp}</p><p class="stats">${statLine(stats)}</p></div></div>`;
+    `<p>${lives}${carrying}${setUp}${reloading}</p>` +
+    `<p class="stats">${statLine(stats)}</p></div></div>`;
 
   if (!mine) {
     els.panel.innerHTML = head;

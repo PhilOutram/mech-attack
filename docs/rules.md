@@ -35,11 +35,26 @@ Options for later, not built yet:
 - Scattering the crystals when a pile explodes: one small pile on a random neighbouring hex, or a small pile on every neighbouring hex.
 - Linking the two: damage only on the hexes that crystals scatter onto.
 
+### Ground and air
+Settled with Phil, 28 October 2026: the rules are the same for every unit, and units differ by their stats. The one extra rule:
+- A unit is ground or air. Air units fly: every hex costs 1, they pass over mountains, chasms, other units and crystals (without crushing them), can stop on any hex without another unit, and get no cover from rocky ground.
+- Every attack hits ground units, air units, or (Sonic Tank only) both. An air unit can only be hit by an attack that hits air. Return fire follows the same rule.
+
 ### Spotter Drone
-Cost 30, move 5, defence 5, no attack, sight 5 (from the unit table). Settled with Phil, 28 October 2026:
-- It flies: every hex costs 1 to cross, and it passes over mountains, chasms, other units and crystals (without crushing them). It can stop on any hex without another unit, including a mountain or chasm. It gets no cover from rocky ground.
-- Any unit in range can shoot it. With defence 5, one Scout Bike shot destroys it.
-- It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+Cost 30, move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter and the Sonic Tank can hit it. It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+
+### Units added on 28 October 2026
+Stats start from the full unit table, with costs scaled to the Game 2 prices. The numbers are provisional; the abilities were confirmed by Phil.
+
+| Unit | Ground or air | Hits | Cost | Move | Defence | Attack | Range | Ability |
+|---|---|---|---|---|---|---|---|---|
+| Blast Cannon | ground | ground | 90 | 3 | 10 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. |
+| Sonic Tank | ground | ground and air | 80 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
+| Anti-Aircraft Jeep | ground | air | 40 | 5 | 15 | 30 | 1–3 | |
+| Attack Helicopter | air | ground | 60 | 5 | 10 | 20 | 1–2 | |
+| Fighter | air | air | 80 | 7 | 15 | 30 | 1–4 | |
+
+Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
 
 ### Winning
 You win by destroying the enemy factory. A player with no units who cannot afford the cheapest unit also loses.

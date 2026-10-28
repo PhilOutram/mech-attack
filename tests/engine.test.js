@@ -94,10 +94,12 @@ describe("random play", () => {
       assert.equal(new Set(occupied).size, occupied.length, "two units share a hex");
       for (const u of Object.values(s.units)) {
         const terrain = s.map.hexes[u.at].terrain;
-        assert.ok(RULES.terrain[terrain].moveCost !== null, `${u.id} is on ${terrain}`);
+        // Air units can hover over mountains, chasms and crystals.
+        const air = RULES.units[u.type].air;
+        assert.ok(air || RULES.terrain[terrain].moveCost !== null, `${u.id} is on ${terrain}`);
         assert.ok(u.lives >= 1 && u.lives <= RULES.lives);
         assert.ok(u.carrying >= 0 && u.carrying <= (RULES.units[u.type].storage || 0));
-        assert.ok(!s.crystals[u.at], `${u.id} is on crystals`);
+        assert.ok(air || !s.crystals[u.at], `${u.id} is on crystals`);
       }
       for (const pile of Object.values(s.crystals)) assert.ok(pile.amount > 0);
       for (const p of s.players) assert.ok(p.crystals >= 0);
@@ -256,13 +258,118 @@ describe("spotter drones", () => {
     assert.equal(defenceOf(s, s.units.d), RULES.units.spotterDrone.defence);
   });
 
-  test("any unit in range can shoot a drone", () => {
+  test("only units that hit air can shoot a drone", () => {
+    const s = scenario({
+      units: [
+        unit("t", "tank", BLUE, "0,0"), unit("j", "antiAircraftJeep", BLUE, "1,-1"),
+        unit("d", "spotterDrone", GREEN, "0,-2"), unit("g", "tank", GREEN, "3,-6"),
+      ],
+    });
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "t"), []);
+    const next = play(s, attack("j", "d"));
+    assert.equal(next.units.d, undefined);
+  });
+});
+
+describe("ground and air", () => {
+  const base = [unit("g", "tank", GREEN, "3,-6")];
+
+  test("anti-air units cannot hit ground units", () => {
+    const s = scenario({
+      units: [...base, unit("j", "antiAircraftJeep", BLUE, "0,0"),
+        unit("e", "scoutBike", GREEN, "0,-1")],
+    });
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "j"), []);
+  });
+
+  test("an attack helicopter hits ground units and only anti-air can hit it", () => {
+    const s = scenario({
+      units: [...base, unit("h", "attackHelicopter", BLUE, "0,0"),
+        unit("e", "artillery", GREEN, "0,-2"), unit("f", "fighter", GREEN, "1,-1")],
+    });
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "h"), ["e"]);
+  });
+
+  test("a fighter hits air units only", () => {
+    const s = scenario({
+      units: [...base, unit("f", "fighter", BLUE, "0,0"),
+        unit("h", "attackHelicopter", GREEN, "0,-2"), unit("e", "tank", GREEN, "1,-1")],
+    });
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "f"), ["h"]);
+  });
+
+  test("a unit only fires back at an attacker it can hit", () => {
     let s = scenario({
-      units: [unit("t", "tank", BLUE, "0,0"), unit("d", "spotterDrone", GREEN, "0,-2"),
+      units: [...base, unit("h", "attackHelicopter", BLUE, "0,0"),
+        unit("e", "tank", GREEN, "0,-1")],
+    });
+    s = play(s, attack("h", "e"));
+    assert.equal(s.units.h.lives, 2, "a tank cannot hit a helicopter");
+    let t = scenario({
+      units: [...base, unit("h", "attackHelicopter", BLUE, "0,0"),
+        unit("j", "antiAircraftJeep", GREEN, "0,-1")],
+    });
+    t = play(t, attack("h", "j"));
+    assert.equal(t.units.h, undefined, "the jeep's 30 is over twice the helicopter's 10");
+  });
+});
+
+describe("sonic tank", () => {
+  test("a sonic boom hits every enemy on the line, ground and air", () => {
+    let s = scenario({
+      units: [
+        unit("s", "sonicTank", BLUE, "0,0"), unit("a", "scoutBike", GREEN, "0,-1"),
+        unit("b", "spotterDrone", GREEN, "0,-3"), unit("c", "scoutBike", GREEN, "1,-1"),
+        unit("g", "tank", GREEN, "3,-6"),
+      ],
+    });
+    s = play(s, attack("s", "a"));
+    assert.equal(s.units.a.lives, 1, "15 flips a scout bike");
+    assert.equal(s.units.b, undefined, "15 destroys a drone (defence 5)");
+    assert.equal(s.units.c.lives, 2, "a unit off the line is not hit");
+  });
+
+  test("a mountain stops a sonic boom", () => {
+    const s = scenario({
+      units: [unit("s", "sonicTank", BLUE, "0,0"), unit("e", "scoutBike", GREEN, "0,-3"),
+        unit("g", "tank", GREEN, "3,-6")],
+      terrain: { "0,-2": "mountain" },
+    });
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "s"), []);
+  });
+
+  test("it can only aim along the six straight lines", () => {
+    const s = scenario({
+      units: [unit("s", "sonicTank", BLUE, "0,0"), unit("e", "scoutBike", GREEN, "1,-2"),
         unit("g", "tank", GREEN, "3,-6")],
     });
-    s = play(s, attack("t", "d"));
-    assert.equal(s.units.d, undefined, "25 is well over twice its defence of 5");
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "s"), []);
+  });
+});
+
+describe("blast cannon", () => {
+  test("its cluster bomb hits the enemies next to the target for half", () => {
+    let s = scenario({
+      units: [
+        unit("b", "blastCannon", BLUE, "0,0"), unit("t", "tank", GREEN, "0,-3"),
+        unit("n", "scoutBike", GREEN, "0,-4"), unit("f", "scoutBike", BLUE, "1,-4"),
+        unit("g", "tank", GREEN, "3,-6"),
+      ],
+    });
+    s = play(s, attack("b", "t"));
+    assert.equal(s.units.t.lives, 1, "40 flips a tank");
+    assert.equal(s.units.n, undefined, "20 destroys a scout bike next to it");
+    assert.equal(s.units.f.lives, 2, "its own units are not hit");
+  });
+
+  test("it fires every other turn", () => {
+    let s = scenario({
+      units: [unit("b", "blastCannon", BLUE, "0,0"), unit("t", "heavyCannon", GREEN, "0,-3")],
+    });
+    s = play(s, attack("b", "t"), END, END);
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "b"), [], "reloading");
+    s = play(s, END, END);
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "b"), ["t"]);
   });
 });
 

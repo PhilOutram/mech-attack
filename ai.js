@@ -4,9 +4,10 @@
 // building, artillery set-up, then moving each unit towards its current goal.
 import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
-  buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, applyAction, viewFor,
-} from "./engine.js?v=0.10";
-import { neighbourKeys, distance } from "./hex.js?v=0.10";
+  buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
+  viewFor,
+} from "./engine.js?v=0.11";
+import { neighbourKeys, distance } from "./hex.js?v=0.11";
 
 // Worth of one life of the enemy factory, compared with unit costs in crystals.
 const FACTORY_LIFE_VALUE = 200;
@@ -20,8 +21,11 @@ const HARVESTERS_MAX = 3;
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
 // Target share of each combat unit type in the army.
 const ARMY_MIX = {
-  tank: 0.3, heavyCannon: 0.2, artillery: 0.2, scoutBike: 0.1, spotterDrone: 0.1, lightMedic: 0.1,
+  tank: 0.25, heavyCannon: 0.1, artillery: 0.1, blastCannon: 0.1, sonicTank: 0.1,
+  scoutBike: 0.1, spotterDrone: 0.05, attackHelicopter: 0.15, lightMedic: 0.05,
 };
+// Anti-air is bought only to answer enemy air units, one for each air unit seen.
+const ANTI_AIR_TYPE = "antiAircraftJeep";
 // Units that explore the map, then watch the enemy factory.
 const SCOUT_TYPES = ["scoutBike", "spotterDrone"];
 // Medics are only bought once the army has this many combat units.
@@ -172,7 +176,8 @@ function bestHarvest(ctx) {
 // ---------------------------------------------------------------------------------------
 // Building
 
-function wantedUnitType({ view, me, army }) {
+function wantedUnitType(ctx) {
+  const { view, me, army } = ctx;
   const harvesters = army.filter((u) => isHarvester(view, u)).length;
   const knownPiles = Object.keys(view.crystals).length;
   const harvestersWanted =
@@ -186,6 +191,10 @@ function wantedUnitType({ view, me, army }) {
     if (!canGather && crystals < harvesterCost) return cheapestGatherer(view, crystals);
     return "lightHarvester";
   }
+
+  const hitsAir = (u) => ["air", "both"].includes(unitStats(view, u).hits);
+  const enemyAir = ctx.enemies.filter((e) => unitStats(view, e).air).length;
+  if (enemyAir > army.filter(hitsAir).length) return ANTI_AIR_TYPE;
 
   const fighters = army.filter((u) => ARMY_MIX[u.type] !== undefined);
   let best = null;
@@ -328,8 +337,7 @@ function goalsFor(ctx, unit, claimedPiles) {
     const hurt = ctx.army.filter((u) => u.lives < view.rules.lives &&
       unitStats(view, u).defence <= stats.healing && u.id !== unit.id);
     if (hurt.length) return hurt.flatMap((u) => neighbourKeys(u.at));
-    const escort = ctx.army.filter((u) => ARMY_MIX[u.type] && u.type !== "lightMedic");
-    return escort.flatMap((u) => neighbourKeys(u.at));
+    return escortGoals(ctx, unit);
   }
 
   if (stats.attack > 0 && stats.range) return attackGoals(ctx, unit, stats);
@@ -354,6 +362,13 @@ function choosePile({ view, enemyFighters }, unit, claimedPiles) {
   return best;
 }
 
+// Hexes next to the army's fighting units, for medics and idle anti-air.
+function escortGoals(ctx, unit) {
+  const escort = ctx.army.filter((u) => u.id !== unit.id && ARMY_MIX[u.type] &&
+    unitStats(ctx.view, u).attack > 0 && unitStats(ctx.view, u).hits !== "air");
+  return escort.flatMap((u) => neighbourKeys(u.at));
+}
+
 // Hexes from which the unit could fire at its chosen target: enemies near home first, then
 // the weakest visible enemy, then the enemy factory.
 function attackGoals(ctx, unit, stats) {
@@ -362,7 +377,12 @@ function attackGoals(ctx, unit, stats) {
   const nearHome = myFactory
     ? enemies.filter((e) => distance(e.at, myFactory.at) <= HOME_DEFENCE_RADIUS)
     : [];
-  const pool = nearHome.length ? nearHome : enemies.filter((e) => !unitStats(view, e).isFactory);
+  // Only targets this unit's attack can hit (ground or air).
+  const hittable = enemies.filter((e) => canHit(view, unit, e));
+  const close = nearHome.filter((e) => canHit(view, unit, e));
+  const pool = close.length ? close : hittable.filter((e) => !unitStats(view, e).isFactory);
+  // Anti-air with nothing to shoot at stays with the army.
+  if (!pool.length && stats.hits === "air") return escortGoals(ctx, unit);
   let target = null;
   let bestScore = -Infinity;
   for (const enemy of pool) {

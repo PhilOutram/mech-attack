@@ -13,7 +13,9 @@
 //   stay hidden.
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
-import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.10";
+import {
+  neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
+} from "./hex.js?v=0.11";
 
 // Saved games in any other format are not loaded.
 export const STATE_FORMAT = 5;
@@ -78,6 +80,8 @@ function addUnit(state, type, owner, at) {
     moved: false,
     moveUsed: 0,
     acted: false,
+    // Turns before the unit can fire again (units with a reload, such as the Blast Cannon).
+    cooldown: 0,
     setUp: false,
     carrying: 0,
   };
@@ -112,10 +116,10 @@ function terrainRules(state, k) {
   return state.rules.terrain[terrain || "plain"];
 }
 
-// Flying units get no cover from the ground below them.
+// Air units get no cover from the ground below them.
 export function defenceOf(state, unit) {
   const stats = unitStats(state, unit);
-  return stats.defence + (stats.flies ? 0 : terrainRules(state, unit.at).defenceBonus);
+  return stats.defence + (stats.air ? 0 : terrainRules(state, unit.at).defenceBonus);
 }
 
 function blocksSight(state) {
@@ -279,7 +283,7 @@ const PATH_SCALE = 1000;
 
 function moveCostFor(state, unit, byHex = occupancy(state)) {
   // Flying units cross any hex for 1, over terrain, units and crystals.
-  if (unitStats(state, unit).flies) return (k) => (state.map.hexes[k] ? PATH_SCALE : null);
+  if (unitStats(state, unit).air) return (k) => (state.map.hexes[k] ? PATH_SCALE : null);
   return (k) => {
     if (!state.map.hexes[k]) return null;
     const cost = terrainRules(state, k).moveCost;
@@ -322,16 +326,56 @@ export function reachableHexes(view, unitId) {
   return out;
 }
 
+// Ground or air: an attack hits ground units, air units or both (unit stat "hits"; ground if
+// not given). Air units can only be hit by attacks that hit air. Works on a view too.
+export function canHit(state, attacker, target) {
+  const hits = unitStats(state, attacker).hits || "ground";
+  const layer = unitStats(state, target).air ? "air" : "ground";
+  return hits === "both" || hits === layer;
+}
+
+// The hexes along one of the six straight lines from a hex, up to range, stopping before
+// terrain that blocks sight (a mountain stops a sonic boom).
+function lineHexes(state, from, direction, range) {
+  const [q, r] = parseKey(from);
+  const [dq, dr] = direction;
+  const blocks = blocksSight(state);
+  const out = [];
+  for (let step = 1; step <= range; step++) {
+    const k = key(q + dq * step, r + dr * step);
+    if (!state.map.hexes[k] || blocks(k)) break;
+    out.push(k);
+  }
+  return out;
+}
+
+// The straight-line direction from one hex to another, or null if they are not in line.
+function lineDirection(from, to) {
+  const [fq, fr] = parseKey(from);
+  const [tq, tr] = parseKey(to);
+  const n = distance(from, to);
+  if (!n) return null;
+  return DIRECTIONS.find(([dq, dr]) => fq + dq * n === tq && fr + dr * n === tr) || null;
+}
+
 export function attackTargets(view, unitId) {
   const unit = view.units[unitId];
-  if (!unit || unit.acted) return [];
+  if (!unit || unit.acted || unit.cooldown > 0) return [];
   const stats = unitStats(view, unit);
   if (!stats.attack || !stats.range) return [];
   if (stats.needsSetup && !unit.setUp) return [];
   const [minRange, maxRange] = stats.range;
+  const enemies = Object.values(view.units).filter((t) =>
+    t.owner !== unit.owner && view.visible[t.at] && canHit(view, unit, t));
+  if (stats.line) {
+    // A line attack can be aimed at any enemy on one of the six straight lines within range.
+    const reach = new Set(DIRECTIONS.flatMap((d) => lineHexes(view, unit.at, d, maxRange)));
+    return enemies
+      .filter((t) => reach.has(t.at) && distance(unit.at, t.at) >= minRange)
+      .map((t) => t.id);
+  }
   const blocks = blocksSight(view);
-  return Object.values(view.units)
-    .filter((t) => t.owner !== unit.owner && view.visible[t.at])
+  return enemies
     .filter((t) => {
       const d = distance(unit.at, t.at);
       return d >= minRange && d <= maxRange && lineOfSight(unit.at, t.at, blocks);
@@ -515,7 +559,7 @@ function applyMove(state, { unitId, to }) {
   const planned = pathTo(plannedPaths(view, unit, occupancy(view)), to);
   const byHex = occupancy(state);
   const allowance = moveLeft(state, unit);
-  const flies = Boolean(unitStats(state, unit).flies);
+  const flies = Boolean(unitStats(state, unit).air);
   const from = unit.at;
   const walked = [];
   let spent = 0;
@@ -563,10 +607,35 @@ function applyAttack(state, { unitId, targetId }) {
   const view = viewFor(state, state.current);
   if (!attackTargets(view, unitId).includes(targetId)) illegal(`${unitId} cannot attack`);
   const target = state.units[targetId];
-  const attack = unitStats(state, unit).attack;
+  const stats = unitStats(state, unit);
+  const attack = stats.attack;
   finishAction(unit);
+  if (stats.reload) unit.cooldown = stats.reload + 1;
   state.events.push({ type: "fire", unitId, targetId, attack });
   hit(state, target, attack);
+
+  // Sonic boom: every other enemy along the same line, up to range, is hit too.
+  if (stats.line) {
+    const direction = lineDirection(unit.at, target.at);
+    for (const k of lineHexes(state, unit.at, direction, stats.range[1])) {
+      const other = unitAt(state, k);
+      if (!other || other === target || other.owner === unit.owner) continue;
+      if (!canHit(state, unit, other)) continue;
+      state.events.push({ type: "lineHit", unitId, targetId: other.id, attack });
+      hit(state, other, attack);
+    }
+  }
+
+  // Cluster bomb: enemy units next to the target take a share of the attack.
+  if (stats.splash) {
+    const amount = Math.floor(attack * stats.splash);
+    for (const k of neighbourKeys(target.at)) {
+      const other = unitAt(state, k);
+      if (!other || other.owner === unit.owner || !canHit(state, unit, other)) continue;
+      state.events.push({ type: "splash", unitId, targetId: other.id, attack: amount });
+      hit(state, other, amount);
+    }
+  }
 
   // Return fire is simultaneous: the target hits back even if this attack destroys it, so
   // starting an even fight gives no free shot.
@@ -579,10 +648,12 @@ function applyAttack(state, { unitId, targetId }) {
 }
 
 // Return fire: a target with a short range attacked from an adjacent hex hits back once,
-// whether or not the attack destroys it. Works on a view too.
+// whether or not the attack destroys it, if its own attack can hit the attacker (ground or
+// air). Works on a view too.
 export function firesBack(state, attacker, target) {
   const stats = unitStats(state, target);
   const d = distance(attacker.at, target.at);
+  if (!canHit(state, target, attacker) || target.cooldown > 0) return false;
   if (state.rules.combat.returnFire === "inRange") {
     return stats.attack > 0 && Boolean(stats.range) && d >= stats.range[0] &&
       d <= stats.range[1] && (!stats.needsSetup || target.setUp);
@@ -717,6 +788,7 @@ function applyEndTurn(state) {
     unit.moved = false;
     unit.moveUsed = 0;
     unit.acted = false;
+    if (unit.cooldown > 0) unit.cooldown -= 1;
   }
 }
 
