@@ -34,9 +34,9 @@ describe("setting up a game", () => {
     }
   });
 
-  test("deposits are placed with their full amounts", () => {
+  test("the map's starting piles hold the starting amount", () => {
     for (const deposit of map.deposits) {
-      assert.equal(state.crystals[deposit.at].amount, RULES.deposits[deposit.kind].amount);
+      assert.equal(state.crystals[deposit.at].amount, RULES.crystals.startAmount);
     }
   });
 
@@ -401,17 +401,7 @@ describe("healing", () => {
 describe("crystals", () => {
   const harvester = unit("h", "lightHarvester", BLUE, "0,0");
 
-  test("a deposit gives at most its per-harvest amount", () => {
-    let s = scenario({
-      units: [harvester],
-      crystals: { "0,-1": { kind: "crystals", amount: 180, perHarvest: 30 } },
-    });
-    s = play(s, { type: "harvest", unitId: "h", at: "0,-1" });
-    assert.equal(s.units.h.carrying, 30);
-    assert.equal(s.crystals["0,-1"].amount, 150);
-  });
-
-  test("a spawned pile gives as much as the unit can carry", () => {
+  test("a harvest takes as much as the unit can carry", () => {
     let s = scenario({ units: [harvester], crystals: { "0,-1": { amount: 120 } } });
     s = play(s, { type: "harvest", unitId: "h", at: "0,-1" });
     assert.equal(s.units.h.carrying, 90);
@@ -453,17 +443,14 @@ describe("crystals", () => {
     assert.equal(s.units.h.carrying, 0);
   });
 
-  test("spawned piles grow each round they are not harvested; deposits do not", () => {
+  test("every pile grows each round it is not harvested", () => {
     let s = scenario({
       units: [harvester],
-      crystals: {
-        "3,-3": { amount: 10 }, "0,-1": { amount: 10 },
-        "-3,0": { kind: "crystals", amount: 180, perHarvest: 30 },
-      },
+      crystals: { "3,-3": { amount: 10 }, "-3,0": { amount: 50 } },
     });
-    s = play(s, { type: "harvest", unitId: "h", at: "0,-1" }, END, END);
+    s = play(s, END, END);
     assert.equal(s.crystals["3,-3"].amount, 20);
-    assert.equal(s.crystals["-3,0"].amount, 180);
+    assert.equal(s.crystals["-3,0"].amount, 60);
     s = play(s, END, END);
     assert.equal(s.crystals["3,-3"].amount, 30);
   });
@@ -474,11 +461,22 @@ describe("crystals", () => {
     assert.equal(s.crystals["0,-1"].amount, 10);
   });
 
-  test("growth stops at the pile cap when one is set", () => {
-    let s = scenario({ units: [harvester], crystals: { "3,-3": { amount: 30 } },
-      rules: { crystals: { maxPile: 30 } } });
+  test("a pile that grows to the explode level explodes and is lost", () => {
+    let s = scenario({ units: [harvester], crystals: { "3,-3": { amount: 70 } } });
     s = play(s, END, END);
-    assert.equal(s.crystals["3,-3"].amount, 30);
+    assert.equal(s.crystals["3,-3"], undefined);
+    assert.ok(s.events.some((e) => e.type === "crystalsExploded" && e.at === "3,-3" &&
+      e.amount === RULES.crystals.explodeAt));
+  });
+
+  test("a starting pile left alone explodes after three rounds", () => {
+    let s = scenario({
+      units: [harvester], crystals: { "3,-3": { amount: RULES.crystals.startAmount } },
+    });
+    s = play(s, END, END, END, END);
+    assert.equal(s.crystals["3,-3"].amount, 70);
+    s = play(s, END, END);
+    assert.equal(s.crystals["3,-3"], undefined);
   });
 
   test("new piles spawn each round away from the factories", () => {
@@ -550,7 +548,10 @@ describe("fog of war by line of sight", () => {
 describe("fog of war by map blocks", () => {
   // Factories see nothing beyond their own hex here, so only the test units turn blocks over.
   const blindFactory = { ...RULES.units.factory, sight: 0 };
-  const blindFactories = { units: { ...RULES.units, factory: blindFactory } };
+  // Sight-range reveal, so these tests show blocks turning over from a distance.
+  const blindFactories = {
+    units: { ...RULES.units, factory: blindFactory }, fog: { revealRange: null },
+  };
   const blockOf = (s, k) =>
     Object.keys(s.map.hexes).filter((h) => s.map.hexes[h].cluster === s.map.hexes[k].cluster);
 
@@ -563,6 +564,16 @@ describe("fog of war by map blocks", () => {
     assert.ok(block.some((k) => distance(k, "0,0") > RULES.units.lightHarvester.sight));
     for (const k of block) assert.equal(view.map.hexes[k].terrain, "plain", `${k} is face down`);
     assert.equal(view.map.hexes["-5,1"].terrain, null, "a block out of sight stays face down");
+  });
+
+  test("with reveal range 1, only blocks a unit is on or next to turn over", () => {
+    const s = scenario({
+      units: [unit("h", "lightHarvester", BLUE, "0,0")], explored: false,
+      rules: { units: blindFactories.units, fog: { revealRange: 1 } },
+    });
+    const view = viewFor(s, BLUE);
+    assert.equal(view.map.hexes["0,-1"].terrain, "plain", "the next hex's block is face up");
+    assert.equal(view.map.hexes["0,-2"].terrain, null, "a block two hexes away is face down");
   });
 
   test("a turned-over block is face up for both players", () => {

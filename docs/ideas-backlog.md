@@ -28,8 +28,8 @@ Problem from early play: limited resources made the game one-dimensional and pre
 Idea: crystals spring up at random as 10 units and grow by 10 units every turn they are not harvested.
 
 ### 6c. Crystals explode at 80 (added 28 October)
-- A growing crystal pile that reaches 80 explodes.
-- To decide: what the explosion does (damage to units nearby, and how much and how far), whether the pile is lost or scatters into smaller piles, and whether deposits can explode or only spawned piles.
+- Built in v0.03: every pile, starting piles included, grows by 10 a round when not harvested and explodes at 80; the crystals are lost. Starting piles hold 50, and maps have more of them (4 pairs plus one in the middle).
+- Options for later: explosion damage to units on neighbouring hexes; scattering the crystals into one random neighbouring hex or into all of them; damage only on the hexes the crystals scatter onto.
 - Side effect: it caps how big a pile can get, which also answers the "very large fields decide the game" risk under Open design questions.
 
 ### 6a. Escalation to stop growing crystals making the game longer

@@ -64,8 +64,7 @@ export function scenario({
     };
   }
   for (const k in crystals) {
-    state.crystals[k] = { kind: "spawn", perHarvest: null, harvestedThisRound: false,
-      ...crystals[k] };
+    state.crystals[k] = { harvestedThisRound: false, ...crystals[k] };
   }
   state.players.forEach((player, p) => {
     player.crystals = playerCrystals[p];

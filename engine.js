@@ -12,10 +12,10 @@
 //   everything on a turned-over block stays visible from then on.
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
-import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.02";
+import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.03";
 
 // Saved games in any other format are not loaded.
-export const STATE_FORMAT = 2;
+export const STATE_FORMAT = 3;
 export const PLAYER_COLOURS = ["blue", "green"];
 
 // ---------------------------------------------------------------------------------------
@@ -58,13 +58,8 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
     rules.start.units.forEach((type, i) => addUnit(state, type, p, map.starts[p][i]));
   });
   for (const deposit of map.deposits) {
-    const def = rules.deposits[deposit.kind];
-    state.crystals[deposit.at] = {
-      kind: deposit.kind,
-      amount: def.amount,
-      perHarvest: def.perHarvest,
-      harvestedThisRound: false,
-    };
+    const amount = rules.crystals.startAmount;
+    state.crystals[deposit.at] = { amount, harvestedThisRound: false };
   }
   refreshKnowledge(state);
   return state;
@@ -194,7 +189,7 @@ export function refreshKnowledge(state) {
     for (const k in seen) {
       player.explored[k] = true;
       const pile = state.crystals[k];
-      if (pile) player.seenCrystals[k] = { kind: pile.kind, amount: pile.amount };
+      if (pile) player.seenCrystals[k] = { amount: pile.amount };
       else delete player.seenCrystals[k];
     }
     const enemyFactory = state.units[state.players[1 - p].factoryId];
@@ -623,7 +618,7 @@ function applyHarvest(state, { unitId, at }) {
   }
   const pile = state.crystals[at];
   const free = unitStats(state, unit).storage - unit.carrying;
-  const amount = Math.min(free, pile.amount, pile.perHarvest || Infinity);
+  const amount = Math.min(free, pile.amount);
   pile.amount -= amount;
   pile.harvestedThisRound = true;
   if (pile.amount <= 0) delete state.crystals[at];
@@ -702,17 +697,20 @@ function unloadAtFactory(state, player) {
 }
 
 // ---------------------------------------------------------------------------------------
-// End of round: crystals grow and spawn
+// End of round: crystals grow, explode and spawn
 
+// Every pile not harvested this round grows. One that reaches the explode level explodes and
+// its crystals are lost.
 function endRound(state) {
   const rules = state.rules.crystals;
   for (const k in state.crystals) {
     const pile = state.crystals[k];
-    if (pile.kind === "spawn" && !pile.harvestedThisRound) {
-      pile.amount += rules.growthPerRound;
-      if (rules.maxPile !== null) pile.amount = Math.min(pile.amount, rules.maxPile);
-    }
+    if (!pile.harvestedThisRound) pile.amount += rules.growthPerRound;
     pile.harvestedThisRound = false;
+    if (pile.amount >= rules.explodeAt) {
+      delete state.crystals[k];
+      state.events.push({ type: "crystalsExploded", at: k, amount: pile.amount });
+    }
   }
   for (let i = 0; i < rules.spawnPerRound; i++) spawnCrystals(state);
 
@@ -738,7 +736,7 @@ function spawnCrystals(state) {
   if (!sites.length) return;
   const at = sites[Math.floor(random(state) * sites.length)];
   const amount = state.rules.crystals.spawnAmount;
-  state.crystals[at] = { kind: "spawn", amount, perHarvest: null, harvestedThisRound: false };
+  state.crystals[at] = { amount, harvestedThisRound: false };
   state.events.push({ type: "spawn", at, amount });
 }
 

@@ -1,10 +1,10 @@
 // Map definitions. A map is a list of seven-hex clusters, as on the printed map pages, plus
-// the factory sites, starting hexes and crystal deposits. buildMap turns a definition into the
-// plain-data map the engine stores in the game state; generateMap builds a fair random map
-// from a seed, so "Map 17" is always the same map.
+// the factory sites, starting hexes and starting crystal piles (deposits). buildMap turns a
+// definition into the plain-data map the engine stores in the game state; generateMap builds
+// a fair random map from a seed, so "Map 17" is always the same map.
 import {
   key, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance, neighbourKeys,
-} from "./hex.js?v=0.02";
+} from "./hex.js?v=0.03";
 
 // Fixed map 1: 12 clusters, 84 hexes, about 11 hexes wide and 11 tall.
 // Paired clusters (point-reflected through the middle of the map) have the same number of
@@ -43,14 +43,15 @@ export const FIXED_MAP_1 = {
     ["-2,5", "-1,5", "-1,6"],
     ["4,-4", "3,-4", "3,-5"],
   ],
-  // Paired deposits are the same path cost from their own factory and from the enemy's, and
-  // the Crystal Cave is the same distance from both (checked by mapProblems).
+  // Starting crystal piles. Each pair is the same path cost from its own factory and from the
+  // enemy's (own / enemy): pair 0 2/9, pair 1 3/8, pair 2 4/7, pair 3 7/9. The middle pile is
+  // 7 from both. Checked by mapProblems.
   deposits: [
-    { at: "1,3", kind: "crystals" },
-    { at: "1,-2", kind: "crystals" },
-    { at: "0,2", kind: "crystalBase" },
-    { at: "2,-1", kind: "crystalBase" },
-    { at: "4,0", kind: "crystalCave" },
+    { at: "-1,4", pair: 0 }, { at: "3,-3", pair: 0 },
+    { at: "1,3", pair: 1 }, { at: "1,-2", pair: 1 },
+    { at: "0,2", pair: 2 }, { at: "2,-1", pair: 2 },
+    { at: "5,1", pair: 3 }, { at: "5,-2", pair: 3 },
+    { at: "4,0", pair: null },
   ],
 };
 
@@ -112,16 +113,20 @@ export function mapProblems(map, terrainRules) {
   });
   if (blue[map.factories[1]] !== green[map.factories[0]]) problems.push("factories differ");
 
-  const byKind = {};
-  for (const d of map.deposits) (byKind[d.kind] ||= []).push(d.at);
-  for (const kind in byKind) {
-    const sites = byKind[kind];
-    if (sites.length === 2) {
-      const [a, b] = sites;
-      if (blue[a] !== green[b] || green[a] !== blue[b]) problems.push(`${kind} pair is unfair`);
-    } else if (sites.length === 1 && blue[sites[0]] !== green[sites[0]]) {
-      problems.push(`${kind} is nearer one side`);
+  // Paired piles (same pair number) must mirror each other's distances; an unpaired pile
+  // must be equally far from both factories.
+  const pairs = {};
+  for (const d of map.deposits) {
+    if (d.pair === null) {
+      if (blue[d.at] !== green[d.at]) problems.push(`pile at ${d.at} is nearer one side`);
+    } else {
+      (pairs[d.pair] ||= []).push(d.at);
     }
+  }
+  for (const id in pairs) {
+    const [a, b] = pairs[id];
+    const fair = pairs[id].length === 2 && blue[a] === green[b] && green[a] === blue[b];
+    if (!fair) problems.push(`pile pair ${id} is unfair`);
   }
   return problems;
 }
@@ -145,14 +150,17 @@ const OUTER_MOUNTAINS = [0, 1, 2, 2, 3, 3, 4];
 // The cracked chasm cluster from the tile sheet: crack through N, centre and SW.
 const CHASM_CLUSTER = { centre: "chasm", ring: { N: "chasm", SW: "chasm" } };
 const MAX_ATTEMPTS = 500;
-// Deposit distances (path cost from the owner's factory) and how much further the enemy must be.
-const CRYSTALS_DISTANCE = [3, 4];
-const CRYSTALS_ENEMY_MARGIN = 4;
-const BASE_DISTANCE = [4, 6];
-const BASE_ENEMY_MARGIN = 2;
-const DEPOSIT_SPACING = 2;
+// Starting crystal piles come in pairs, one per side, plus one equally far from both. For each
+// pair: its path cost from the owner's factory, and how much further the enemy's must be.
+const PILE_PAIR_BANDS = [
+  { distance: [2, 3], margin: 4 },
+  { distance: [3, 5], margin: 3 },
+  { distance: [4, 6], margin: 2 },
+  { distance: [5, 7], margin: 1 },
+];
+const PILE_SPACING = 2;
 
-function seededRandom(seed) {
+export function seededRandom(seed) {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -202,11 +210,11 @@ function randomClusters(random) {
   return Object.entries(BLOCKS).map(([id, at]) => ({ id, at, ...clusters[id] }));
 }
 
-// A pair of deposit sites, one per side, with matching distances: own distance in range and
-// the enemy at least margin further. null if there is none.
-function depositPair(random, map, costs, taken, [nearest, furthest], margin) {
+// A pair of pile sites, one per side, with matching distances: own distance in range and the
+// enemy at least margin further. null if there is none.
+function pilePair(random, costs, taken, { distance: [nearest, furthest], margin }) {
   const [blue, green] = costs;
-  const free = (k) => !taken.some((t) => distance(t, k) < DEPOSIT_SPACING);
+  const free = (k) => !taken.some((t) => distance(t, k) < PILE_SPACING);
   const options = [];
   for (const a in blue) {
     if (!free(a) || blue[a] < nearest || blue[a] > furthest || green[a] < blue[a] + margin) {
@@ -214,32 +222,31 @@ function depositPair(random, map, costs, taken, [nearest, furthest], margin) {
     }
     for (const b in green) {
       if (b !== a && free(b) && green[b] === blue[a] && blue[b] === green[a] &&
-        distance(a, b) >= DEPOSIT_SPACING) options.push([a, b]);
+        distance(a, b) >= PILE_SPACING) options.push([a, b]);
     }
   }
   return options.length ? pick(random, options) : null;
 }
 
-function placeDeposits(random, map, terrainRules) {
+// Starting piles for a map: one pair per band, then one in the middle. null if they will not
+// fit. Exported so fixed maps can be given piles the same way.
+export function placeStartPiles(random, map, terrainRules) {
   const costs = map.factories.map((f) => pathCosts(map, terrainRules, f));
   // Keep the factories' surroundings clear for starting units and building.
   const taken = map.factories.flatMap((f) => [f, ...neighbourKeys(f)]);
-  const crystals = depositPair(random, map, costs, taken, CRYSTALS_DISTANCE,
-    CRYSTALS_ENEMY_MARGIN);
-  if (!crystals) return null;
-  taken.push(...crystals);
-  const base = depositPair(random, map, costs, taken, BASE_DISTANCE, BASE_ENEMY_MARGIN);
-  if (!base) return null;
-  taken.push(...base);
+  const piles = [];
+  for (const [pair, band] of PILE_PAIR_BANDS.entries()) {
+    const sites = pilePair(random, costs, taken, band);
+    if (!sites) return null;
+    taken.push(...sites);
+    piles.push({ at: sites[0], pair }, { at: sites[1], pair });
+  }
   const [blue, green] = costs;
-  const caves = Object.keys(blue).filter((k) =>
-    blue[k] === green[k] && !taken.some((t) => distance(t, k) < DEPOSIT_SPACING));
-  if (!caves.length) return null;
-  return [
-    { at: crystals[0], kind: "crystals" }, { at: crystals[1], kind: "crystals" },
-    { at: base[0], kind: "crystalBase" }, { at: base[1], kind: "crystalBase" },
-    { at: pick(random, caves), kind: "crystalCave" },
-  ];
+  const middle = Object.keys(blue).filter((k) =>
+    blue[k] === green[k] && !taken.some((t) => distance(t, k) < PILE_SPACING));
+  if (!middle.length) return null;
+  piles.push({ at: pick(random, middle), pair: null });
+  return piles;
 }
 
 // Starting hexes: the free neighbours of each factory nearest the enemy.
@@ -262,7 +269,7 @@ export function generateMap(seed, terrainRules, startUnits) {
       id: `map-${seed}`, name: `Map ${seed}`, clusters: randomClusters(random),
       factories: HOME_PAIR, starts: [[], []], deposits: [],
     });
-    const deposits = placeDeposits(random, map, terrainRules);
+    const deposits = placeStartPiles(random, map, terrainRules);
     if (!deposits) continue;
     map.deposits = deposits;
     map.starts = startHexes(map, terrainRules, startUnits);

@@ -526,6 +526,10 @@ h1 {
   fill: #9ff4ff;
 }
 
+.crystal-label.crystal-warning {
+  fill: #ff5a4a;
+}
+
 .setup-label {
   fill: #ffd84a;
 }

@@ -38,9 +38,9 @@ test("the summary counts stalls and comebacks", () => {
 });
 
 test("rule overrides change a copy and reject unknown rules", () => {
-  const rules = withOverrides(RULES, ["crystals.spawnPerRound=2", "crystals.maxPile=null"]);
+  const rules = withOverrides(RULES, ["crystals.spawnPerRound=2", "fog.revealRange=null"]);
   assert.equal(rules.crystals.spawnPerRound, 2);
-  assert.equal(rules.crystals.maxPile, null);
+  assert.equal(rules.fog.revealRange, null);
   assert.equal(RULES.crystals.spawnPerRound, 1);
   assert.throws(() => withOverrides(RULES, ["crystals.spawnRate=2"]));
 });

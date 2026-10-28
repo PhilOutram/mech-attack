@@ -5,8 +5,8 @@
 import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, applyAction, viewFor,
-} from "./engine.js?v=0.02";
-import { neighbourKeys, distance } from "./hex.js?v=0.02";
+} from "./engine.js?v=0.03";
+import { neighbourKeys, distance } from "./hex.js?v=0.03";
 
 // Worth of one life of the enemy factory, compared with unit costs in crystals.
 const FACTORY_LIFE_VALUE = 200;
@@ -340,7 +340,7 @@ function choosePile({ view, enemyFighters }, unit, claimedPiles) {
     if (claimedPiles.has(k)) continue;
     if (enemyFighters.some((e) => distance(e.at, k) <= HARVESTER_DANGER_RADIUS)) continue;
     const pile = view.crystals[k];
-    const take = Math.min(free, pile.amount, pile.perHarvest || Infinity);
+    const take = Math.min(free, pile.amount);
     const score = take / (distance(unit.at, k) + 1);
     if (score > bestScore) {
       bestScore = score;

@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.02";
-import { unitStats, defenceOf } from "./engine.js?v=0.02";
+import { parseKey, toPixel } from "./hex.js?v=0.03";
+import { unitStats, defenceOf } from "./engine.js?v=0.03";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -13,10 +13,10 @@ const SELECTED_INSET = 0.92;
 const UNIT_SCALE = 0.86;
 const FACTORY_SCALE = 0.95;
 const DAMAGE_BADGE_SCALE = 0.36;
-// Crystal art grows with the pile, between these shares of the hex height.
+// Crystal art grows with the pile towards its explode level, between these shares of the hex
+// height.
 const CRYSTAL_MIN_SCALE = 0.42;
 const CRYSTAL_MAX_SCALE = 0.85;
-const CRYSTAL_FULL_SIZE_AMOUNT = 300;
 // Opacity of units that have finished for the turn.
 const DONE_OPACITY = 0.55;
 const FONT_SIZE = 15;
@@ -180,11 +180,14 @@ function drawCrystals(view) {
   for (const k in view.crystals) {
     const pile = view.crystals[k];
     const [x, y] = hexCentre(k);
-    const share = Math.min(1, pile.amount / CRYSTAL_FULL_SIZE_AMOUNT);
+    const { explodeAt, growthPerRound } = view.rules.crystals;
+    const share = Math.min(1, pile.amount / explodeAt);
     const scale = CRYSTAL_MIN_SCALE + (CRYSTAL_MAX_SCALE - CRYSTAL_MIN_SCALE) * share;
     const size = HEX_HEIGHT * scale;
     out += image("units/crystals.svg", x, y - HEX_HEIGHT * 0.06, size, size);
-    out += label(pile.amount, x, y + HEX_HEIGHT * 0.38, "board-label crystal-label");
+    // Red when the pile will explode at the end of this round unless someone harvests it.
+    const warn = pile.amount + growthPerRound >= explodeAt ? " crystal-warning" : "";
+    out += label(pile.amount, x, y + HEX_HEIGHT * 0.38, `board-label crystal-label${warn}`);
   }
   return out;
 }

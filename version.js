@@ -1,8 +1,18 @@
-export const VERSION = "v0.02";
+export const VERSION = "v0.03";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.03",
+    date: "2026-10-28",
+    notes: [
+      "Fog of war: a map block turns over only when a unit is on it or next to it.",
+      "Crystal piles grow every round they are not harvested and explode at 80.",
+      "Maps start with more crystal piles of 50: four fair pairs and one in the middle.",
+      "Return fire is simultaneous, and shot previews show what each shot would do.",
+    ],
+  },
   {
     version: "v0.02",
     date: "2026-10-28",

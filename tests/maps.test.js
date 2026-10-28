@@ -46,8 +46,9 @@ test("the two halves of fixed map 1 are not copies of each other", () => {
 test("the fairness checks catch an unfair map", () => {
   const unfair = structuredClone(map);
   unfair.deposits = unfair.deposits.map((d) =>
-    d.kind === "crystalCave" ? { ...d, at: unfair.starts[0][0] } : d);
-  assert.ok(mapProblems(unfair, RULES.terrain).includes("crystalCave is nearer one side"));
+    d.pair === null ? { ...d, at: unfair.starts[0][0] } : d);
+  const problems = mapProblems(unfair, RULES.terrain);
+  assert.ok(problems.some((p) => p.endsWith("is nearer one side")), problems.join("; "));
 });
 
 test("generated maps are fair, playable and the same every time for a seed", () => {

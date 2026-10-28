@@ -63,19 +63,12 @@ export const RULES = {
   crystals: {
     harvestFrom: "adjacent", // stop next to crystals to harvest them
     crushedByMovement: true, // units can drive over crystals, which destroys them
+    startAmount: 50, // each of the map's starting piles
     spawnPerRound: 1, // provisional
     spawnAmount: 10,
-    growthPerRound: 10, // each round a spawned pile is not harvested
-    maxPile: null, // provisional: no cap
+    growthPerRound: 10, // every pile, each round it is not harvested
+    explodeAt: 80, // a pile that grows to this explodes and its crystals are lost
     spawnMinDistanceFromFactory: 3, // provisional
-  },
-
-  // Fixed deposits. Each harvest takes at most perHarvest (Phil's reading of the unit
-  // table: 30 x 6 = 180, 50 x 10 = 500, 70 x 8 = 560). Deposits do not grow.
-  deposits: {
-    crystals: { name: "Crystals", amount: 180, perHarvest: 30 },
-    crystalBase: { name: "Crystal Base", amount: 500, perHarvest: 50 },
-    crystalCave: { name: "Crystal Cave", amount: 560, perHarvest: 70 },
   },
 
   start: {
@@ -87,8 +80,9 @@ export const RULES = {
   // any unit can see one of its hexes, and everything on it stays visible.
   // "sight": each player sees only what their units can see now.
   // revealRange (tiles mode only): how close a unit must be to a block to turn it over.
-  // null = within the unit's sight range; 1 = only blocks it is on or next to.
-  fog: { mode: "tiles", revealRange: null }, // provisional
+  // null = within the unit's sight range; 1 = only blocks it is on or next to (Phil's choice,
+  // 28 October 2026).
+  fog: { mode: "tiles", revealRange: 1 },
 
   // Provisional: a game reaching this round ends with no winner.
   roundCap: 100,

@@ -21,22 +21,23 @@ In the physical game, two or more harvesters next to the same pile would split i
 ### Driving over crystals
 Units can drive onto or over crystals, and doing so destroys them (`crystals.crushedByMovement`). Of two equally short routes, a unit takes the one that spares the crystals. Crystals you cannot see are destroyed without warning. Before this rule, crystal piles blocked movement and the simulator showed spawned piles walling off the middle of the map by round 30–40.
 
-### Deposits
-The unit table's figures for deposits are crystals per harvest × number of harvests:
+### Crystal piles grow and explode
+- Each map starts with crystal piles of 50 (`crystals.startAmount`): 4 fair pairs, one pile of each pair per side, plus one pile equally far from both factories. The old Crystals / Crystal Base / Crystal Cave deposits (180, 500, 560) are gone.
+- New piles of 10 spawn during the game.
+- Every pile grows by 10 at the end of each round in which it is not harvested.
+- A pile that reaches 80 (`crystals.explodeAt`) explodes and its crystals are lost. A starting pile left alone explodes at the end of its third round (50, 60, 70, 80). A pile's number turns red when it will explode at the end of the round.
+- A harvest takes as much as the unit can carry.
 
-| Deposit | Total | Per harvest | Harvests |
-|---|---|---|---|
-| Crystals | 180 | 30 | 6 |
-| Crystal Base | 500 | 50 | 10 |
-| Crystal Cave | 560 | 70 | 8 |
-
-Deposits never grow. Spawned crystals appear at 10 and grow by 10 at the end of each round in which they are not harvested; a harvest from a spawned pile takes as much as the unit can carry.
+Options for later, not built yet:
+- Explosion damage to units on the hexes round the pile, counted like an attack.
+- Scattering the crystals when a pile explodes: one small pile on a random neighbouring hex, or a small pile on every neighbouring hex.
+- Linking the two: damage only on the hexes that crystals scatter onto.
 
 ### Winning
 You win by destroying the enemy factory. A player with no units who cannot afford the cheapest unit also loses.
 
 ### Map
-Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and deposit distances but different layouts, so exploring one side tells you nothing exact about the other. Random maps come later, with the same fairness checks.
+Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and pile distances but different layouts, so exploring one side tells you nothing exact about the other. Generated maps follow the same pattern (see Maps).
 
 ### Colours
 You play blue, the AI plays green. Purple, pink or dark grey may replace them later.
@@ -59,7 +60,6 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Mountains | Cannot be entered; block line of sight | `terrain.mountain` |
 | Chasms | Cannot be entered; do not block line of sight | `terrain.chasm` |
 | Crystal spawns | One new pile of 10 per round, on a random empty open hex at least 3 hexes from both factories | `crystals.spawnPerRound`, `spawnMinDistanceFromFactory` |
-| Pile cap | None | `crystals.maxPile` |
 | Round limit | A game reaching round 100 ends with no winner | `roundCap` |
 | Carried crystals | Lost when the carrying unit is destroyed | |
 
@@ -69,10 +69,10 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 Settled with Phil (28 October 2026): fog of war exposes a whole block at once, because on the table the only way to explore is to turn a seven-hex block over.
 
 - All blocks start face down.
-- When any unit can see a hex of a block (within its sight range, with a clear line of sight; mountains block sight), the whole block is turned over.
+- When any unit (or a factory) is on a hex of a block or right next to one, the whole block is turned over (`fog.revealRange` 1, Phil's choice). Each side starts with about 3 blocks face up: its home block and the blocks its starting units stand next to.
 - A turned-over block is face up for both players, and everything on it (units, crystals) stays visible from then on.
-- A moving unit turns over the blocks it can see along its route, not just from where it stops.
-- **Provisional:** how close a unit must be to turn a block over (`fog.revealRange`). The default is its sight range. With sight ranges of 2 to 4 (and 4 for a factory), 11 of the 12 blocks on fixed map 1 are face up after round 1. With `revealRange` 1 (only blocks a unit is on or next to), 6 of 12 are.
+- A moving unit turns over the blocks it passes next to along its route, not just where it stops.
+- `fog.revealRange` `null` turns blocks over anywhere within a unit's sight range instead; that leaves 11 of the 12 blocks face up after round 1.
 
 ### Line of sight (`fog.mode` = `"sight"`, kept for comparison)
 - You see only hexes within sight range of your units, with a clear line of sight.
@@ -84,12 +84,10 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 
 - Fixed map 1, or a generated map. "Map 17" is always the same map: the number is the seed.
 - Generated maps use the same 12 block positions as fixed map 1, with the factories in opposite corners. Opposite blocks get the same number of mountains in different places; the cracked chasm sits in one of the two middle blocks, and the other gets a single-hex chasm and a mountain.
-- Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory, and paired deposits (Crystals, Crystal Base) the same path distance from their own and the enemy factory, with the Crystal Cave the same distance from both. Layouts that fail are redrawn.
+- Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory, each pair of starting piles the same path distance from its own and the enemy factory, and the middle pile the same distance from both. Layouts that fail are redrawn.
 - The simulator shows these checks are not enough on their own (see `docs/simulation.md`).
 
 ## Open questions
-
-- What turns a block over on the table: anything a unit can see, or only a block next to a unit? (`fog.revealRange`)
 
 - Factory claiming: start with a headquarters factory (current), or start near unused factories and claim one?
 - Should the damaged side of a tile change a unit's stats? Currently it does not.
