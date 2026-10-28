@@ -722,6 +722,49 @@ h1 {
   color: var(--muted);
 }
 
+/* Landscape: the map gets a square on the right, as tall as the screen; the bar, messages
+   and orders run down a column on the left. The panel can grow here because its height no
+   longer moves the board. */
+@media (orientation: landscape) {
+  .game {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) min(100dvh, calc(100vw - 16rem));
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "bar board" "panel board";
+  }
+
+  /* Home button and status on the first row; crystals and End turn on the second. */
+  .game-bar {
+    grid-area: bar;
+    flex-wrap: wrap;
+    border-right: 1px solid var(--panel-edge);
+  }
+
+  .game-status {
+    flex: 1 1 calc(100% - 3.5rem);
+  }
+
+  .end-turn {
+    margin-left: auto;
+  }
+
+  .board-wrap {
+    grid-area: board;
+    height: 100%;
+  }
+
+  .panel {
+    grid-area: panel;
+    height: auto;
+    border-top: 0;
+    border-right: 1px solid var(--panel-edge);
+  }
+
+  .game-message {
+    flex-basis: 3.4rem;
+  }
+}
+
 /* Version badge + changelog */
 .version-badge {
   position: fixed;

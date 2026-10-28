@@ -12,7 +12,7 @@
 //   everything on a turned-over block stays visible from then on.
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
-import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.03";
+import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.04";
 
 // Saved games in any other format are not loaded.
 export const STATE_FORMAT = 3;
