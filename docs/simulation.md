@@ -54,7 +54,7 @@ Fixes tried (all in `rules-config.js`, off by default):
 | `start.secondPlayerCrystals: 50` | 59% fixed map 1; 39–46% on maps 2, 6 and 17 |
 | `start.secondPlayerCrystals: 60` | 43% fixed map 1 |
 
-Starting the second player with about 40–50 extra crystals evens it out. Fixes that would change the game more and are not built: reaction (opportunity) fire, where a unit that did not fire on its own turn may fire at an enemy that moves into its range; or resolving all attacks at the end of a round, closer to the simultaneous moves of the table game.
+Starting the second player with about 40–50 extra crystals evens it out. Phil chose 40, now the default: over 1,000 games on fixed map 1 the first player wins 61.6% (down from 76%) and blue 50.5%. Fixed map 1 is the hardest of the maps tried for the second player. Fixes that would change the game more and are not built: reaction (opportunity) fire, where a unit that did not fire on its own turn may fire at an enemy that moves into its range; or resolving all attacks at the end of a round, closer to the simultaneous moves of the table game.
 
 ## Generated maps (100 games each, current rules, `--map`)
 

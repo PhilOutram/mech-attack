@@ -29,7 +29,9 @@ describe("setting up a game", () => {
       const own = Object.values(state.units).filter((u) => u.owner === p);
       const types = own.map((u) => u.type).sort();
       assert.deepEqual(types, ["factory", ...RULES.start.units].sort());
-      assert.equal(state.players[p].crystals, RULES.start.crystals);
+      // Blue moves first here, so green gets the second player's extra crystals.
+      const bonus = p === GREEN ? RULES.start.secondPlayerCrystals : 0;
+      assert.equal(state.players[p].crystals, RULES.start.crystals + bonus);
       assert.equal(state.units[state.players[p].factoryId].at, map.factories[p]);
     }
   });

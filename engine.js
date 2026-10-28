@@ -13,7 +13,7 @@
 //   stay hidden.
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
-import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.08";
+import { neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo } from "./hex.js?v=0.09";
 
 // Saved games in any other format are not loaded.
 export const STATE_FORMAT = 5;

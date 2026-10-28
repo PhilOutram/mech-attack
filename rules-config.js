@@ -80,7 +80,9 @@ export const RULES = {
   start: {
     crystals: 50, // provisional
     units: ["lightHarvester", "scoutBike", "tank"], // provisional
-    secondPlayerCrystals: 0, // option: extra starting crystals for whoever moves second
+    // Extra starting crystals for whoever moves second, to make up for the first player's
+    // first shot in round 2 (Phil, 28 October 2026; see docs/simulation.md).
+    secondPlayerCrystals: 40,
   },
 
   // "fixed": the same player moves first every round. "alternate": the order flips each round

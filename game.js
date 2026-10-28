@@ -1,18 +1,18 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.08";
-import { mapById } from "./maps.js?v=0.08";
+import { RULES } from "./rules-config.js?v=0.09";
+import { mapById } from "./maps.js?v=0.09";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, STATE_FORMAT,
-} from "./engine.js?v=0.08";
-import { chooseAction } from "./ai.js?v=0.08";
-import { distance } from "./hex.js?v=0.08";
+} from "./engine.js?v=0.09";
+import { chooseAction } from "./ai.js?v=0.09";
+import { distance } from "./hex.js?v=0.09";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.08";
-import { confirmDialog } from "./dialog.js?v=0.08";
+} from "./board.js?v=0.09";
+import { confirmDialog } from "./dialog.js?v=0.09";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -22,7 +22,7 @@ const UNDO_KEY = "mech-attack.undos";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.08";
+const ASSET_VERSION = "0.09";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;

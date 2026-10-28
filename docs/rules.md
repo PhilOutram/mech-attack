@@ -52,7 +52,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Rule | Current setting | Config |
 |---|---|---|
 | Headquarters | Each player starts with a factory (headquarters). It builds units on free hexes next to it, cannot move, has defence 100 and sight 4 (the Factory row of the full unit table) and two lives like any unit. Claiming unused factories on the map is a possible later addition. | `units.factory` |
-| Starting position | Factory, Light Harvester, Scout Bike, Tank and 50 crystals | `start` |
+| Starting position | Factory, Light Harvester, Scout Bike, Tank and 50 crystals. Whoever moves second gets 40 more (settled with Phil, 28 October 2026), to make up for the first player's first shot in round 2. | `start` |
 | Building | Any number of units per turn, limited by crystals and free hexes next to the factory. A new unit cannot move or act until its owner's next turn. | |
 | Turn order for a unit | Move once, then take one action (attack, heal, harvest, unload, set up or pack up). Acting ends the unit's turn. | |
 | Return fire | A unit with a maximum range of 3 or less that is attacked from an adjacent hex hits back once at its full attack, **even if the attack destroys it** (settled with Phil, 28 October 2026: otherwise whoever starts an even fight gets a free killing shot). Artillery (minimum range 2), harvesters, medics and factories never return fire. Still provisional: the range limit of 3. | `combat.returnFireMaxRange` |
