@@ -561,6 +561,19 @@ h1 {
   white-space: nowrap;
 }
 
+/* Every unit has done all it can: End turn flashes for 3 seconds (game.js nudgeEndTurn). */
+.end-turn.flash {
+  animation: end-turn-flash 0.5s ease-in-out 6;
+}
+
+@keyframes end-turn-flash {
+  50% {
+    background-color: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 0 12px var(--accent);
+  }
+}
+
 /* Sound on/off: an icon button the height of the others. */
 .sound-toggle {
   display: inline-flex;

@@ -1,23 +1,23 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.30";
-import { mapById, seededRandom } from "./maps.js?v=0.30";
+import { RULES } from "./rules-config.js?v=0.31";
+import { mapById, seededRandom } from "./maps.js?v=0.31";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.30";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.30";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.30";
-import { distance } from "./hex.js?v=0.30";
+} from "./engine.js?v=0.31";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.31";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.31";
+import { distance } from "./hex.js?v=0.31";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.30";
-import { confirmDialog } from "./dialog.js?v=0.30";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.30";
-import { showTip } from "./tips.js?v=0.30";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.30";
+} from "./board.js?v=0.31";
+import { confirmDialog } from "./dialog.js?v=0.31";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.31";
+import { showTip, showNote } from "./tips.js?v=0.31";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.31";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -28,13 +28,15 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.30";
+const ASSET_VERSION = "0.31";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
 const HOP_MS = 90;
 // How long a banner such as "60 crystals unloaded" stays over the board.
 const BANNER_MS = 1000;
+// How long End turn flashes once every unit has done all it can this turn.
+const END_TURN_FLASH_MS = 3000;
 const EFFECT_MS = 500;
 // A pointer that moves further than this is panning the board, not tapping it.
 const DRAG_THRESHOLD_PX = 8;
@@ -224,6 +226,7 @@ export async function openGame({ resume = false, mapId = "fixed-1", mission = nu
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
   facing = {};
+  flashedRound = null;
   history = [];
   if (resume) {
     loadExtras();
@@ -242,6 +245,7 @@ export async function openGame({ resume = false, mapId = "fixed-1", mission = nu
     leaveGame();
     return;
   }
+  if (briefing && m.tip) showNote(m.tip, RULES);
   tip("welcome");
   render();
   if (state.current === AI_PLAYER) runAiTurn();
@@ -351,6 +355,7 @@ async function act(action) {
   afterAction(action);
   render();
   if (state.result) showGameOver();
+  else nudgeEndTurn();
   return true;
 }
 
@@ -610,6 +615,24 @@ function showEvents(events, before, after) {
   for (const [clip, volume] of sounds) playSound(clip, volume);
   if (unloaded) showBanner(`${unloaded} crystals unloaded`);
   return any;
+}
+
+// Once every one of your units has done all it can this turn, End turn flashes (once a turn).
+let flashedRound = null;
+
+function nudgeEndTurn() {
+  if (!myTurn() || flashedRound === state.round) return;
+  const view = viewFor(state, HUMAN);
+  const army = Object.values(view.units).filter((u) =>
+    u.owner === HUMAN && !unitStats(view, u).isFactory);
+  const busy = (u) => Object.keys(reachableHexes(view, u.id)).length ||
+    attackTargets(view, u.id).length || harvestTargets(view, u.id).length ||
+    healTargets(view, u.id).length || dropSites(view, u.id).length ||
+    canSetUp(view, u.id) || canPackUp(view, u.id);
+  if (!army.length || army.some(busy)) return;
+  flashedRound = state.round;
+  els.endTurn.classList.add("flash");
+  setTimeout(() => els.endTurn.classList.remove("flash"), END_TURN_FLASH_MS);
 }
 
 // A short message over the board, gone after BANNER_MS.

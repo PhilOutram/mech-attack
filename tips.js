@@ -119,6 +119,13 @@ export function showTip(id, rules) {
   if (!showing) next(rules);
 }
 
+// A one-off note in the same popup, such as a campaign mission's top tip: { title, text }. It
+// shows every time it is asked for.
+export function showNote(note, rules) {
+  queue.push(note);
+  if (!showing) next(rules);
+}
+
 // Help on the main menu: every tip will show again.
 export function resetTips() {
   store(SEEN_KEY, "[]");
@@ -126,14 +133,14 @@ export function resetTips() {
 }
 
 function next(rules) {
-  const id = queue.shift();
-  if (!id) {
+  const item = queue.shift();
+  if (!item) {
     showing = false;
     return;
   }
   showing = true;
-  store(SEEN_KEY, JSON.stringify([...seenList(), id]));
-  const { title, text } = TIPS[id](rules);
+  if (typeof item === "string") store(SEEN_KEY, JSON.stringify([...seenList(), item]));
+  const { title, text } = typeof item === "string" ? TIPS[item](rules) : item;
   const overlay = document.getElementById("tip-dialog");
   const ok = document.getElementById("tip-ok");
   const hide = document.getElementById("tip-hide");

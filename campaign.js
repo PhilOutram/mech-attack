@@ -2,20 +2,21 @@
 // on a bigger map with more to do. A mission sets the map, the starting units and crystals,
 // any rule changes, how the AI plays, and its objective; finishing one unlocks the next.
 // Progress is remembered on this device.
-import { unitsOf, factoriesOf } from "./engine.js?v=0.30";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.31";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;
 
 export const CAMPAIGN_NAME = "Red Dust";
 
+// tip (optional): a top tip shown when the mission starts.
 // done(state): the objective is met (the mission is won). null: win the usual way, by
 // destroying Green's home factory. steps (optional): the objective in parts, ticked off in the
 // panel as they are done; the mission is won when they all are. ai: "default" is the gentler
 // hand-tuned AI, "evolved" the strongest. Crystal targets and counts are kept here, next to the
 // text that names them.
 const BANK_TARGET = 200;
-const LANDFALL_INFANTRY = 3;
+const LANDFALL_INFANTRY = 1;
 const LANDFALL_CRYSTALS = 75;
 
 // What each mission lets both sides build: a few units at first, more as the campaign goes on.
@@ -41,6 +42,8 @@ export const MISSIONS = [
     story: "The Blue Expedition has reached Kharon, a red world rich in power crystals. Your " +
       "drop ship has set a squad of Infantry down beside an abandoned factory. Its store " +
       `still holds ${LANDFALL_CRYSTALS} crystals, and crystals glitter in the dust nearby.`,
+    tip: { title: "Top tip", text: "Tap your Infantry to select them, then tap the factory " +
+      "to move them into it and take it over." },
     objective: "Take the factory, build a Scout Bike, then harvest and build a Tank.",
     steps: LANDFALL_STEPS,
     setup: { units: [Array(LANDFALL_INFANTRY).fill("infantry"), []],
