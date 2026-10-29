@@ -6,92 +6,96 @@ Produced by `node evolve.js --generations 40 --population 20 --games 10 --seed 1
 
 | Generation | Best win rate | Mean win rate | Best personality favours |
 |---|---|---|---|
-| 1 | 75% | 50% | Tank 19%, Turret 17%, Anti-Aircraft Jeep 16% |
-| 2 | 71% | 50% | Tank 14%, Turret 13%, Sonic Tank 12% |
-| 3 | 74% | 50% | Tank 14%, Turret 13%, Sonic Tank 12% |
-| 4 | 75% | 49% | Tank 17%, Heavy Cannon 17%, Scout Bike 12% |
-| 5 | 67% | 50% | Heavy Cannon 16%, Anti-Aircraft Jeep 13%, Scout Bike 13% |
-| 6 | 79% | 51% | Tank 18%, Anti-Aircraft Jeep 14%, Fighter 14% |
-| 7 | 75% | 51% | Tank 17%, Heavy Cannon 17%, Anti-Aircraft Jeep 11% |
-| 8 | 77% | 50% | Heavy Cannon 16%, Tank 15%, Anti-Aircraft Jeep 15% |
-| 9 | 69% | 50% | Tank 17%, Anti-Aircraft Jeep 17%, Light Medic 10% |
-| 10 | 69% | 51% | Tank 17%, Heavy Cannon 16%, Anti-Aircraft Jeep 14% |
-| 11 | 67% | 49% | Heavy Cannon 16%, Tank 14%, Anti-Aircraft Jeep 14% |
-| 12 | 65% | 50% | Tank 17%, Heavy Cannon 17%, Anti-Aircraft Jeep 15% |
-| 13 | 75% | 50% | Tank 16%, Heavy Cannon 15%, Anti-Aircraft Jeep 13% |
-| 14 | 73% | 50% | Tank 16%, Heavy Cannon 16%, Anti-Aircraft Jeep 14% |
-| 15 | 70% | 50% | Tank 18%, Heavy Cannon 17%, Anti-Aircraft Jeep 15% |
-| 16 | 69% | 49% | Tank 16%, Heavy Cannon 15%, Anti-Aircraft Jeep 13% |
-| 17 | 74% | 50% | Heavy Cannon 18%, Anti-Aircraft Jeep 15%, Tank 14% |
-| 18 | 64% | 50% | Tank 17%, Heavy Cannon 16%, Anti-Aircraft Jeep 14% |
-| 19 | 64% | 50% | Heavy Cannon 16%, Anti-Aircraft Jeep 16%, Tank 15% |
-| 20 | 71% | 50% | Heavy Cannon 18%, Anti-Aircraft Jeep 15%, Tank 14% |
-| 21 | 73% | 50% | Tank 17%, Heavy Cannon 17%, Anti-Aircraft Jeep 17% |
-| 22 | 79% | 51% | Heavy Cannon 17%, Fighter 14%, Anti-Aircraft Jeep 14% |
-| 23 | 78% | 51% | Heavy Cannon 17%, Fighter 14%, Anti-Aircraft Jeep 14% |
-| 24 | 69% | 50% | Heavy Cannon 18%, Tank 16%, Anti-Aircraft Jeep 15% |
-| 25 | 64% | 50% | Heavy Cannon 16%, Fighter 14%, Anti-Aircraft Jeep 13% |
-| 26 | 69% | 50% | Heavy Cannon 15%, Tank 13%, Fighter 13% |
-| 27 | 79% | 50% | Heavy Cannon 18%, Fighter 15%, Tank 13% |
-| 28 | 72% | 50% | Heavy Cannon 19%, Tank 16%, Fighter 16% |
-| 29 | 65% | 50% | Tank 16%, Fighter 16%, Artillery 15% |
-| 30 | 72% | 50% | Tank 15%, Fighter 13%, Heavy Cannon 13% |
-| 31 | 68% | 50% | Heavy Cannon 20%, Tank 15%, Fighter 14% |
-| 32 | 75% | 50% | Heavy Cannon 19%, Anti-Aircraft Jeep 15%, Tank 11% |
-| 33 | 68% | 50% | Heavy Cannon 17%, Anti-Aircraft Jeep 16%, Fighter 15% |
-| 34 | 71% | 50% | Heavy Cannon 19%, Tank 18%, Fighter 14% |
-| 35 | 71% | 50% | Heavy Cannon 19%, Tank 16%, Fighter 15% |
-| 36 | 68% | 50% | Tank 15%, Heavy Cannon 15%, Fighter 15% |
-| 37 | 62% | 50% | Heavy Cannon 19%, Tank 14%, Fighter 13% |
-| 38 | 72% | 50% | Heavy Cannon 18%, Tank 16%, Artillery 12% |
-| 39 | 71% | 50% | Heavy Cannon 19%, Tank 14%, Fighter 13% |
-| 40 | 65% | 49% | Heavy Cannon 19%, Tank 14%, Fighter 13% |
+| 1 | 78% | 50% | Light Medic 13%, Fighter 13%, Sonic Tank 13% |
+| 2 | 68% | 50% | Anti-Aircraft Jeep 13%, Attack Helicopter 13%, Fighter 12% |
+| 3 | 66% | 50% | Fighter 17%, Artillery 15%, Tank 15% |
+| 4 | 64% | 49% | Scout Bike 17%, Tank 17%, Blast Cannon 14% |
+| 5 | 71% | 50% | Tank 17%, Attack Helicopter 17%, Blast Cannon 14% |
+| 6 | 68% | 50% | Tank 17%, Attack Helicopter 17%, Fighter 15% |
+| 7 | 70% | 50% | Tank 19%, Attack Helicopter 19%, Fighter 13% |
+| 8 | 65% | 50% | Attack Helicopter 17%, Fighter 14%, Anti-Aircraft Jeep 13% |
+| 9 | 71% | 50% | Fighter 14%, Attack Helicopter 14%, Anti-Aircraft Jeep 13% |
+| 10 | 63% | 50% | Attack Helicopter 14%, Blast Cannon 13%, Fighter 12% |
+| 11 | 67% | 49% | Tank 17%, Attack Helicopter 16%, Blast Cannon 13% |
+| 12 | 81% | 50% | Attack Helicopter 16%, Scout Bike 14%, Anti-Aircraft Jeep 13% |
+| 13 | 63% | 51% | Attack Helicopter 16%, Scout Bike 14%, Blast Cannon 14% |
+| 14 | 66% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 14%, Scout Bike 13% |
+| 15 | 69% | 51% | Anti-Aircraft Jeep 15%, Attack Helicopter 14%, Blast Cannon 13% |
+| 16 | 71% | 50% | Anti-Aircraft Jeep 15%, Attack Helicopter 14%, Blast Cannon 13% |
+| 17 | 68% | 51% | Anti-Aircraft Jeep 14%, Attack Helicopter 14%, Blast Cannon 12% |
+| 18 | 72% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 14%, Blast Cannon 13% |
+| 19 | 82% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 14%, Fighter 13% |
+| 20 | 69% | 50% | Anti-Aircraft Jeep 16%, Blast Cannon 14%, Fighter 13% |
+| 21 | 71% | 50% | Anti-Aircraft Jeep 16%, Attack Helicopter 13%, Fighter 13% |
+| 22 | 68% | 51% | Attack Helicopter 15%, Blast Cannon 15%, Anti-Aircraft Jeep 13% |
+| 23 | 77% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 14%, Blast Cannon 13% |
+| 24 | 75% | 50% | Attack Helicopter 15%, Anti-Aircraft Jeep 13%, Blast Cannon 13% |
+| 25 | 65% | 50% | Anti-Aircraft Jeep 13%, Attack Helicopter 13%, Scout Bike 12% |
+| 26 | 68% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 16%, Blast Cannon 13% |
+| 27 | 75% | 50% | Anti-Aircraft Jeep 16%, Scout Bike 15%, Blast Cannon 14% |
+| 28 | 75% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 16%, Heavy Cannon 13% |
+| 29 | 65% | 50% | Anti-Aircraft Jeep 16%, Scout Bike 14%, Attack Helicopter 14% |
+| 30 | 66% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 15%, Blast Cannon 14% |
+| 31 | 71% | 50% | Attack Helicopter 15%, Anti-Aircraft Jeep 15%, Scout Bike 14% |
+| 32 | 77% | 49% | Anti-Aircraft Jeep 16%, Heavy Cannon 15%, Blast Cannon 14% |
+| 33 | 70% | 50% | Attack Helicopter 16%, Anti-Aircraft Jeep 15%, Scout Bike 13% |
+| 34 | 79% | 51% | Anti-Aircraft Jeep 15%, Scout Bike 15%, Artillery 14% |
+| 35 | 64% | 50% | Artillery 16%, Anti-Aircraft Jeep 15%, Scout Bike 15% |
+| 36 | 64% | 49% | Scout Bike 16%, Anti-Aircraft Jeep 16%, Attack Helicopter 11% |
+| 37 | 63% | 50% | Scout Bike 15%, Anti-Aircraft Jeep 15%, Attack Helicopter 12% |
+| 38 | 66% | 50% | Scout Bike 15%, Anti-Aircraft Jeep 15%, Attack Helicopter 12% |
+| 39 | 69% | 50% | Scout Bike 14%, Anti-Aircraft Jeep 14%, Attack Helicopter 11% |
+| 40 | 75% | 50% | Artillery 17%, Scout Bike 17%, Anti-Aircraft Jeep 14% |
 
 ## The best personalities against the hand-tuned AI
 
 100 games each, seats and maps mixed.
 
-| Personality | Wins against the default AI | Units it built (share) | Upgrades and captures per game |
-|---|---|---|---|
-| Heavy Cannon and Tank | 84% | Infantry 46%, Scout Bike 11%, Anti-Aircraft Jeep 10%, Artillery 7%, Light Medic 7%, Light Harvester 6%, Tank 5%, Turret 4%, Spotter Drone 3%, Fighter 0%, Attack Helicopter 0% | Crystal lab 1.0, Airfield 0.1, captures 3.1 |
-| Heavy Cannon and Tank | 73% | Infantry 43%, Scout Bike 12%, Anti-Aircraft Jeep 12%, Light Harvester 7%, Artillery 7%, Tank 5%, Light Medic 5%, Spotter Drone 4%, Turret 4%, Fighter 1%, Attack Helicopter 0% | Crystal lab 1.0, Airfield 0.1, captures 2.6 |
-| Tank and Heavy Cannon | 80% | Infantry 47%, Scout Bike 12%, Anti-Aircraft Jeep 11%, Light Harvester 6%, Artillery 6%, Light Medic 5%, Tank 5%, Spotter Drone 4%, Turret 3%, Fighter 0% | Crystal lab 1.0, Airfield 0.1, captures 2.9 |
-| Heavy Cannon and Tank | 75% | Infantry 49%, Scout Bike 12%, Anti-Aircraft Jeep 10%, Light Harvester 8%, Artillery 7%, Light Medic 6%, Tank 5%, Turret 3%, Spotter Drone 1%, Fighter 0%, Attack Helicopter 0% | Crystal lab 1.0, Airfield 0.0, captures 2.9 |
-| Heavy Cannon and Tank | 79% | Infantry 46%, Anti-Aircraft Jeep 12%, Scout Bike 12%, Light Harvester 7%, Artillery 7%, Light Medic 6%, Tank 5%, Turret 4%, Spotter Drone 2%, Fighter 0%, Attack Helicopter 0% | Crystal lab 1.0, Airfield 0.1, captures 2.6 |
+| Personality | Wins against the default AI | Units it built (share) | Upgrades and captures per game | Wanted but hardly built |
+|---|---|---|---|---|
+| Infantry and Scout Bike | 59% | Infantry 49%, Scout Bike 20%, Attack Helicopter 9%, Light Harvester 8%, Anti-Aircraft Jeep 7%, Artillery 4%, Fighter 1%, Light Medic 1%, Tank 1%, Turret 1% | Crystal lab 1.0, Airfield 0.8, Heavy works 0.0, captures 2.4 | Tank (12% wanted) |
+| Infantry and Scout Bike | 59% | Infantry 49%, Scout Bike 20%, Attack Helicopter 10%, Light Harvester 9%, Anti-Aircraft Jeep 8%, Light Medic 1%, Artillery 1%, Fighter 1%, Blast Cannon 1%, Turret 0%, Tank 0% | Crystal lab 1.0, Airfield 0.9, Heavy works 0.2, captures 2.5 | Blast Cannon (10% wanted) |
+| Infantry and Scout Bike | 74% | Infantry 47%, Scout Bike 19%, Attack Helicopter 11%, Anti-Aircraft Jeep 8%, Light Harvester 8%, Artillery 4%, Light Medic 1%, Fighter 1%, Turret 0%, Heavy Cannon 0%, Tank 0% | Crystal lab 1.0, Airfield 0.9, Heavy works 0.3, captures 2.7 | Heavy Cannon (11% wanted), Tank (11% wanted) |
+| Infantry and Scout Bike | 70% | Infantry 44%, Scout Bike 20%, Anti-Aircraft Jeep 9%, Attack Helicopter 9%, Light Harvester 8%, Artillery 3%, Light Medic 3%, Fighter 1%, Turret 1%, Heavy Cannon 1%, Blast Cannon 0%, Tank 0%, Sonic Tank 0% | Crystal lab 1.0, Airfield 0.9, Heavy works 0.3, captures 2.8 | Heavy Cannon (10% wanted) |
+| Infantry and Scout Bike | 68% | Infantry 46%, Scout Bike 19%, Attack Helicopter 10%, Anti-Aircraft Jeep 9%, Light Harvester 8%, Artillery 4%, Light Medic 2%, Fighter 1%, Turret 1%, Blast Cannon 0%, Tank 0%, Heavy Cannon 0% | Crystal lab 0.9, Airfield 0.9, Heavy works 0.1, captures 2.7 | Blast Cannon (12% wanted) |
 
 ## Genes of the best personality
 
 ```json
 {
   "mix": {
-    "tank": 0.76,
-    "heavyCannon": 1,
-    "artillery": 0.61,
-    "blastCannon": 0.06,
-    "sonicTank": 0.01,
-    "scoutBike": 0.13,
-    "spotterDrone": 0.45,
-    "attackHelicopter": 0.22,
-    "fighter": 0.72,
-    "antiAircraftJeep": 0.55,
-    "lightMedic": 0.56,
-    "turret": 0.31
+    "tank": 0.71,
+    "heavyCannon": 0.34,
+    "artillery": 1,
+    "blastCannon": 0.4,
+    "sonicTank": 0.15,
+    "scoutBike": 1,
+    "spotterDrone": 0,
+    "attackHelicopter": 0.68,
+    "fighter": 0.46,
+    "antiAircraftJeep": 0.84,
+    "lightMedic": 0.41,
+    "turret": 0.03
   },
   "harvestersEarly": 2,
   "harvestersMax": 2,
-  "antiAirPerEnemyAir": 0.93,
-  "factoryLifeValue": 179.63,
-  "killBonusShare": 0.45,
-  "returnFireCaution": 1,
-  "homeDefenceRadius": 4,
-  "standOff": 2,
+  "counterWeight": 1.23,
+  "factoryLifeValue": 318.15,
+  "killBonusShare": 0.05,
+  "returnFireCaution": 0.93,
+  "homeDefenceRadius": 2,
+  "standOff": 3,
   "harvesterDangerRadius": 1,
-  "dangerPenalty": 7.28,
-  "scoutWatchDistance": 4,
-  "armySizeForMedic": 2,
+  "dangerPenalty": 6.25,
+  "scoutWatchDistance": 2,
+  "armySizeForMedic": 5,
   "patience": 0,
   "captureFactories": 2,
-  "transportInfantry": 0,
-  "labs": 1
+  "transportInfantry": 0.04,
+  "labs": 1,
+  "wreckPiles": 0.52,
+  "targetNearness": 1.21,
+  "targetWeakness": -0.97,
+  "targetThreat": 1.2
 }
 ```

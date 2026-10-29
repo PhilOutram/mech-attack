@@ -62,6 +62,19 @@ Starting the second player with about 40–50 extra crystals evens it out. Phil 
 - The rule-based AI mostly builds the cheaper new units: 253 Attack Helicopters and 164 Anti-Aircraft Jeeps, but 1 Blast Cannon and no Sonic Tanks. It seldom saves up for expensive units, so the splash and line attacks were barely tested. The learning AI (idea 9) is the better way to find out what each unit is worth.
 - The first player now wins 37.5% and blue 30.9%: the 40-crystal bonus was tuned before these units existed and needs rechecking.
 
+## Evolved for the settled rules (v0.56)
+
+Rules: Heavy works and Airfield 60, second player's extra crystals 30, crystal piles can be blown up (splash included), counters from `counters.js`, combined attacks, upgrade-first buying. Evolved with `node evolve.js --generations 40 --population 20 --games 10 --seed 1` (131 minutes). The best five beat the hand-tuned AI 59–74% of the time; the hand-tuned AI is itself stronger now that it builds counters.
+
+100 games between them, every map shape:
+
+- The first player wins 48% of decided games (35% before the bonus cut): the start is fair.
+- 57% of games end with a home factory overrun, 41% with a side out of units, 2% at the round limit. Median length 16 rounds.
+- Units built per game, both sides together: Infantry 15.7 (24.3 before), Scout Bike 7.0, Light Harvester 2.8, Anti-Aircraft Jeep 2.4, Attack Helicopter 2.3, Artillery 1.0, then a few Medics, Turrets, Tanks, Fighters and Heavy Cannons.
+- Every personality buys a Crystal lab and almost every one an Airfield; Heavy works only now and then.
+
+Unit trials (`docs/balance/unit-trials.md`, 40 games a unit): leaning on almost any unit now wins 40–60% against the evolved mix, where before nearly every unit lost badly, so the units are much closer to balanced. Leaning on Tanks wins 60% and on Scout Bikes 59%, yet the evolved AI hardly builds Tanks: the report flags a liking for Tanks, Heavy Cannons and Blast Cannons that is hardly ever built, because its other rules (counters first, Infantry for capturing, impatience) come first. The Transporter (18%), Blast Cannon (25%) and Attack Helicopter (31%) are the weakest to lean on.
+
 ## Counters measured, not left to evolution (v0.46)
 
 Evolution missed that the Blast Cannon answers Infantry swarms (Phil, 29 October 2026). Three things hid it: a liking for heavy units never reached the board, because impatient personalities never saved for unit and Heavy works together; the AI aimed the Blast Cannon without counting its splash; and 10 games a generation against a population that all rushed with Infantry is a lot of noise. Changes:

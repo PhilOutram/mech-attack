@@ -6,18 +6,18 @@ A win rate well above 50% means leaning on the unit beats the evolved mix; well 
 
 | Unit | Cost | Win rate (decided) | Built per game | Kills per unit built | Lost per unit built |
 |---|---|---|---|---|---|
-| Tank | 70 | 46% (37/40) | 1.9 | 3.2 | 1.0 |
-| Light Medic | 40 | 31% (35/40) | 1.4 | 0.0 | 0.4 |
-| Heavy Cannon | 80 | 29% (35/40) | 0.9 | 8.4 | 0.3 |
-| Scout Bike | 30 | 28% (39/40) | 4.7 | 0.3 | 1.0 |
-| Artillery | 50 | 26% (38/40) | 2.5 | 1.7 | 0.6 |
-| Infantry | 20 | 26% (38/40) | 14.1 | 0.2 | 0.8 |
-| Blast Cannon | 65 | 25% (36/40) | 1.5 | 2.1 | 0.6 |
-| Sonic Tank | 60 | 24% (37/40) | 1.2 | 2.2 | 0.5 |
-| Transporter | 35 | 23% (35/40) | 1.7 | 0.0 | 0.8 |
-| Anti-Aircraft Jeep | 30 | 23% (35/40) | 3.4 | 0.1 | 0.5 |
-| Turret | 50 | 18% (34/40) | 1.6 | 5.0 | 0.4 |
-| Spotter Drone | 15 | 13% (38/40) | 3.3 | 0.0 | 0.9 |
-| Attack Helicopter | 45 | 10% (39/40) | 1.6 | 0.8 | 0.9 |
-| Fighter | 60 | 5% (39/40) | 1.1 | 0.0 | 0.9 |
-| Chinook | 55 | 3% (38/40) | 1.3 | 0.0 | 1.0 |
+| Tank | 70 | 60% (40/40) | 1.0 | 5.2 | 0.9 |
+| Scout Bike | 30 | 59% (39/40) | 4.2 | 0.6 | 0.8 |
+| Sonic Tank | 60 | 51% (37/40) | 1.1 | 0.8 | 0.2 |
+| Light Medic | 40 | 47% (36/40) | 1.1 | 0.0 | 0.1 |
+| Spotter Drone | 15 | 46% (37/40) | 3.2 | 0.0 | 0.3 |
+| Infantry | 20 | 45% (40/40) | 4.0 | 0.1 | 0.4 |
+| Anti-Aircraft Jeep | 30 | 45% (38/40) | 2.8 | 0.2 | 0.2 |
+| Turret | 50 | 44% (39/40) | 1.4 | 1.5 | 0.2 |
+| Artillery | 50 | 43% (40/40) | 1.5 | 1.0 | 0.2 |
+| Fighter | 60 | 43% (40/40) | 1.1 | 0.3 | 0.1 |
+| Heavy Cannon | 80 | 42% (38/40) | 1.0 | 3.2 | 0.3 |
+| Chinook | 55 | 42% (38/40) | 0.8 | 0.0 | 0.5 |
+| Attack Helicopter | 45 | 31% (39/40) | 2.0 | 1.5 | 0.6 |
+| Blast Cannon | 65 | 25% (40/40) | 0.5 | 1.0 | 0.3 |
+| Transporter | 35 | 18% (39/40) | 0.5 | 0.0 | 0.6 |
