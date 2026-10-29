@@ -124,6 +124,10 @@ export const RULES = {
   // A player with no units who cannot afford the cheapest one loses (off in the first campaign
   // mission, where Green has nothing).
   loseWithNoUnits: true,
+  // The units and factory upgrades that can be bought in a game; null = all. Campaign missions
+  // set them to bring units in a few at a time.
+  allowedUnits: null,
+  allowedUpgrades: null,
 
   combat: {
     // Lives lost when the attack total on a target in one turn reaches these multiples

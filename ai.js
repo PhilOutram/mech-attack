@@ -10,9 +10,9 @@
 import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
-  viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites,
-} from "./engine.js?v=0.29";
-import { neighbourKeys, distance } from "./hex.js?v=0.29";
+  viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
+} from "./engine.js?v=0.30";
+import { neighbourKeys, distance } from "./hex.js?v=0.30";
 
 // Score for an attack that costs no life now but sets up a combined attack this turn.
 const SETUP_ATTACK_SCORE = 1;
@@ -351,11 +351,18 @@ function bestHarvest(ctx) {
 function wantedUnitType(ctx, maxCost = Infinity) {
   const { view, me, army, p } = ctx;
   const cost = (type) => view.rules.units[type].cost;
+  // A unit fits if this game allows it and it, with any upgrade it needs, costs no more than
+  // maxCost.
+  const fits = (type) => {
+    if (!unitAllowed(view, type)) return false;
+    const price = cost(type) + upgradeNeeded(ctx, type).cost;
+    return Number.isFinite(price) && price <= maxCost;
+  };
   const harvesters = army.filter(isHarvester).length;
   const knownPiles = Object.keys(view.crystals).length;
   const harvestersWanted =
     knownPiles >= KNOWN_PILES_FOR_EXTRA_HARVESTER ? p.harvestersMax : p.harvestersEarly;
-  if (harvesters < harvestersWanted && cost("lightHarvester") <= maxCost) {
+  if (harvesters < harvestersWanted && fits("lightHarvester")) {
     // With no income at all, buy the cheapest unit that can carry crystals rather than
     // saving for a harvester that may never be affordable.
     const crystals = view.players[me].crystals;
@@ -367,7 +374,7 @@ function wantedUnitType(ctx, maxCost = Infinity) {
   const hitsAir = (u) => ["air", "both"].includes(unitStats(view, u).hits);
   const enemyAir = ctx.enemies.filter((e) => unitStats(view, e).air).length;
   const antiAirWanted = Math.round(enemyAir * p.antiAirPerEnemyAir);
-  if (antiAirWanted > army.filter(hitsAir).length && cost(ANTI_AIR_TYPE) <= maxCost) {
+  if (antiAirWanted > army.filter(hitsAir).length && fits(ANTI_AIR_TYPE)) {
     return ANTI_AIR_TYPE;
   }
 
@@ -376,8 +383,8 @@ function wantedUnitType(ctx, maxCost = Infinity) {
     const transporters = army.filter((u) => u.type === TRANSPORTER_TYPE).length;
     const infantry = infantryCount(ctx);
     if (p.transportInfantry > TRANSPORT_THRESHOLD && infantry > 0 && !transporters &&
-      cost(TRANSPORTER_TYPE) <= maxCost) return TRANSPORTER_TYPE;
-    if (infantry < p.captureFactories && cost(INFANTRY_TYPE) <= maxCost) return INFANTRY_TYPE;
+      fits(TRANSPORTER_TYPE)) return TRANSPORTER_TYPE;
+    if (infantry < p.captureFactories && fits(INFANTRY_TYPE)) return INFANTRY_TYPE;
   }
 
   const fighters = army.filter((u) => isCombatUnit(p, u));
@@ -385,7 +392,7 @@ function wantedUnitType(ctx, maxCost = Infinity) {
   let best = null;
   let bestGap = -Infinity;
   for (const type in p.mix) {
-    if (p.mix[type] <= 0 || cost(type) + upgradeNeeded(ctx, type).cost > maxCost) continue;
+    if (p.mix[type] <= 0 || !fits(type)) continue;
     if (type === "lightMedic" && fighters.length < p.armySizeForMedic) continue;
     const share = fighters.filter((u) => u.type === type).length / (fighters.length || 1);
     const gap = p.mix[type] / total - share;
@@ -400,7 +407,7 @@ function wantedUnitType(ctx, maxCost = Infinity) {
 function cheapestGatherer(view, crystals) {
   const types = Object.keys(view.rules.units).filter((type) => {
     const stats = view.rules.units[type];
-    return stats.storage > 0 && stats.cost !== null && stats.cost <= crystals;
+    return stats.storage > 0 && unitAllowed(view, type) && stats.cost <= crystals;
   });
   return types.sort((a, b) => view.rules.units[a].cost - view.rules.units[b].cost)[0] || null;
 }

@@ -41,7 +41,10 @@ export function testRules(overrides = {}) {
   rules.crystals.spawnChoices = [0];
   for (const section in overrides) {
     const value = overrides[section];
-    if (value && typeof value === "object") Object.assign(rules[section], value);
+    // Sections that are objects are merged; anything else (values, lists) is replaced.
+    const merge = value && typeof value === "object" && !Array.isArray(value) &&
+      rules[section] && typeof rules[section] === "object";
+    if (merge) Object.assign(rules[section], value);
     else rules[section] = value;
   }
   return rules;

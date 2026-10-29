@@ -148,6 +148,19 @@ describe("AI and factories", () => {
   });
 });
 
+describe("AI and allowed units", () => {
+  test("it only builds units the game allows, and still plays", () => {
+    const allowed = ["scoutBike", "lightHarvester", "tank"];
+    let s = newGame({ rules: { ...structuredClone(RULES), allowedUnits: allowed },
+      map: buildMap(FIXED_MAP_1), seed: 2, recordActions: false });
+    while (!s.result && s.round <= 30) {
+      const action = choose(s);
+      if (action.type === "build") assert.ok(allowed.includes(action.unitType), action.unitType);
+      s = applyAction(s, action);
+    }
+  });
+});
+
 describe("personalities", () => {
   const inRange = (p) => {
     for (const gene in PERSONALITY_RANGES) {

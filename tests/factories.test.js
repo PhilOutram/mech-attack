@@ -4,7 +4,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyAction, legalActions, viewFor, reachableHexes, attackTargets, buildSites, canUnload,
-  dropSites,
+  dropSites, buildableTypes,
 } from "../engine.js";
 import { distance } from "../hex.js";
 import { scenario } from "./helpers.js";
@@ -57,6 +57,27 @@ describe("factory upgrades", () => {
     assert.ok(sites.every((k) => distance(k, BLUE_FACTORY_HEX) === 1));
     const tankSites = buildSites(viewFor(s, BLUE), BLUE, "tank");
     assert.ok(tankSites.some((k) => distance(k, MIDDLE) === 1));
+  });
+});
+
+describe("allowed units and upgrades", () => {
+  test("only allowed units can be built and only allowed upgrades bought", () => {
+    const s = scenario({
+      playerCrystals: [300, 100],
+      rules: { allowedUnits: ["scoutBike", "tank"], allowedUpgrades: ["heavyWorks"] },
+    });
+    const legal = legalActions(s);
+    const built = new Set(legal.filter((a) => a.type === "build").map((a) => a.unitType));
+    assert.deepEqual([...built].sort(), ["scoutBike", "tank"]);
+    const upgrades = legal.filter((a) => a.type === "upgrade").map((a) => a.upgrade);
+    assert.deepEqual(upgrades, ["heavyWorks"]);
+    assert.throws(() => play(s, { type: "build", unitType: "lightHarvester", at: "0,5" }));
+  });
+
+  test("the units on offer are listed cheapest first", () => {
+    const s = scenario();
+    const costs = buildableTypes(s).map((type) => s.rules.units[type].cost);
+    assert.deepEqual(costs, [...costs].sort((a, b) => a - b));
   });
 });
 

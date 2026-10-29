@@ -134,6 +134,13 @@ Five missions that introduce the game (Phil, 29 October 2026), defined in `campa
 | 4 | Storm the Works | Map 12 (4-5-5-4) | Light Harvester, Tank, 2 Infantry, Transporter, 100 | Light Harvester, Scout Bike, Tank, Infantry, 80 | Hold 3 captured factories |
 | 5 | The Crystal War | Map 21 (4-5-6-5-4) | Light Harvester, Scout Bike, Tank, Infantry, 150 | 2 Light Harvesters, Scout Bike, 2 Tanks, Infantry, 200 | Destroy Green's home factory |
 
+Units and upgrades come in a few at a time (`allowedUnits`, `allowedUpgrades` in the mission's rules; both sides alike):
+- Mission 1: Infantry, Scout Bike, Light Harvester, Tank; no upgrades.
+- Mission 2: adds Light Medic and Anti-Aircraft Jeep.
+- Mission 3: adds Artillery and Heavy Cannon; Heavy works allowed.
+- Mission 4: adds Transporter, Blast Cannon and Sonic Tank.
+- Mission 5: everything, including the Airfield and air units.
+
 Missions 1 to 4 play the hand-tuned AI; mission 5 plays an evolved personality. A home factory that starts unclaimed belongs to nobody until its player's infantry capture it; it is not lost while unclaimed. All figures are provisional. Played AI against AI, mission 1 is won by round 8, mission 3 by round 8 and mission 4 by round 5.
 
 ## Fog of war

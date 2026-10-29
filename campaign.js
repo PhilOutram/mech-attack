@@ -2,7 +2,7 @@
 // on a bigger map with more to do. A mission sets the map, the starting units and crystals,
 // any rule changes, how the AI plays, and its objective; finishing one unlocks the next.
 // Progress is remembered on this device.
-import { unitsOf, factoriesOf } from "./engine.js?v=0.29";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.30";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;
@@ -17,6 +17,12 @@ export const CAMPAIGN_NAME = "Red Dust";
 const BANK_TARGET = 200;
 const LANDFALL_INFANTRY = 3;
 const LANDFALL_CRYSTALS = 75;
+
+// What each mission lets both sides build: a few units at first, more as the campaign goes on.
+const BASIC_UNITS = ["infantry", "scoutBike", "lightHarvester", "tank"];
+const SUPPORT_UNITS = [...BASIC_UNITS, "lightMedic", "antiAircraftJeep"];
+const ARMY_UNITS = [...SUPPORT_UNITS, "artillery", "heavyCannon"];
+const STORM_UNITS = [...ARMY_UNITS, "transporter", "blastCannon", "sonicTank"];
 
 const owns = (state, type) => unitsOf(state, HUMAN).some((u) => u.type === type);
 const holdsHome = (state) => state.units[state.players[HUMAN].factoryId]?.owner === HUMAN;
@@ -39,7 +45,7 @@ export const MISSIONS = [
     steps: LANDFALL_STEPS,
     setup: { units: [Array(LANDFALL_INFANTRY).fill("infantry"), []],
       crystals: [LANDFALL_CRYSTALS, 0], unclaimedHome: [true, false] },
-    rules: { loseWithNoUnits: false },
+    rules: { loseWithNoUnits: false, allowedUnits: BASIC_UNITS, allowedUpgrades: [] },
     ai: "default",
     done: (state) => LANDFALL_STEPS.every((step) => step.done(state)),
   },
@@ -52,7 +58,7 @@ export const MISSIONS = [
     objective: `Bank ${BANK_TARGET} crystals in your store. Protect your harvester.`,
     setup: { units: [["lightHarvester", "scoutBike"], ["lightHarvester", "scoutBike"]],
       crystals: [60, 50] },
-    rules: {},
+    rules: { allowedUnits: SUPPORT_UNITS, allowedUpgrades: [] },
     ai: "default",
     done: (state) => state.players[HUMAN].crystals >= BANK_TARGET,
   },
@@ -65,7 +71,7 @@ export const MISSIONS = [
       "tough targets.",
     setup: { units: [["lightHarvester", "scoutBike", "tank", "tank"],
       ["lightHarvester", "scoutBike", "tank"]], crystals: [80, 60] },
-    rules: {},
+    rules: { allowedUnits: ARMY_UNITS, allowedUpgrades: ["heavyWorks"] },
     ai: "default",
     done: null,
   },
@@ -79,7 +85,7 @@ export const MISSIONS = [
     objective: `Capture ${FACTORIES_TO_CAPTURE} factories with your Infantry.`,
     setup: { units: [["lightHarvester", "tank", "infantry", "infantry", "transporter"],
       ["lightHarvester", "scoutBike", "tank", "infantry"]], crystals: [100, 80] },
-    rules: {},
+    rules: { allowedUnits: STORM_UNITS, allowedUpgrades: ["heavyWorks"] },
     ai: "default",
     done: (state) => factoriesOf(state, HUMAN)
       .filter((f) => f.id !== state.players[HUMAN].factoryId).length >= FACTORIES_TO_CAPTURE,

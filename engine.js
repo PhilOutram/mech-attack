@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.29";
+} from "./hex.js?v=0.30";
 
 // Factories, infantry and transporters (format 6):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
@@ -568,7 +568,15 @@ export function canPackUp(view, unitId) {
 // that has it.
 export function factoryBuilds(state, factory, type) {
   const stats = state.rules.units[type];
-  return stats.cost !== null && (!stats.needs || factory.upgrades.includes(stats.needs));
+  return unitAllowed(state, type) &&
+    (!stats.needs || factory.upgrades.includes(stats.needs));
+}
+
+// Whether a unit type can be built in this game: it has a cost, and the game's list of
+// allowed units (rules.allowedUnits, set by campaign missions; null = all) includes it.
+export function unitAllowed(state, type) {
+  const allowed = state.rules.allowedUnits;
+  return state.rules.units[type].cost !== null && (!allowed || allowed.includes(type));
 }
 
 // Free hexes next to the player's factories where a new unit can be placed. With unitType,
@@ -585,16 +593,20 @@ export function buildSites(view, player, unitType = null) {
   return [...sites];
 }
 
-// Every unit type that can be built somewhere.
+// Every unit type that can be built in this game, cheapest first.
 export function buildableTypes(state) {
-  return Object.keys(state.rules.units).filter((type) => state.rules.units[type].cost !== null);
+  return Object.keys(state.rules.units).filter((type) => unitAllowed(state, type))
+    .sort((a, b) => state.rules.units[a].cost - state.rules.units[b].cost);
 }
 
-// The upgrades a factory has not bought yet.
+// The upgrades a factory has not bought yet, of those allowed in this game
+// (rules.allowedUpgrades; null = all).
 export function upgradeOptions(state, factoryId) {
   const factory = state.units[factoryId];
   if (!factory || !factory.upgrades) return [];
-  return Object.keys(state.rules.factoryUpgrades).filter((u) => !factory.upgrades.includes(u));
+  const allowed = state.rules.allowedUpgrades;
+  return Object.keys(state.rules.factoryUpgrades).filter((u) =>
+    !factory.upgrades.includes(u) && (!allowed || allowed.includes(u)));
 }
 
 // ---------------------------------------------------------------------------------------
