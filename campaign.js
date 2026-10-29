@@ -3,9 +3,9 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.41";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.41";
-import { distance, cheapestPaths } from "./hex.js?v=0.41";
+import { RULES } from "./rules-config.js?v=0.42";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.42";
+import { distance, cheapestPaths } from "./hex.js?v=0.42";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;

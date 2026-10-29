@@ -12,7 +12,7 @@ Three badges, drawn on top of the factory token when the factory has that upgrad
 | Heavy works | Builds heavy units | Something chunky for heavy weapons | `units/upgrade-heavy-works.svg` |
 | Crystal lab | Makes crystals every turn | A crystal greenhouse or bubble | `units/upgrade-lab.svg` |
 
-The files in the repo now are simple placeholders drawn by `tools/placeholder-tokens.mjs` (a helipad, a gear with a warning triangle, and a glass dome over blue crystals). Replace them with Phil's art.
+Done in v0.42 (29 October 2026): the placeholders are replaced by badges in Phil's token style, made from his own factory and crystal art. Sources and the full-tile alternative (all 8 combinations, in blue, green and neutral) are in `Units\\SVG\\Factory upgrades\\v2` on Phil's OneDrive.
 
 ## Format
 
