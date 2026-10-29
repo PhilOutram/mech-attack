@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.47";
+} from "./hex.js?v=0.49";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -1045,17 +1045,25 @@ function applyAttack(state, { unitId, targetId, at }, actor) {
     const attackBack = unitStats(state, target).attack;
     state.events.push({ type: "returnFire", unitId: target.id, targetId: unitId,
       attack: attackBack });
+    if (state.hits[target.id]) {
+      state.hits[target.id] = { ...state.hits[target.id],
+        firedBack: (state.hits[target.id].firedBack || 0) + 1 };
+    }
     hit(state, unit, attackBack);
   }
 }
 
 // Return fire: a target with a short range attacked from an adjacent hex hits back once,
 // whether or not the attack destroys it, if its own attack can hit the attacker (ground or
-// air). Works on a view too.
+// air), and if it has not already fired back as often this turn as combat.returnFirePerTurn
+// allows. Works on a view too.
 export function firesBack(state, attacker, target) {
   const stats = unitStats(state, target);
   const d = distance(attacker.at, target.at);
   if (!canHit(state, target, attacker) || target.cooldown > 0) return false;
+  const limit = state.rules.combat.returnFirePerTurn;
+  const firedBack = (state.hits[target.id] || {}).firedBack || 0;
+  if (limit !== null && limit !== undefined && firedBack >= limit) return false;
   if (state.rules.combat.returnFire === "inRange") {
     return stats.attack > 0 && Boolean(stats.range) && d >= stats.range[0] &&
       d <= stats.range[1] && (!stats.needsSetup || target.setUp);
@@ -1087,6 +1095,7 @@ export function livesAfterHit(state, target, amount) {
 function hit(state, target, amount) {
   const { total, defence, lives } = livesAfterHit(state, target, amount);
   state.hits[target.id] = {
+    ...state.hits[target.id],
     total, livesAtStart: (state.hits[target.id] || { livesAtStart: target.lives }).livesAtStart,
   };
   state.events.push({ type: "hit", unitId: target.id, amount, total, defence,

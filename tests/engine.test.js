@@ -556,6 +556,17 @@ describe("factories under fire", () => {
 });
 
 describe("return fire", () => {
+  test("with returnFirePerTurn 1, a unit fires back only at the first attacker each turn", () => {
+    const units = [unit("a", "scoutBike", BLUE, "0,0"), unit("b", "scoutBike", BLUE, "1,-1"),
+      unit("e", "tank", GREEN, "0,-1")];
+    let s = scenario({ units, rules: { combat: { returnFirePerTurn: 1 } } });
+    s = play(s, attack("a", "e"), attack("b", "e"));
+    assert.equal(s.units.a, undefined, "the first attacker is shot back");
+    assert.ok(s.units.b, "the second is not");
+    const unlimited = play(scenario({ units }), attack("a", "e"), attack("b", "e"));
+    assert.equal(unlimited.units.b, undefined, "without the limit both are shot back");
+  });
+
   test("a surviving target hits back at an adjacent attacker", () => {
     let s = scenario({
       units: [unit("a", "scoutBike", BLUE, "0,0"), unit("b", "tank", BLUE, "2,2"),

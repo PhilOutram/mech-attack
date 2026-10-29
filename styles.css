@@ -1010,13 +1010,17 @@ h1 {
   transform: translateX(-50%);
   padding: 0.5rem 1.1rem;
   border: 1px solid #9ff4ff;
-  border-radius: 999px;
+  border-radius: 14px;
   background-color: rgba(10, 20, 30, 0.85);
   color: #9ff4ff;
   font-family: var(--title-font);
   font-size: 0.85rem;
   letter-spacing: 0.06em;
-  white-space: nowrap;
+  /* An attack's sum can run to a few lines, one per hit. */
+  white-space: pre-line;
+  text-align: center;
+  width: max-content;
+  max-width: calc(100% - 2rem);
   pointer-events: none;
 }
 

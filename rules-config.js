@@ -171,6 +171,10 @@ export const RULES = {
     // Which attackers are fired back at: "adjacent" (only one on a neighbouring hex), or
     // "inRange" (any attacker within the target's own firing range). Option for testing.
     returnFire: "adjacent",
+    // How many times a unit can fire back in one turn; null = every time it is attacked.
+    // Option for testing (Phil, 29 October 2026: should a swarm of small units be able to
+    // take on a Tank?).
+    returnFirePerTurn: null,
     // Factories cannot be fired on: they are only overrun by infantry (Phil, 29 October
     // 2026).
     factoriesTakeFire: false,
