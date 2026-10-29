@@ -1,20 +1,20 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.15";
-import { mapById, seededRandom } from "./maps.js?v=0.15";
+import { RULES } from "./rules-config.js?v=0.16";
+import { mapById, seededRandom } from "./maps.js?v=0.16";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.15";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.15";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.15";
-import { distance } from "./hex.js?v=0.15";
+} from "./engine.js?v=0.16";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.16";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.16";
+import { distance } from "./hex.js?v=0.16";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.15";
-import { confirmDialog } from "./dialog.js?v=0.15";
+} from "./board.js?v=0.16";
+import { confirmDialog } from "./dialog.js?v=0.16";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -25,7 +25,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.15";
+const ASSET_VERSION = "0.16";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -362,15 +362,24 @@ async function runAiTurn() {
   ui.mode = null;
   say("Green is moving…");
   render();
+  // A fault in the AI or in showing its moves must never leave Green's turn stuck: an AI
+  // action that fails ends its turn, and a display fault is logged and skipped.
   while (!state.result && state.current === AI_PLAYER) {
     const before = viewFor(state, HUMAN);
-    state = applyAction(state, chooseAction(viewFor(state, AI_PLAYER), aiPersonality));
-    const after = viewFor(state, HUMAN);
-    const seen = showEvents(state.events, before, after);
-    if (seen) {
-      render();
-      await sleep(AI_STEP_MS);
+    try {
+      state = applyAction(state, chooseAction(viewFor(state, AI_PLAYER), aiPersonality));
+    } catch (error) {
+      console.error(error);
+      state = applyAction(state, { type: "endTurn" });
     }
+    let seen = false;
+    try {
+      seen = showEvents(state.events, before, viewFor(state, HUMAN));
+      if (seen) render();
+    } catch (error) {
+      console.error(error);
+    }
+    if (seen) await sleep(AI_STEP_MS);
   }
   ui.busy = false;
   save();
@@ -428,7 +437,8 @@ function showEvents(events, before, after) {
       lines.push(`${unitName(before, e.unitId, e.unitType, e.owner)} destroyed.`);
     } else if (e.type === "move") {
       if (e.path.some(seen) || seen(e.from)) any = true;
-      if (e.stoppedBy === "unit" && after.units[e.unitId].owner === HUMAN) {
+      // Only your own units say so; a Green unit stopped out of sight is not in your view.
+      if (e.stoppedBy === "unit" && after.units[e.unitId]?.owner === HUMAN) {
         lines.push("Something hidden blocked the way.");
       }
     } else if (e.type === "crushed" && seen(e.at)) {
