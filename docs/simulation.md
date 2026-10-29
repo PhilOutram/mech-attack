@@ -62,6 +62,14 @@ Starting the second player with about 40–50 extra crystals evens it out. Phil 
 - The rule-based AI mostly builds the cheaper new units: 253 Attack Helicopters and 164 Anti-Aircraft Jeeps, but 1 Blast Cannon and no Sonic Tanks. It seldom saves up for expensive units, so the splash and line attacks were barely tested. The learning AI (idea 9) is the better way to find out what each unit is worth.
 - The first player now wins 37.5% and blue 30.9%: the 40-crystal bonus was tuned before these units existed and needs rechecking.
 
+## Evolved personalities for v0.24 costs (cheaper unused units, drone 15)
+
+Same settings (`node evolve.js --generations 40 --population 20 --games 10 --seed 1`, 69 minutes); tables in `docs/evolution.md`.
+
+- The five best beat the hand-tuned AI in 74–85% of 100 games each, and capture 2.5–3.1 factories a game.
+- The cheaper units now get bought: Artillery 10–15% of builds, Anti-Aircraft Jeep about 10% in three of the five, Spotter Drone up to 4%, Light Medic 11–14%. Infantry (28–39%) and Scout Bikes (20–33%) are still the core; Tanks about 7–9%.
+- The Airfield is bought about once in ten games; Heavy works still never. The Heavy Cannon, Blast Cannon and Sonic Tank stay unused, as do the Transporter, Fighter and Attack Helicopter. The 100-crystal upgrade on top of the unit is still the barrier.
+
 ## Evolved personalities for v0.19 (captured factories pay 10 a turn; Infantry, not Scout Bikes, hit air)
 
 Same settings as before (`node evolve.js --generations 40 --population 20 --games 10 --seed 1`); full tables in `docs/evolution.md`.
