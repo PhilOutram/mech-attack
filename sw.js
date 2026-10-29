@@ -1,7 +1,7 @@
 // Minimal offline-first service worker.
 // Bump the version in CACHE whenever you change the cached files, and keep ASSETS
 // in sync with the files the app needs to work offline.
-const CACHE = "mech-attack-v0.24";
+const CACHE = "mech-attack-v0.25";
 const UNIT_TYPES = [
   "scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester", "light-medic",
 ];
@@ -20,28 +20,28 @@ const SOUND_FILES = [
 const ASSETS = [
   ".",
   "index.html",
-  "styles.css?v=0.24",
-  "app.js?v=0.24",
-  "version.js?v=0.24",
-  "units.js?v=0.24",
-  "game.js?v=0.24",
-  "dialog.js?v=0.24",
-  "board.js?v=0.24",
-  "engine.js?v=0.24",
-  "ai.js?v=0.24",
-  "hex.js?v=0.24",
-  "maps.js?v=0.24",
-  "ai-personalities.js?v=0.24",
-  "rules-config.js?v=0.24",
-  "sound.js?v=0.24",
-  "tips.js?v=0.24",
+  "styles.css?v=0.25",
+  "app.js?v=0.25",
+  "version.js?v=0.25",
+  "units.js?v=0.25",
+  "game.js?v=0.25",
+  "dialog.js?v=0.25",
+  "board.js?v=0.25",
+  "engine.js?v=0.25",
+  "ai.js?v=0.25",
+  "hex.js?v=0.25",
+  "maps.js?v=0.25",
+  "ai-personalities.js?v=0.25",
+  "rules-config.js?v=0.25",
+  "sound.js?v=0.25",
+  "tips.js?v=0.25",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
   "icon-maskable.png",
   "apple-touch-icon.png",
   "splash.jpg",
-  "tiles/tiles.json?v=0.24",
+  "tiles/tiles.json?v=0.25",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
   ...TOKEN_TYPES.flatMap((u) => [`units/${u}-blue.svg`, `units/${u}-green.svg`]),
