@@ -33,7 +33,7 @@ import {
 // - players[p].lost counts that player's destroyed units by type.
 //
 // Sides, teams and turns (format 8):
-// - A game has 2 to 4 sides (players[p]), each with a colour and a team. Players on the same
+// - A game has 2 to 5 sides (players[p]), each with a colour and a team. Players on the same
 //   team are allies: they cannot fire on or overrun each other. A player whose factories all
 //   have no Comms keeps their view to themselves; two allies who both have Comms in one of
 //   their factories see everything either of them sees.
@@ -48,7 +48,7 @@ import {
 
 // Saved games in any other format are not loaded.
 export const STATE_FORMAT = 8;
-export const PLAYER_COLOURS = ["blue", "green", "yellow", "purple"];
+export const PLAYER_COLOURS = ["blue", "green", "yellow", "purple", "pink"];
 
 // ---------------------------------------------------------------------------------------
 // Setting up
@@ -365,8 +365,13 @@ export function refreshKnowledge(state) {
 // Fog of war
 
 // Everything the player knows: own units, other units in sight, other factories as last seen,
-// terrain of explored hexes (null elsewhere) and crystals as last seen.
+// terrain of explored hexes (null elsewhere) and crystals as last seen. Given that player's
+// view (a device in a game hosted elsewhere holds only its own), it returns it unchanged.
 export function viewFor(state, player) {
+  if (state.isView) {
+    if (state.viewer !== player) throw new Error("A view shows only its own player");
+    return state;
+  }
   const visible = visibleHexes(state, player);
   const me = state.players[player];
 

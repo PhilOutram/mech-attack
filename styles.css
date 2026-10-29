@@ -530,6 +530,18 @@ h1 {
   color: #6ad87e;
 }
 
+.turn-yellow {
+  color: #f2c230;
+}
+
+.turn-purple {
+  color: #c08af0;
+}
+
+.turn-pink {
+  color: #ff8cc4;
+}
+
 .game-crystals {
   display: flex;
   align-items: center;
@@ -1205,4 +1217,85 @@ h1 {
   margin-left: 0.3rem;
   font-size: 0.75rem;
   color: #7dffb0;
+}
+
+/* Multiplayer setup: one row per side, with its colour, who plays it and its team. */
+.mp-modes .start-btn.active {
+  background-color: var(--accent);
+  color: var(--bg);
+}
+
+.mp-sides {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.mp-sides li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  align-items: center;
+}
+
+.mp-sides select {
+  flex: 1 1 10rem;
+  padding: 0.4rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.mp-colour {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  vertical-align: -0.1rem;
+}
+
+.mp-team {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.mp-team select {
+  flex: none;
+  width: auto;
+}
+
+.mp-problem {
+  min-height: 1.2em;
+  margin: 0.4rem 0;
+  color: #ffb43a;
+  font-size: 0.85rem;
+}
+
+/* The code other devices type to join, large enough to read across a table. */
+.mp-code {
+  margin: 0.4rem 0;
+  font-family: var(--title-font);
+  font-size: 2.4rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+  color: #ffd23f;
+}
+
+/* Passing a shared device: covers the whole board so nobody sees the last player's view. */
+.pass-device {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background-color: var(--bg);
+  z-index: 40;
+}
+
+.pass-device[hidden] {
+  display: none;
 }

@@ -1,12 +1,19 @@
-// Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
-// turns taps into engine actions. No rules here; every option shown comes from the engine.
+// Game screen: you against the AI, or a multiplayer game (Phil, 29 October 2026). Renders the
+// engine's view of the game for one player (me) and turns taps into engine actions. No rules
+// here; every option shown comes from the engine.
+//
+// Multiplayer: state.seats says who plays each side (see seatsOf). Several humans can share
+// this device, which is passed between them; humans on other devices are linked through
+// net.js, with this device holding the game (host). A device that joined someone else's game
+// (client) holds only its own player's view, sends its actions to the host and shows the
+// updates it gets back.
 import { RULES } from "./rules-config.js?v=0.47";
 import { mapById, seededRandom } from "./maps.js?v=0.47";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
-  defenceOf, darkTargets, canCapture,
+  defenceOf, darkTargets, canCapture, allied,
   STATE_FORMAT,
 } from "./engine.js?v=0.47";
 import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.47";
@@ -24,6 +31,7 @@ import {
 } from "./campaign.js?v=0.47";
 import { levelById, levelSetup } from "./difficulty.js?v=0.47";
 
+// In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
 const AI_PLAYER = 1;
 const SAVE_KEY = "mech-attack.save";
@@ -84,6 +92,11 @@ const REASONS = {
 };
 
 let state = null;
+// The player whose view this screen shows: you, or on a shared device the human whose turn
+// it is.
+let me = HUMAN;
+// The link to other devices for a game played on several (net.js), or null.
+let link = null;
 // moving: a unit part way along its route while its move is shown, { unit, at, hidden }.
 // briefing: a campaign mission's briefing is open (tips wait for it).
 const ui = { selectedId: null, mode: null, buildType: null, busy: false, effects: [],
@@ -95,8 +108,9 @@ let history = [];
 let undosLeft = 0;
 // Demand surrender can be used once per game.
 let surrenderUsed = false;
-// The AI's personality for this game.
+// The AI's personality for this game, or for each AI side in a multiplayer game.
 let aiPersonality = DEFAULT_PERSONALITY;
+let aiPersonalities = {};
 let fitBox = null;
 let viewBox = null;
 let els = null;
@@ -119,7 +133,9 @@ function loadSave() {
   }
 }
 
+// Games on several devices are not saved: they cannot be resumed without the others.
 function save() {
+  if (link) return;
   try {
     if (state.result) localStorage.removeItem(SAVE_KEY);
     else localStorage.setItem(SAVE_KEY, JSON.stringify(state));
@@ -174,8 +190,8 @@ function noteMap(map, result = null) {
   const entry = list.find((m) => m.id === map.id) || { id: map.id, name: map.name,
     wins: 0, losses: 0 };
   if (result) {
-    if (result.winner === HUMAN) entry.wins += 1;
-    else if (result.winner === AI_PLAYER) entry.losses += 1;
+    if (result.winner === me) entry.wins += 1;
+    else if (result.winner !== null) entry.losses += 1;
   }
   const rest = list.filter((m) => m.id !== map.id);
   try {
@@ -214,6 +230,61 @@ function opponentName() {
   return missionOf(state) ? "Green" : levelById(state.level).opponent;
 }
 
+// ---------------------------------------------------------------------------------------
+// Seats: who plays each side
+
+// { kind: "human" | "ai", level (an AI's rank, see difficulty.js), remote (a human on another
+// device) } for each player. Single-player games: you, then the AI.
+function seatsOf(s) {
+  return s.seats || [{ kind: "human" }, { kind: "ai" }];
+}
+
+function isAiSeat(p) {
+  return seatsOf(state)[p]?.kind === "ai";
+}
+
+// A human playing on this device.
+function isLocalHuman(p) {
+  const seat = seatsOf(state)[p];
+  return Boolean(seat) && seat.kind === "human" && !seat.remote;
+}
+
+function isMultiplayer() {
+  return Boolean(state && state.seats);
+}
+
+function isClient() {
+  return Boolean(link) && link.role === "client";
+}
+
+// A player's name in messages: their colour, or in a single-player game the AI's commander.
+function playerName(p) {
+  if (!isMultiplayer() && p === AI_PLAYER) return opponentName();
+  return PLAYER_COLOURS[p].name;
+}
+
+// "Green", "Green and Yellow", "Green, Yellow and Purple".
+function namesOf(players) {
+  const names = players.map(playerName);
+  return names.length < 2 ? names.join("")
+    : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+// The AI's personality for a multiplayer AI side: from its rank, as in a single-player game.
+function seatPersonality(p) {
+  const kind = levelById(seatsOf(state)[p].level).ai;
+  if (kind === "best" && EVOLVED_PERSONALITIES.length) {
+    return { ...DEFAULT_PERSONALITY, ...EVOLVED_PERSONALITIES[0].personality };
+  }
+  return kind === "default" ? DEFAULT_PERSONALITY : personalityFor(state.seed + p);
+}
+
+function personalityOf(p) {
+  if (!isMultiplayer()) return aiPersonality;
+  aiPersonalities[p] ||= seatPersonality(p);
+  return aiPersonalities[p];
+}
+
 // A new random map id of the given shape ("classic" or e.g. "3-4-4-3").
 export function newMapId(shape = "classic") {
   const number = 1 + Math.floor(Math.random() * NEW_MAP_RANGE);
@@ -233,13 +304,24 @@ function shapeOf(mapId) {
 // Opens the game screen: the saved game when resume is set, otherwise a new game on mapId, or
 // campaign mission number mission (0-based).
 // level: the difficulty level's id (see difficulty.js), for a game that is not a mission.
+// multiplayer: { seats, sides, phases, mapId } for a multiplayer game on this device (see
+// multiplayer.js), and linkTo the link to other devices when some seats are remote.
 export async function openGame({
-  resume = false, mapId = "fixed-1", mission = null, level = null, onLeave,
+  resume = false, mapId = "fixed-1", mission = null, level = null, multiplayer = null,
+  linkTo = null, onLeave,
 }) {
   els = els || findElements();
   if (!wired) wire(onLeave);
   state = resume ? loadSave() : null;
+  link = linkTo;
   let briefing = false;
+  if (!state && multiplayer) {
+    const seed = Math.floor(Math.random() * MAX_SEED);
+    const map = mapById(multiplayer.mapId, RULES);
+    state = { ...newGame({ rules: RULES, map, seed, sides: multiplayer.sides,
+      phases: multiplayer.phases }), seats: multiplayer.seats };
+    save();
+  }
   if (!state) {
     const seed = Math.floor(Math.random() * MAX_SEED);
     if (mission !== null) {
@@ -260,7 +342,9 @@ export async function openGame({
     save();
   }
   const m = missionOf(state);
-  aiPersonality = opponentPersonality(state);
+  aiPersonality = isMultiplayer() ? DEFAULT_PERSONALITY : opponentPersonality(state);
+  aiPersonalities = {};
+  me = isMultiplayer() ? firstLocalHuman() : HUMAN;
   els.objective.hidden = !m;
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
@@ -292,12 +376,62 @@ export async function openGame({
   }
   ui.briefing = false;
   if (briefing && m.tip) showNote(m.tip, RULES);
-  if (!m && !resume) {
+  if (!m && !resume && !isMultiplayer()) {
     const chosen = levelById(state.level);
     showBanner(`${chosen.rank}: you face ${chosen.opponent}`, OPPONENT_BANNER_MS);
   }
+  if (link) link.onMessage(onLinkMessage);
+  if (link && link.role === "host") {
+    sendStart();
+    link.onRejoin = (seat) => sendStart(seat);
+  }
   render();
-  if (state.current === AI_PLAYER) runAiTurn();
+  nextTurn(false);
+}
+
+// The first human on this device whose turn it is, or failing that the first on this
+// device at all (whose view is shown while others play).
+function firstLocalHuman() {
+  const seats = seatsOf(state);
+  const playing = state.active.find(isLocalHuman);
+  if (playing !== undefined) return playing;
+  const local = seats.findIndex((seat, p) => isLocalHuman(p));
+  return local >= 0 ? local : HUMAN;
+}
+
+// Opens the game screen on a device that joined a game hosted elsewhere: start is the host's
+// first message, { seat, seats, view }.
+export async function joinGame({ linkTo, start, onLeave }) {
+  els = els || findElements();
+  if (!wired) wire(onLeave);
+  link = linkTo;
+  me = start.seat;
+  state = clientState(start.view, start.seats);
+  aiPersonality = DEFAULT_PERSONALITY;
+  Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
+    effects: [], messages: ["Tap one of your units to give it orders."], moving: null,
+    briefing: false });
+  facing = {};
+  flashedRound = null;
+  pendingTips = [];
+  history = [];
+  undosLeft = 0;
+  els.objective.hidden = true;
+  els.screen.hidden = false;
+  els.over.hidden = true;
+  preloadArt();
+  await loadTiles(ASSET_VERSION);
+  fitBoard();
+  link.onMessage(onLinkMessage);
+  tip("welcome");
+  render();
+  nextTurn(false);
+}
+
+// A client's copy of the game: its own view, with the seats as seen from this device (every
+// other human is remote).
+function clientState(view, seats) {
+  return { ...view, seats: seats.map((seat, p) => ({ ...seat, remote: p !== me })) };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -327,12 +461,73 @@ function unlockCards(heading, units, upgrades) {
   const card = (image, name, role) => `<li class="unlock"><img src="${image}" alt="">` +
     `<div><b>${name}</b><span>${role}</span></div></li>`;
   const cards = [
-    ...units.map((type) => card(unitImage(type, HUMAN), RULES.units[type].name,
+    ...units.map((type) => card(unitImage(type, me), RULES.units[type].name,
       UNIT_ROLES[type])),
     ...upgrades.map((upgrade) => card(upgradeImage(upgrade),
       RULES.factoryUpgrades[upgrade].name, UPGRADE_ROLES[upgrade])),
   ];
   return `<h3 class="unlock-heading">${heading}</h3><ul class="unlocks">${cards.join("")}</ul>`;
+}
+
+// ---------------------------------------------------------------------------------------
+// Turns: the AI's, and handing a shared device to the next human
+
+// After every change of turn: the AI sides in the current phase play, then the device goes
+// to the next human on it whose turn it is (on a shared device, through the hand-over
+// screen), or waits for players on other devices. announce: show the round banner.
+async function nextTurn(announce = true) {
+  if (!state) return;
+  if (state.result) {
+    render();
+    showGameOver();
+    return;
+  }
+  if (!isClient() && isAiSeat(state.current)) {
+    runAiTurn();
+    return;
+  }
+  const local = state.active.filter(isLocalHuman);
+  if (local.length && !local.includes(me)) await handOver(local[0]);
+  render();
+  if (!myTurn()) {
+    const waiting = state.active.filter((p) => !isLocalHuman(p));
+    if (waiting.length && isMultiplayer()) say(`Waiting for ${namesOf(waiting)}.`);
+    render();
+    return;
+  }
+  if (!announce) return;
+  say(`Round ${state.round}: your turn.`);
+  render();
+  if (factoryUnderThreat()) {
+    showBanner(`Round ${state.round}: enemy Infantry at your factory!`);
+  } else {
+    showBanner(`Round ${state.round}`, ROUND_BANNER_MS);
+  }
+}
+
+// How many humans share this device.
+function localHumanCount() {
+  return seatsOf(state).filter((seat, p) => isLocalHuman(p)).length;
+}
+
+// The device passes to player p. With more than one human on it, the board is covered until
+// they take it, so nobody sees another player's fog of war.
+async function handOver(p) {
+  const shared = localHumanCount() > 1;
+  me = p;
+  history = [];
+  Object.assign(ui, { selectedId: null, mode: null, buildType: null });
+  if (!shared) return;
+  els.pass.hidden = false;
+  els.passTitle.textContent = `${playerName(p)}'s turn`;
+  els.passTitle.style.color = PLAYER_COLOURS[p].ring;
+  els.passText.textContent = `Pass the device to ${playerName(p)}. Everyone else, look away.`;
+  els.passGo.textContent = `I'm ${playerName(p)}: start`;
+  await new Promise((resolve) => {
+    els.passGo.addEventListener("click", resolve, { once: true });
+  });
+  els.pass.hidden = true;
+  ui.messages = [`${playerName(p)}: your turn. Tap one of your units to give it orders.`];
 }
 
 // A mission whose objective is met is won at once; one that can fail is lost at once.
@@ -367,6 +562,8 @@ function findElements() {
     screen: $("game"), svg: $("board"), root: $("board-root"), round: $("game-round"),
     banner: $("game-banner"),
     turn: $("game-turn"), crystals: $("game-crystals"), endTurn: $("end-turn"),
+    pass: $("pass-device"), passTitle: $("pass-title"), passText: $("pass-text"),
+    passGo: $("pass-go"),
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
     overUnlocks: $("game-over-unlocks"),
@@ -380,6 +577,9 @@ function wire(onLeave) {
   wired = true;
   const leave = () => {
     els.screen.hidden = true;
+    els.pass.hidden = true;
+    if (link) link.close();
+    link = null;
     onLeave();
   };
   leaveGame = leave;
@@ -395,8 +595,7 @@ function wire(onLeave) {
   els.objective.addEventListener("click", showObjective);
   els.endTurn.addEventListener("click", async () => {
     if (!myTurn()) return;
-    await act({ type: "endTurn" });
-    runAiTurn();
+    if (await act({ type: "endTurn" }) && !isClient()) nextTurn();
   });
   els.quit.addEventListener("click", quitGame);
   // Phones play sound only after a tap, so the first tap anywhere starts it. A tap anywhere
@@ -416,14 +615,17 @@ function wire(onLeave) {
 }
 
 function myTurn() {
-  return state && !state.result && !ui.busy && state.current === HUMAN;
+  return Boolean(state) && !state.result && !ui.busy && state.active.includes(me) &&
+    isLocalHuman(me);
 }
 
 // ---------------------------------------------------------------------------------------
 // Acting
 
-async function act(action) {
-  const before = viewFor(state, HUMAN);
+async function act(request) {
+  const action = { ...request, player: me };
+  if (isClient()) return sendToHost(action);
+  const before = viewFor(state, me);
   const previous = state;
   try {
     state = applyAction(state, action);
@@ -433,10 +635,11 @@ async function act(action) {
     return false;
   }
   checkObjective();
+  sendUpdates();
   // Undo can step back through this turn's actions; ending the turn closes them off.
   if (action.type === "endTurn") history = [];
   else history.push(previous);
-  const after = viewFor(state, HUMAN);
+  const after = viewFor(state, me);
   showEvents(state.events, before, after);
   save();
   ui.busy = true;
@@ -457,7 +660,7 @@ function afterAction(action) {
     ui.mode = null;
     return;
   }
-  const view = viewFor(state, HUMAN);
+  const view = viewFor(state, me);
   if (!view.units[ui.selectedId]) ui.selectedId = null;
   ui.mode = ui.selectedId ? defaultMode(view, view.units[ui.selectedId]) : null;
 }
@@ -466,12 +669,12 @@ function afterAction(action) {
 // a block you have turned over, just as on the table. Crystals the action drove over come
 // back.
 function undo() {
-  if (!myTurn() || !history.length || undosLeft <= 0) return;
+  if (!myTurn() || !history.length || undosLeft <= 0 || link) return;
   const previous = history.pop();
-  const knew = state.players[HUMAN];
+  const knew = state.players[me];
   state = {
     ...previous,
-    players: previous.players.map((player, p) => (p !== HUMAN ? player : {
+    players: previous.players.map((player, p) => (p !== me ? player : {
       ...player,
       revealed: { ...knew.revealed },
       explored: { ...knew.explored },
@@ -496,7 +699,7 @@ function undo() {
 // surrenders if it wins too few of them.
 async function demandSurrender() {
   const m = missionOf(state);
-  if (!myTurn() || (m && m.noSurrender)) return;
+  if (!myTurn() || (m && m.noSurrender) || isMultiplayer()) return;
   if (surrenderUsed) {
     await confirmDialog({
       title: "Surrender already demanded",
@@ -536,43 +739,52 @@ async function demandSurrender() {
 }
 
 // Quit: asks first, then ends the game as a loss for you.
+// In a multiplayer game the player whose view is shown quits; the others play on if they can.
 async function quitGame() {
   if (!state || state.result) return;
   const sure = await confirmDialog({
     title: "Quit this game?",
-    text: "Quitting counts as a loss on this map.",
+    text: isMultiplayer() ? `${playerName(me)} will be out of the game.`
+      : "Quitting counts as a loss on this map.",
     confirm: "Quit",
     cancel: "Keep playing",
   });
   if (!sure || !state || state.result) return;
-  state = applyAction(state, { type: "resign", player: HUMAN });
+  if (isClient()) {
+    sendToHost({ type: "resign", player: me });
+    return;
+  }
+  state = applyAction(state, { type: "resign", player: me });
   history = [];
+  sendUpdates();
   save();
   render();
-  showGameOver();
+  nextTurn();
 }
 
 async function runAiTurn() {
-  if (!state || state.result || state.current !== AI_PLAYER) return;
+  if (!state || state.result || !isAiSeat(state.current)) return;
   ui.busy = true;
   ui.selectedId = null;
   ui.mode = null;
-  say(`${opponentName()} is moving…`);
+  say(`${playerName(state.current)} is moving…`);
   render();
-  // A fault in the AI or in showing its moves must never leave Green's turn stuck: an AI
-  // action that fails ends its turn, and a display fault is logged and skipped.
-  while (!state.result && state.current === AI_PLAYER) {
-    const before = viewFor(state, HUMAN);
+  // A fault in the AI or in showing its moves must never leave its turn stuck: an AI action
+  // that fails ends its turn, and a display fault is logged and skipped.
+  while (!state.result && isAiSeat(state.current)) {
+    const before = viewFor(state, me);
+    const p = state.current;
     try {
-      state = applyAction(state, chooseAction(viewFor(state, AI_PLAYER), aiPersonality));
+      state = applyAction(state, chooseAction(viewFor(state, p), personalityOf(p)));
     } catch (error) {
       console.error(error);
-      state = applyAction(state, { type: "endTurn" });
+      state = applyAction(state, { type: "endTurn", player: p });
     }
     checkObjective();
+    sendUpdates();
     let seen = false;
     try {
-      const after = viewFor(state, HUMAN);
+      const after = viewFor(state, me);
       seen = showEvents(state.events, before, after);
       await showMoves(state.events, before, after);
       if (seen) render();
@@ -583,24 +795,21 @@ async function runAiTurn() {
   }
   ui.busy = false;
   save();
-  if (!state.result) say(`Round ${state.round}: your turn.`);
-  render();
-  if (state.result) {
-    showGameOver();
-  } else if (factoryUnderThreat()) {
-    showBanner(`Round ${state.round}: enemy Infantry at your factory!`);
-  } else {
-    showBanner(`Round ${state.round}`, ROUND_BANNER_MS);
-  }
+  nextTurn();
 }
 
 // Whether enemy infantry stand next to one of your factories, able to overrun it next turn.
 function factoryUnderThreat() {
-  const view = viewFor(state, HUMAN);
+  const view = viewFor(state, me);
   const factories = Object.values(view.units).filter((u) =>
-    u.owner === HUMAN && unitStats(view, u).isFactory);
-  return Object.values(view.units).some((u) => u.owner === AI_PLAYER &&
+    u.owner === me && unitStats(view, u).isFactory);
+  return Object.values(view.units).some((u) => isEnemyOf(view, u.owner) &&
     factories.some((f) => distance(u.at, f.at) === 1 && canCapture(view, u, f)));
+}
+
+// Whether a unit's owner is an enemy of the player whose view is shown.
+function isEnemyOf(view, owner) {
+  return owner !== null && !allied(view, owner, me);
 }
 
 // Shows each move hex by hex along its route, turning the unit to face the way it goes. A
@@ -614,7 +823,7 @@ async function showMoves(events, before, after) {
     let from = e.from;
     for (const k of e.path) {
       facing[unit.id] = facingAngle(from, k);
-      ui.moving = { unit, at: k, hidden: unit.owner !== HUMAN && !seen(k) };
+      ui.moving = { unit, at: k, hidden: unit.owner !== me && !seen(k) };
       render();
       await sleep(HOP_MS);
       from = k;
@@ -630,12 +839,16 @@ function sleep(ms) {
 // ---------------------------------------------------------------------------------------
 // Events: messages and explosions for what blue can see
 
-const OWNER_WORDS = { [HUMAN]: "Your", [AI_PLAYER]: "Green", null: "Unused" };
+// "Your", "Green", "Unused": whose a unit is, in messages.
+function ownerWord(owner) {
+  if (owner === me) return "Your";
+  return owner === null || owner === undefined ? "Unused" : PLAYER_COLOURS[owner].name;
+}
 
 function unitName(view, unitId, fallbackType, owner) {
   const unit = view.units[unitId];
   const type = unit ? unit.type : fallbackType;
-  const who = OWNER_WORDS[unit ? unit.owner : owner];
+  const who = ownerWord(unit ? unit.owner : owner);
   return `${who} ${type ? RULES.units[type].name : "unit"}`;
 }
 
@@ -649,6 +862,7 @@ function showEvents(events, before, after) {
   let unloaded = 0;
   // Hexes your units fired into blind, so what is destroyed there can be reported.
   const blindShots = new Set();
+  const knockedOut = [];
   const sound = (clip) => {
     if (clip) sounds.set(clip[0], Math.max(clip[1], sounds.get(clip[0]) || 0));
   };
@@ -676,7 +890,7 @@ function showEvents(events, before, after) {
         : `${unitName(before, e.unitId)}: ${e.total} of ${e.defence} this turn, ` +
           "more fire this turn adds to it.");
     } else if (e.type === "fireBlind") {
-      if (after.units[e.unitId]?.owner !== HUMAN && before.units[e.unitId]?.owner !== HUMAN) {
+      if (after.units[e.unitId]?.owner !== me && before.units[e.unitId]?.owner !== me) {
         continue;
       }
       any = true;
@@ -697,13 +911,13 @@ function showEvents(events, before, after) {
         if (e.path.length) sound(moveSound(typeOf(e.unitId)));
       }
       const mover = before.units[e.unitId];
-      if (mover && mover.owner === HUMAN && !unitStats(before, mover).air &&
+      if (mover && mover.owner === me && !unitStats(before, mover).air &&
         e.path.some((k) => after.map.hexes[k].terrain === "rocky")) tip("rough");
       // Only your own units say so; a Green unit stopped out of sight is not in your view.
-      if (e.stoppedBy === "unit" && after.units[e.unitId]?.owner === HUMAN) {
+      if (e.stoppedBy === "unit" && after.units[e.unitId]?.owner === me) {
         lines.push("Something hidden blocked the way.");
       }
-      if (e.stoppedBy === "revealed" && after.units[e.unitId]?.owner === HUMAN) {
+      if (e.stoppedBy === "revealed" && after.units[e.unitId]?.owner === me) {
         lines.push(`New ground turned over. ${e.moveLeft} move point` +
           `${e.moveLeft === 1 ? "" : "s"} left: tap where to go next.`);
         tip("newGround");
@@ -715,23 +929,25 @@ function showEvents(events, before, after) {
       any = true;
       effects.push({ at: e.at, size: 0.9 });
       lines.push(`A crystal pile reached ${e.amount} and exploded.`);
-    } else if (e.type === "harvest" && after.units[e.unitId]?.owner === HUMAN) {
+    } else if (e.type === "harvest" && after.units[e.unitId]?.owner === me) {
       lines.push(`Harvested ${e.amount} crystals.`);
-    } else if (e.type === "unload" && after.units[e.unitId]?.owner === HUMAN) {
+    } else if (e.type === "unload" && after.units[e.unitId]?.owner === me) {
       lines.push(`Unloaded ${e.amount} crystals${e.automatic ? " at the factory" : ""}.`);
       unloaded += e.amount;
-    } else if (e.type === "build" && (after.units[e.unitId]?.owner === HUMAN || seen(e.at))) {
+    } else if (e.type === "build" && (after.units[e.unitId]?.owner === me || seen(e.at))) {
       any = true;
       lines.push(`${unitName(after, e.unitId)} built.`);
-      if (after.units[e.unitId]?.owner === HUMAN) tip(`built:${e.unitType}`);
+      if (after.units[e.unitId]?.owner === me) tip(`built:${e.unitType}`);
     } else if (e.type === "heal" && seen(after.units[e.unitId]?.at)) {
       lines.push(`${unitName(after, e.targetId)} repaired.`);
-    } else if (e.type === "capture" && (seen(e.at) || e.from === HUMAN)) {
+    } else if (e.type === "capture" && (seen(e.at) || e.from === me)) {
       any = true;
       sound(["capture", 1]);
-      const whose = e.from === null ? "an unused" : e.from === HUMAN ? "your" : "Green's";
-      lines.push(`${e.owner === HUMAN ? "Your infantry" : "Green's infantry"} overran ` +
-        `${whose} factory${e.owner === HUMAN && e.crystals ? `: ${e.crystals} crystals ` +
+      const whose = e.from === null ? "an unused"
+        : e.from === me ? "your" : `${PLAYER_COLOURS[e.from].name}'s`;
+      lines.push(`${e.owner === me ? "Your" : `${PLAYER_COLOURS[e.owner].name}'s`} infantry ` +
+        "overran " +
+        `${whose} factory${e.owner === me && e.crystals ? `: ${e.crystals} crystals ` +
           "in its store" : ""}.`);
     } else if (e.type === "board" && seen(e.at)) {
       any = true;
@@ -741,8 +957,13 @@ function showEvents(events, before, after) {
       any = true;
       lines.push(`${unitName(after, e.transporterId)} dropped off ` +
         `${RULES.units[after.units[e.unitId]?.type || "infantry"].name}.`);
-    } else if (e.type === "labIncome" && e.player === HUMAN) {
+    } else if (e.type === "labIncome" && e.player === me) {
       lines.push(`Crystal labs made ${e.amount} crystals.`);
+    } else if (e.type === "knockedOut") {
+      any = true;
+      const who = e.player === me ? "You are" : `${PLAYER_COLOURS[e.player].name} is`;
+      lines.push(`${who} out of the game: ${REASONS[e.reason]}.`);
+      knockedOut.push(e.player);
     } else if (e.type === "upgrade" && seen(e.at)) {
       any = true;
       const upgrade = RULES.factoryUpgrades[e.upgrade].name;
@@ -753,6 +974,7 @@ function showEvents(events, before, after) {
   if (effects.length) flash(effects);
   for (const [clip, volume] of sounds) playSound(clip, volume);
   if (unloaded) showBanner(`${unloaded} crystals unloaded`);
+  if (knockedOut.length) showBanner(`${namesOf(knockedOut)} out of the game`);
   return any;
 }
 
@@ -761,9 +983,9 @@ let flashedRound = null;
 
 function nudgeEndTurn() {
   if (!myTurn() || flashedRound === state.round) return;
-  const view = viewFor(state, HUMAN);
+  const view = viewFor(state, me);
   const army = Object.values(view.units).filter((u) =>
-    u.owner === HUMAN && !unitStats(view, u).isFactory);
+    u.owner === me && !unitStats(view, u).isFactory);
   const busy = (u) => Object.keys(reachableHexes(view, u.id)).length ||
     attackTargets(view, u.id).length || harvestTargets(view, u.id).length ||
     healTargets(view, u.id).length || dropSites(view, u.id).length ||
@@ -835,14 +1057,14 @@ function targetsFor(view, mode, unitId) {
   if (mode === "build") {
     // Next to the selected factory only.
     const factory = view.units[unitId];
-    return buildSites(view, HUMAN, ui.buildType).filter((k) => distance(k, factory.at) === 1);
+    return buildSites(view, me, ui.buildType).filter((k) => distance(k, factory.at) === 1);
   }
   return [];
 }
 
 // The order a unit is ready for. Firing blind into the dark is never the default.
 function defaultMode(view, unit) {
-  if (!unit || unit.owner !== HUMAN || state.current !== HUMAN) return null;
+  if (!unit || unit.owner !== me || !state.active.includes(me)) return null;
   return Object.keys(MODES).find((m) => (m === "fire" ? attackTargets(view, unit.id)
     : targetsFor(view, m, unit.id)).length) || null;
 }
@@ -863,7 +1085,7 @@ function actionFor(view, mode, unitId, k) {
 
 async function onHexTap(k) {
   if (!state || ui.busy) return;
-  const view = viewFor(state, HUMAN);
+  const view = viewFor(state, me);
   if (myTurn() && ui.mode && targetsFor(view, ui.mode, ui.selectedId).includes(k)) {
     if (ui.mode === "fire" && !view.visible[k]) tip("blindFire");
     const unitId = ui.selectedId;
@@ -910,7 +1132,7 @@ function offerTips(view) {
   if (unit) {
     const stats = unitStats(view, unit);
     if (unit.owner === null) tip("unusedFactory");
-    if (unit.owner === HUMAN) {
+    if (unit.owner === me) {
       if (stats.isFactory) tip("factory");
       if (stats.storage) tip("harvester");
       if (stats.captures) tip("infantry");
@@ -943,10 +1165,10 @@ function siegeTips(view) {
   const factories = Object.values(view.units).filter((u) => unitStats(view, u).isFactory);
   const besieging = (owner, mine) => Object.values(view.units).some((u) =>
     u.owner === owner && unitStats(view, u).captures &&
-    factories.some((f) => (f.owner === HUMAN) === mine && distance(u.at, f.at) === 1 &&
+    factories.some((f) => (f.owner === me) === mine && distance(u.at, f.at) === 1 &&
       canCapture(view, u, f)));
-  if (besieging(HUMAN, false)) tip("siege");
-  if (besieging(AI_PLAYER, true)) tip("defend");
+  if (besieging(me, false)) tip("siege");
+  if (view.players.some((_, p) => isEnemyOf(view, p) && besieging(p, true))) tip("defend");
 }
 
 function onPanelClick(event) {
@@ -955,7 +1177,7 @@ function onPanelClick(event) {
   const { order, type } = button.dataset;
   const unitId = ui.selectedId;
   // With only one pile in reach there is nothing to choose, so Harvest acts at once.
-  const view = viewFor(state, HUMAN);
+  const view = viewFor(state, me);
   const piles = order === "harvest" ? targetsFor(view, "harvest", unitId) : [];
   if (piles.length === 1) {
     act(actionFor(view, "harvest", unitId, piles[0]));
@@ -982,7 +1204,7 @@ function onPanelClick(event) {
 
 function render() {
   if (!state) return;
-  const view = viewFor(state, HUMAN);
+  const view = viewFor(state, me);
   const overlays = [];
   let notes = [];
   if (ui.mode && (ui.selectedId || ui.mode === "build")) {
@@ -1069,13 +1291,16 @@ function renderBar(view) {
   const m = missionOf(state);
   const name = m ? `Mission ${state.campaign.mission + 1}: ${m.title}` : view.map.name;
   els.round.innerHTML = `<span class="map-name">${name} · </span>Round ${view.round}`;
-  els.turn.textContent = view.current === HUMAN ? "Your turn" : `${opponentName()}'s turn`;
-  els.turn.className = view.current === HUMAN ? "turn-blue" : "turn-green";
+  const others = view.active.filter((p) => p !== me);
+  const mine = view.active.includes(me);
+  els.turn.textContent = mine ? (others.length ? `Your turn, with ${namesOf(others)}`
+    : "Your turn") : `${namesOf(others)}'s turn`;
+  els.turn.className = `turn-${PLAYER_COLOURS[mine ? me : others[0]].file}`;
   // Crystals in store, and what Crystal labs add at the end of each of your turns.
   const lab = view.rules.factoryUpgrades.lab;
-  const labs = Object.values(view.units).filter((u) => u.owner === HUMAN &&
+  const labs = Object.values(view.units).filter((u) => u.owner === me &&
     (u.upgrades || []).includes("lab")).length;
-  els.crystals.innerHTML = `${view.players[HUMAN].crystals}` +
+  els.crystals.innerHTML = `${view.players[me].crystals}` +
     (labs ? `<small class="crystal-income">+${labs * lab.income}/turn</small>` : "");
   els.endTurn.disabled = !myTurn();
 }
@@ -1102,7 +1327,7 @@ function renderBuildInfo(view) {
   els.buildInfo.hidden = !type;
   if (!type) return;
   const stats = view.rules.units[type];
-  els.buildInfo.innerHTML = `<img src="${unitImage(type, HUMAN)}" alt="">` +
+  els.buildInfo.innerHTML = `<img src="${unitImage(type, me)}" alt="">` +
     `<div><h3>${stats.name}<span class="cost">${stats.cost}</span></h3>` +
     `${keyStatsOf(stats)}<p class="unit-stats">${statLine(stats)}</p>` +
     `<p class="panel-hint">Tap a yellow hex next to the factory to build it.</p></div>`;
@@ -1140,7 +1365,7 @@ function upgradeEffect(upgrade) {
 // A factory's panel: its upgrades, then the units it can build. Unused and enemy factories
 // show only what they are.
 function factoryPanel(view, unit, head) {
-  if (unit.owner !== HUMAN) {
+  if (unit.owner !== me) {
     const store = unit.store ? ` Its store holds ${unit.store} crystals.` : "";
     const hint = unit.owner === null
       ? `Infantry next to it at the start of your turn can move in and capture it.${store}`
@@ -1148,7 +1373,7 @@ function factoryPanel(view, unit, head) {
     els.panel.innerHTML = `${head}<p class="panel-hint">${hint}</p>`;
     return;
   }
-  const crystals = view.players[HUMAN].crystals;
+  const crystals = view.players[me].crystals;
   const upgradeOrders = upgradeOptions(view, unit.id).map((upgrade) => {
     const { name: upgradeName, cost } = RULES.factoryUpgrades[upgrade];
     const label = `<img src="${upgradeImage(upgrade)}" alt="">Add ${upgradeName}` +
@@ -1160,9 +1385,9 @@ function factoryPanel(view, unit, head) {
   const buildOrders = buildableTypes(view).filter((type) => factoryBuilds(view, unit, type))
     .map((type) => {
       const cost = view.rules.units[type].cost;
-      const label = `<img src="${unitImage(type, HUMAN)}" alt="">` +
+      const label = `<img src="${unitImage(type, me)}" alt="">` +
         `${view.rules.units[type].name}<span class="cost">${cost}</span>`;
-      const sites = buildSites(view, HUMAN, type).some((k) => distance(k, unit.at) === 1);
+      const sites = buildSites(view, me, type).some((k) => distance(k, unit.at) === 1);
       const active = ui.mode === "build" && ui.buildType === type;
       const air = view.rules.units[type].air ? " data-air" : "";
       return orderButton("build", label, myTurn() && sites && cost <= crystals, active,
@@ -1192,25 +1417,27 @@ function renderPanel(view) {
       objective += `<ol class="mission-steps">${m.steps.map((step) =>
         `<li${step.done(state) ? ' class="done"' : ""}>${step.text}</li>`).join("")}</ol>`;
     }
-    const factory = view.players[HUMAN].factoryId !== null ? ", or your factory to build" : "";
+    const factory = view.players[me].factoryId !== null ? ", or your factory to build" : "";
+    const others = state.active.filter((p) => p !== me);
     const hint = myTurn()
       ? `Tap a unit to see its orders${factory}. Drag to pan, pinch or scroll to zoom.`
-      : `${opponentName()} is taking their turn.`;
+      : `${namesOf(others)} ${others.length > 1 ? "are" : "is"} taking their turn.`;
     const undo = history.length ? undoButton() : "";
-    // Some campaign missions (Green has nothing to surrender) leave the button out.
-    const surrender = m && m.noSurrender ? "" : orderButton("surrender",
+    // Some campaign missions (Green has nothing to surrender), and multiplayer games, leave
+    // the button out.
+    const surrender = (m && m.noSurrender) || isMultiplayer() ? "" : orderButton("surrender",
       surrenderUsed ? "Surrender demanded" : "Demand surrender", myTurn());
     els.panel.innerHTML = `${objective}<p class="panel-hint">${hint}</p>` +
       `<div class="orders">${undo}${surrender}</div>`;
     return;
   }
   const stats = unitStats(view, unit);
-  const mine = unit.owner === HUMAN;
+  const mine = unit.owner === me;
   const status = [unit.lives < view.rules.lives ? "Damaged" : "Undamaged"];
-  let name = `${OWNER_WORDS[unit.owner]} ${stats.name}`;
+  let name = `${ownerWord(unit.owner)} ${stats.name}`;
   if (stats.isFactory) {
     const home = view.players.some((p) => p.factoryId === unit.id);
-    name = `${OWNER_WORDS[unit.owner]} ${home ? "home factory" : "factory"}`;
+    name = `${ownerWord(unit.owner)} ${home ? "home factory" : "factory"}`;
     const upgrades = unit.upgrades.map((u) => u === "lab"
       ? `Crystal lab: +${RULES.factoryUpgrades.lab.income} crystals a turn`
       : RULES.factoryUpgrades[u].name);
@@ -1260,12 +1487,35 @@ function renderPanel(view) {
   els.panel.innerHTML = `${head}<div class="orders">${orders}</div>${done}`;
 }
 
+// A multiplayer game's end: who won, or that it was a draw. Only Main menu is offered.
+function showMultiplayerOver() {
+  const { winner, reason, round } = state.result;
+  const winners = state.result.winners || (winner === null ? [] : [winner]);
+  const locals = seatsOf(state).map((_, p) => p).filter(isLocalHuman);
+  const mineWon = localHumanCount() === 1 && winners.includes(locals[0]);
+  if (!winners.length) els.overTitle.textContent = "Draw";
+  else if (mineWon) els.overTitle.textContent = winners.length > 1 ? "Your team wins" : "You win";
+  else els.overTitle.textContent = `${namesOf(winners)} ${winners.length > 1 ? "win" : "wins"}`;
+  els.overText.textContent = `The last of the others: ${REASONS[reason]} (round ${round}).`;
+  els.again.hidden = true;
+  els.newMap.hidden = true;
+  els.overUnlocks.hidden = true;
+  els.over.hidden = false;
+}
+
 function showGameOver() {
+  // Shown once: several paths can reach the end of a game.
+  if (!els.over.hidden) return;
+  if (isMultiplayer()) {
+    showMultiplayerOver();
+    return;
+  }
+  els.again.hidden = false;
   const { winner, reason } = state.result;
   const m = missionOf(state);
   if (!m) noteMap(state.map, state.result);
   els.overTitle.textContent =
-    winner === HUMAN ? "You win" : winner === AI_PLAYER ? "Green wins" : "Draw";
+    winner === me ? "You win" : winner === AI_PLAYER ? "Green wins" : "Draw";
   const round = `(round ${state.result.round})`;
   const loser = winner === null ? "" : `${PLAYER_COLOURS[1 - winner].name}: `;
   let text = `${loser}${REASONS[reason]} ${round}.`;
@@ -1281,7 +1531,7 @@ function showGameOver() {
   if (m) {
     const index = state.campaign.mission;
     const last = index === MISSIONS.length - 1;
-    const won = winner === HUMAN;
+    const won = winner === me;
     if (won) markMissionDone(index);
     els.overTitle.textContent = won ? "Mission complete" : "Mission failed";
     if (won && reason === "objective") text = `Objective met ${round}.`;
@@ -1299,6 +1549,128 @@ function showGameOver() {
   }
   els.overText.textContent = text;
   els.over.hidden = false;
+}
+
+// ---------------------------------------------------------------------------------------
+// Games on several devices (the link itself is in net.js)
+
+// Host: each remote human (or just only, one who has rejoined) gets the start of the game:
+// their seat, the seats and their view.
+function sendStart(only = null) {
+  seatsOf(state).forEach((seat, p) => {
+    if (seat.remote && (only === null || only === p)) {
+      link.send(p, { type: "start", seat: p, seats: seatsOf(state), view: viewFor(state, p) });
+    }
+  });
+}
+
+// Host: after every change, each remote human gets their new view and the events of it they
+// could see (so a device never learns what its player cannot see). ref: the request a
+// remote player's action answered, sent back to them.
+function sendUpdates(ref = null, from = null) {
+  if (!link || link.role !== "host") return;
+  seatsOf(state).forEach((seat, p) => {
+    if (!seat.remote) return;
+    const view = viewFor(state, p);
+    link.send(p, { type: "update", view, events: visibleEvents(state.events, view),
+      ref: p === from ? ref : null });
+  });
+}
+
+// The events a player could see: those on hexes they can see, or about their own units.
+function visibleEvents(events, view) {
+  const hexes = (e) => [e.at, e.from, e.to, ...(e.path || [])].filter(Boolean);
+  const theirs = (id) => view.units[id] && view.units[id].owner === view.viewer;
+  return events.filter((e) => e.player === view.viewer || theirs(e.unitId) ||
+    theirs(e.targetId) || hexes(e).some((k) => view.visible[k]) || e.type === "endTurn" ||
+    e.type === "newRound" || e.type === "knockedOut" || e.type === "gameOver" ||
+    (e.unitId && view.units[e.unitId]) || (e.targetId && view.units[e.targetId]));
+}
+
+// Host: one change at a time, so actions from several devices never overlap.
+let hostQueue = Promise.resolve();
+
+function onLinkMessage(message, from) {
+  if (link.role === "host") {
+    hostQueue = hostQueue.then(() => hostReceive(message, from)).catch(console.error);
+  } else {
+    clientReceive(message);
+  }
+}
+
+// Host: an action from a remote player is applied in the order it arrived; one that is no
+// longer possible (someone got there first) is refused.
+async function hostReceive(message, from) {
+  if (message.type !== "act" || state.result) return;
+  const action = { ...message.action, player: from };
+  const before = viewFor(state, me);
+  const wasMine = state.active.includes(me);
+  try {
+    state = applyAction(state, action);
+  } catch (error) {
+    link.send(from, { type: "refused", ref: message.ref,
+      text: error.message.replace(/^Illegal action: /, "Not allowed: ") });
+    return;
+  }
+  sendUpdates(message.ref, from);
+  const after = viewFor(state, me);
+  showEvents(state.events, before, after);
+  save();
+  await showMoves(state.events, before, after);
+  render();
+  if (action.type === "endTurn" || action.type === "resign" || state.result) {
+    nextTurn(!wasMine && state.active.includes(me));
+  }
+}
+
+// Client: actions go to the host; the answer is an update (or a refusal) carrying the
+// request's ref.
+let nextRef = 1;
+const waiting = new Map();
+
+function sendToHost(action) {
+  const ref = nextRef++;
+  ui.busy = true;
+  render();
+  link.send(null, { type: "act", action, ref });
+  return new Promise((resolve) => waiting.set(ref, resolve));
+}
+
+async function clientReceive(message) {
+  if (message.type === "refused") {
+    say(message.text);
+    ui.busy = false;
+    render();
+    waiting.get(message.ref)?.(false);
+    waiting.delete(message.ref);
+  } else if (message.type === "update") {
+    const before = state;
+    state = clientState(message.view, seatsOf(state));
+    showEvents(message.events, before, state);
+    ui.busy = true;
+    await showMoves(message.events, before, state);
+    ui.busy = false;
+    const answered = waiting.get(message.ref);
+    if (answered) {
+      waiting.delete(message.ref);
+      afterAction(message.events.find((e) => e.type === "endTurn") ? { type: "endTurn" }
+        : { type: "update" });
+      answered(true);
+    } else if (ui.selectedId && !state.units[ui.selectedId]) {
+      ui.selectedId = null;
+      ui.mode = null;
+    }
+    render();
+    if (state.result) showGameOver();
+    else if (answered) nudgeEndTurn();
+    if (message.events.some((e) => e.type === "endTurn" || e.type === "newRound")) {
+      nextTurn(!before.active.includes(me) && state.active.includes(me));
+    }
+  } else if (message.type === "closed") {
+    say("The connection to the host was lost.");
+    ui.busy = true;
+    render();
+  }
 }
 
 // ---------------------------------------------------------------------------------------

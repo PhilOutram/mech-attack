@@ -1,19 +1,20 @@
 # Multiplayer
 
-The plan for playing Mech Attack with more than one human and more than two sides (Phil, 29 October 2026). Nothing here is built yet. Decisions marked Phil's are settled; anything marked provisional still needs his word.
+How Mech Attack plays with more than one human and more than two sides (Phil, 29 October 2026). Built on the `multiplayer` branch; decisions marked Phil's are settled, anything marked provisional still needs his word.
 
 ## The two modes
 
 | | Turn-based | Simultaneous (co-op) |
 |---|---|---|
-| Players | 2, 3 or 4 sides; each side a human or the AI | 2 humans on one team against the AI |
+| Players | 2, 3 or 4 sides; each side a human or the AI | 2 to 4 humans on one team against the AI |
 | Turns | Each side in turn, as now | Both humans act at the same time, then the AI takes its turn |
 | Devices | One device passed round, or one device each | One device each (over the LAN) |
 | Teams | Free for all, or teams set up before the game | Always one human team against the AI |
 | Clashes | None: one side moves at a time | First come, first served: whichever move reaches the host first happens; the later one is refused ("someone got there first") |
 
 Phil's decisions:
-- Simultaneous play is always cooperative.
+- Simultaneous play is always cooperative, for up to 4 humans at least.
+- Co-op partners see each other's turned-over ground and units only once both have bought Comms (30) in one of their factories.
 - Turn-based play can be on one device or one device each, and teams can be set up front.
 - The AI plays to maximise its chance of winning: it targets the weaker player, or spreads its attack, according to the map and what each player is doing.
 - A knocked-out player's factories stay on the board, with whatever crystals that player had, and anyone's Infantry can capture them.
@@ -38,7 +39,7 @@ For turn-based play on one device, the same device is host and every player; a "
 ### 2. Maps for 3 and 4 sides
 - Three or four home positions spread evenly: homes at three corners of a triangular layout, or four corners of a square one.
 - The fairness checks compare every side's distances to piles and unused factories, not just blue's and green's.
-- New colours: yellow and red, from the token sheets.
+- New colours: yellow, purple and pink (red would be lost on the red ground), made from the blue art by `tools/recolour-tokens.mjs` and `tools/recolour-factories.py`.
 
 ### 3. The AI
 - It picks a target opponent each turn: the weakest, the most dangerous, or the nearest, weighed by new genes, so evolution can find what wins.
@@ -75,6 +76,5 @@ The existing single-player screens and campaign stay the default and are untouch
 
 ## Still to decide (provisional for now)
 
-- Co-op partners: do they see each other's turned-over blocks and units? Provisional: yes, a team shares what it has seen.
 - Co-op partners: one factory and crystal store each, or shared? Provisional: each has their own factory and crystals; Infantry overrun only enemy factories.
 - Can allies in turn-based team games unload crystals at each other's factories? Provisional: no.

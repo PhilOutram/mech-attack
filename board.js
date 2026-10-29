@@ -26,6 +26,7 @@ export const PLAYER_COLOURS = {
   1: { name: "Green", file: "green", ring: "#42c25a" },
   2: { name: "Yellow", file: "yellow", ring: "#f2c230" },
   3: { name: "Purple", file: "purple", ring: "#a35ce0" },
+  4: { name: "Pink", file: "pink", ring: "#ff6fb5" },
 };
 // Ring round an unused factory, which belongs to nobody.
 const NEUTRAL_RING = "#b9b2a8";

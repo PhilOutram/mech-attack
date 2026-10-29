@@ -68,6 +68,7 @@ Settled with Phil, 28 October 2026: a factory starts out building light ground u
 | Heavy works | 60 (was 100; Phil, 29 October 2026) | Heavy Cannon, Blast Cannon, Sonic Tank |
 | Airfield | 60 (was 100; Phil, 29 October 2026) | Attack Helicopter, Fighter, Spotter Drone, Chinook (provisional) |
 | Crystal lab | 60 | Makes 10 crystals at the end of each of its owner's turns (Phil, 29 October 2026; cost and income provisional) |
+| Comms | 30 | Multiplayer only: two allies who both have Comms in one of their factories see everything either of them sees (Phil, 29 October 2026) |
 
 A unit's `needs` stat names the upgrade it needs (`factoryUpgrades` in the config). Buying an upgrade is not a unit's action and can happen any time in your turn. A factory shows each upgrade as a badge on its tile: a helipad (Airfield), a gear (Heavy works) and a crystal dome (Crystal lab); placeholders until Phil's art is ready (`docs/art-brief-factory-upgrades.md`). The crystal count shows what Crystal labs add each turn.
 
@@ -125,7 +126,16 @@ Option for testing, off: `capture.guarded` (a factory with one of its owner's un
 Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and pile distances but different layouts, so exploring one side tells you nothing exact about the other. Generated maps follow the same pattern (see Maps).
 
 ### Colours
-You play blue, the AI plays green. Purple, pink or dark grey may replace them later.
+In a single-player game you play blue and the AI plays green. Multiplayer games add yellow, purple and pink (provisional; red would be lost on the red ground, and grey looks like an unused factory).
+
+### Multiplayer
+Settled with Phil, 29 October 2026; the plan and what is still open are in `docs/multiplayer.md`.
+- Take turns: 2 to 4 sides, each a human or the AI, on one device passed round (a hand-over screen hides the board between players) or one device each. Teams are chosen before the game; allies cannot fire on or overrun each other.
+- Same time (co-op): 2 to 4 humans, one device each, on one team against the AI. All the humans play at once, then the AI takes its turn. When two moves clash, whichever reaches the host first happens and the other is refused.
+- A player who loses while others play on is knocked out: their units go, their factories become unused with their crystals in store (shared between them; provisional: with no factory left, the crystals go to whoever overran their home), and their turns are skipped. The game ends when one team is left.
+- Players who move later than the first get extra crystals: the second-player bonus shared out by how late their turn comes (provisional).
+- Comms (see Factory upgrades) is the only way to see an ally's ground and units.
+- Undo is only for games on one device; Demand surrender is not offered in multiplayer (provisional).
 
 ### Rocky ground
 Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is drawing a new rocky tile so the two read differently.

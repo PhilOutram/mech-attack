@@ -22,6 +22,8 @@
     <nav class="splash-menu" aria-label="Main menu">
       <button id="menu-campaign" class="start-btn" type="button">Campaign</button>
       <button id="menu-play" class="start-btn" type="button">Play</button>
+      <button id="menu-multi" class="start-btn" type="button">Multiplayer</button>
+      <button id="menu-join" class="start-btn" type="button">Join game</button>
       <button id="menu-resume" class="start-btn" type="button" hidden>Resume</button>
       <button id="menu-units" class="start-btn" type="button">Units</button>
       <button id="menu-help" class="start-btn" type="button">Help</button>
@@ -34,6 +36,57 @@
       <p id="campaign-intro" class="campaign-intro"></p>
       <ul id="campaign-list" class="map-recent"></ul>
       <button id="campaign-cancel" class="start-btn" type="button">Back</button>
+    </div>
+  </div>
+
+  <div id="mp-setup" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="mp-title">
+      <h2 id="mp-title">Multiplayer</h2>
+      <div class="map-choices mp-modes">
+        <button class="start-btn" type="button" data-mp-mode="turns">Take turns</button>
+        <button class="start-btn" type="button" data-mp-mode="coop">Same time (co-op)</button>
+      </div>
+      <p id="mp-explain" class="level-persona"></p>
+      <ul id="mp-sides" class="mp-sides"></ul>
+      <div class="map-choices">
+        <button id="mp-fewer" class="start-btn" type="button">Remove</button>
+        <button id="mp-more" class="start-btn" type="button">Add a side</button>
+      </div>
+      <label class="map-shape">Map shape
+        <select id="mp-shape"></select>
+      </label>
+      <p id="mp-problem" class="mp-problem"></p>
+      <div class="map-choices">
+        <button id="mp-cancel" class="start-btn" type="button">Back</button>
+        <button id="mp-start" class="start-btn confirm-yes" type="button">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mp-lobby" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="mp-lobby-title">
+      <h2 id="mp-lobby-title">Waiting for players</h2>
+      <p class="mp-code" id="mp-lobby-code"></p>
+      <p id="mp-lobby-status" class="level-persona"></p>
+      <ul id="mp-lobby-players" class="mp-sides"></ul>
+      <div class="map-choices">
+        <button id="mp-lobby-cancel" class="start-btn" type="button">Cancel</button>
+        <button id="mp-lobby-start" class="start-btn confirm-yes" type="button">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mp-join" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="mp-join-title">
+      <h2 id="mp-join-title">Join a game</h2>
+      <form id="mp-join-form" class="map-number">
+        <label for="mp-code">Code</label>
+        <input id="mp-code" type="text" maxlength="4" autocomplete="off"
+          autocapitalize="characters" spellcheck="false" />
+        <button class="start-btn" type="submit">Join</button>
+      </form>
+      <p id="mp-join-status" class="level-persona"></p>
+      <button id="mp-join-cancel" class="start-btn" type="button">Back</button>
     </div>
   </div>
 
@@ -109,6 +162,13 @@
       <p id="game-message" class="game-message"></p>
       <div id="unit-panel"></div>
     </section>
+    <div id="pass-device" class="pass-device" hidden>
+      <div class="game-over-card">
+        <h2 id="pass-title"></h2>
+        <p id="pass-text"></p>
+        <button id="pass-go" class="start-btn confirm-yes" type="button"></button>
+      </div>
+    </div>
     <div id="game-over" class="game-over" hidden>
       <div class="game-over-card">
         <h2 id="game-over-title"></h2>

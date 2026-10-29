@@ -10,6 +10,8 @@ const TOKEN_TYPES = [
   ...UNIT_TYPES, "spotter-drone", "blast-cannon", "sonic-tank", "anti-aircraft-jeep",
   "attack-helicopter", "fighter", "infantry", "transporter", "chinook", "turret", "vip",
 ];
+// Player colours (more than two in multiplayer games).
+const COLOURS = ["blue", "green", "yellow", "purple", "pink"];
 const TILES = [
   "plain-1", "plain-2", "plain-3", "plain-4", "plain-5", "rocky-1", "rocky-2", "mountain-1",
   "chasm-n", "chasm-centre", "chasm-sw", "chasm-single",
@@ -38,6 +40,8 @@ const ASSETS = [
   "campaign.js?v=0.47",
   "counters.js?v=0.47",
   "difficulty.js?v=0.47",
+  "multiplayer.js?v=0.47",
+  "net.js?v=0.47",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
@@ -47,9 +51,9 @@ const ASSETS = [
   "tiles/tiles.json?v=0.47",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
-  ...TOKEN_TYPES.flatMap((u) => [`units/${u}-blue.svg`, `units/${u}-green.svg`]),
+  ...TOKEN_TYPES.flatMap((u) => COLOURS.map((colour) => `units/${u}-${colour}.svg`)),
   // Factory tiles: every combination of upgrades, for each player and for an unused factory.
-  ...["blue", "green", "neutral"].flatMap((colour) =>
+  ...[...COLOURS, "neutral"].flatMap((colour) =>
     ["", "-lab", "-airfield", "-airfield-lab", "-heavy", "-heavy-lab", "-heavy-airfield",
       "-heavy-airfield-lab"].map((parts) => `units/factory${parts}-${colour}.webp`)),
   "units/crystals.svg",
@@ -57,6 +61,7 @@ const ASSETS = [
   "units/upgrade-airfield.svg",
   "units/upgrade-heavy-works.svg",
   "units/upgrade-lab.svg",
+  "units/upgrade-comms.svg",
   ...SOUND_FILES.map((f) => `audio/${f}.mp3`),
 ];
 

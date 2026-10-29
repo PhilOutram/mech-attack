@@ -1,4 +1,4 @@
-# Makes yellow and purple factory pictures from the blue ones.
+# Makes yellow, purple and pink factory pictures from the blue ones.
 # The team colour in units/factory*-blue.webp is the blue on the roller bands. A pixel counts as
 # team-coloured where the blue and green pictures differ by more than the WebP compression noise
 # and the blue pixel is actually blue. Those pixels are mapped to the same shade of the new hue
@@ -13,7 +13,7 @@ from PIL import Image
 UNITS_DIR = Path(__file__).resolve().parent.parent / "units"
 
 REFERENCE_BLUE = "#0066cc"
-TARGETS        = {"yellow": "#e0b000", "purple": "#8a3ccf"}
+TARGETS        = {"yellow": "#e0b000", "purple": "#8a3ccf", "pink": "#e8489a"}
 
 DIFF_NOISE     = 12     # blue-green channel difference treated as compression noise
 DIFF_FULL      = 40     # difference at which a pixel is fully team-coloured

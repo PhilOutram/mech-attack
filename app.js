@@ -8,6 +8,7 @@ import { RULES } from "./rules-config.js?v=0.47";
 import { MISSIONS, missionsDone } from "./campaign.js?v=0.47";
 import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.47";
 import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.47";
+import { wireMultiplayer } from "./multiplayer.js?v=0.47";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -98,6 +99,11 @@ document.getElementById("menu-help").addEventListener("click", () => {
   showTip("welcome", RULES);
 });
 document.getElementById("home").addEventListener("click", showSplash);
+// Multiplayer: back to the menu when a game ends, or hide it as one starts.
+wireMultiplayer({ leaveTo: (menu) => {
+  if (menu) showSplash();
+  else splash.hidden = true;
+} });
 
 // The rank you play at picks your opponent (see difficulty.js); it is remembered.
 const levelSelect = document.getElementById("level");
