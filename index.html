@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.27" />
+  <link rel="stylesheet" href="styles.css?v=0.28" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -97,6 +97,7 @@
     <div class="board-wrap">
       <svg id="board" class="board" xmlns="http://www.w3.org/2000/svg"
         aria-label="Game board"><g id="board-root"></g></svg>
+      <div id="game-banner" class="game-banner" role="status" hidden></div>
     </div>
     <section class="panel" aria-live="polite">
       <p id="game-message" class="game-message"></p>
@@ -137,6 +138,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.27" type="module"></script>
+  <script src="app.js?v=0.28" type="module"></script>
 </body>
 </html>

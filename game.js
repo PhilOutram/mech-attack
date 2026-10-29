@@ -1,23 +1,23 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.27";
-import { mapById, seededRandom } from "./maps.js?v=0.27";
+import { RULES } from "./rules-config.js?v=0.28";
+import { mapById, seededRandom } from "./maps.js?v=0.28";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.27";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.27";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.27";
-import { distance } from "./hex.js?v=0.27";
+} from "./engine.js?v=0.28";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.28";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.28";
+import { distance } from "./hex.js?v=0.28";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.27";
-import { confirmDialog } from "./dialog.js?v=0.27";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.27";
-import { showTip } from "./tips.js?v=0.27";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.27";
+} from "./board.js?v=0.28";
+import { confirmDialog } from "./dialog.js?v=0.28";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.28";
+import { showTip } from "./tips.js?v=0.28";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.28";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -28,11 +28,13 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.27";
+const ASSET_VERSION = "0.28";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
-const HOP_MS = 140;
+const HOP_MS = 90;
+// How long a banner such as "60 crystals unloaded" stays over the board.
+const BANNER_MS = 1000;
 const EFFECT_MS = 500;
 // A pointer that moves further than this is panning the board, not tapping it.
 const DRAG_THRESHOLD_PX = 8;
@@ -275,6 +277,7 @@ function findElements() {
   const $ = (id) => document.getElementById(id);
   return {
     screen: $("game"), svg: $("board"), root: $("board-root"), round: $("game-round"),
+    banner: $("game-banner"),
     turn: $("game-turn"), crystals: $("game-crystals"), endTurn: $("end-turn"),
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
@@ -522,6 +525,7 @@ function showEvents(events, before, after) {
   const effects = [];
   const lines = [];
   const sounds = new Map();
+  let unloaded = 0;
   const sound = (clip) => {
     if (clip) sounds.set(clip[0], Math.max(clip[1], sounds.get(clip[0]) || 0));
   };
@@ -575,6 +579,7 @@ function showEvents(events, before, after) {
       lines.push(`Harvested ${e.amount} crystals.`);
     } else if (e.type === "unload" && after.units[e.unitId]?.owner === HUMAN) {
       lines.push(`Unloaded ${e.amount} crystals${e.automatic ? " at the factory" : ""}.`);
+      unloaded += e.amount;
     } else if (e.type === "build" && (after.units[e.unitId]?.owner === HUMAN || seen(e.at))) {
       any = true;
       lines.push(`${unitName(after, e.unitId)} built.`);
@@ -603,7 +608,22 @@ function showEvents(events, before, after) {
   for (const line of lines) say(line);
   if (effects.length) flash(effects);
   for (const [clip, volume] of sounds) playSound(clip, volume);
+  if (unloaded) showBanner(`${unloaded} crystals unloaded`);
   return any;
+}
+
+// A short message over the board, gone after BANNER_MS.
+let bannerTimer = null;
+
+function showBanner(text) {
+  els.banner.textContent = text;
+  els.banner.hidden = false;
+  // Restart the fade-in when banners come one after another.
+  els.banner.classList.remove("show");
+  void els.banner.offsetWidth;
+  els.banner.classList.add("show");
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { els.banner.hidden = true; }, BANNER_MS);
 }
 
 function flash(effects) {

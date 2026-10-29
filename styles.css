@@ -951,3 +951,30 @@ h1 {
 .changelog a {
   color: var(--accent);
 }
+
+/* A short message over the board, e.g. crystals unloaded (game.js showBanner). */
+.game-banner {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1.1rem;
+  border: 1px solid #9ff4ff;
+  border-radius: 999px;
+  background-color: rgba(10, 20, 30, 0.85);
+  color: #9ff4ff;
+  font-family: var(--title-font);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.game-banner.show {
+  animation: banner-in 0.15s ease-out;
+}
+
+@keyframes banner-in {
+  from { opacity: 0; transform: translate(-50%, -0.4rem); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
