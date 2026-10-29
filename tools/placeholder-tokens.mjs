@@ -1,6 +1,6 @@
 // Writes simple placeholder tokens for units that have no artwork yet (Infantry, Transporter,
-// Chinook, Turret and Commander Jeanne), in each player's colour. Replace them with the real
-// art when it is drawn.
+// Chinook and Commander Jeanne), in each player's colour. Replace them with the real art when
+// it is drawn. The Turret has Phil's art (units/turret-*.svg), so it is not drawn here.
 // Usage: node tools/placeholder-tokens.mjs
 import { writeFileSync } from "node:fs";
 
@@ -44,16 +44,6 @@ function chinook(fill, dark) {
     rotor(52) + rotor(156);
 }
 
-// A gun emplacement seen from above: armoured base, round turret, long barrel pointing up.
-function turret(fill, dark) {
-  return `<polygon points="100,30 160,65 160,135 100,170 40,135 40,65" fill="${dark}"` +
-    ` stroke="#111" stroke-width="3"/>` +
-    `<rect x="92" y="18" width="16" height="78" rx="4" fill="#2a2a2a" stroke="#111"` +
-    ` stroke-width="2"/>` +
-    `<circle cx="100" cy="104" r="36" fill="${fill}" stroke="#111" stroke-width="3"/>` +
-    `<circle cx="100" cy="104" r="12" fill="${dark}"/>`;
-}
-
 // A single trooper with a gold star: the campaign's VIP, Commander Jeanne.
 function vip(fill, dark) {
   const star = [0, 1, 2, 3, 4].map((i) => {
@@ -70,7 +60,7 @@ function vip(fill, dark) {
 }
 
 const TOKENS = [["infantry", infantry], ["transporter", transporter], ["chinook", chinook],
-  ["turret", turret], ["vip", vip]];
+  ["vip", vip]];
 
 for (const [colour, [fill, dark]] of Object.entries(COLOURS)) {
   for (const [name, draw] of TOKENS) {
