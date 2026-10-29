@@ -25,6 +25,56 @@
       "png": "lossless"
     },
     {
+      "file": "plain-4.png",
+      "terrain": "plain",
+      "source": "Map Tiles/Mech Attack - Map Page 3.png",
+      "centre": [
+        1586.0,
+        1806.5
+      ],
+      "radius": 189.33,
+      "clusterPosition": "S",
+      "copiesInSources": 61,
+      "positionsInClusters": [
+        "NW",
+        "S"
+      ],
+      "rockInkShare": 0.0142,
+      "peachShare": 0.0005,
+      "cutLinePixels": 2762,
+      "cutLinesRemoved": 1,
+      "cutLinePixelsAfter": 0,
+      "foreignBorderPixels": 279,
+      "bytes": 18878,
+      "png": "lossless",
+      "renamedFrom": "plain-1.png"
+    },
+    {
+      "file": "plain-5.png",
+      "terrain": "plain",
+      "source": "Map Tiles/Mech Attack - Map Page 1.png",
+      "centre": [
+        764.0,
+        668.0
+      ],
+      "radius": 189.33,
+      "clusterPosition": "SE",
+      "copiesInSources": 51,
+      "positionsInClusters": [
+        "SE",
+        "SW"
+      ],
+      "rockInkShare": 0.0192,
+      "peachShare": 0.0021,
+      "cutLinePixels": 2881,
+      "cutLinesRemoved": 1,
+      "cutLinePixelsAfter": 6,
+      "foreignBorderPixels": 21,
+      "bytes": 18479,
+      "png": "lossless",
+      "renamedFrom": "plain-2.png"
+    },
+    {
       "file": "rocky-1.png",
       "terrain": "rocky",
       "source": "Map Tiles/rough-terrain.png (Phil, Affinity, 2026-10-29)",
