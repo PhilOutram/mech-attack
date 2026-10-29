@@ -3,9 +3,9 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.39";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.39";
-import { distance, cheapestPaths } from "./hex.js?v=0.39";
+import { RULES } from "./rules-config.js?v=0.40";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.40";
+import { distance, cheapestPaths } from "./hex.js?v=0.40";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;
@@ -205,8 +205,8 @@ const MISSION_LIST = [
     story: "Your new base sits in a crater ringed by mountains: safe, but your Tanks cannot " +
       "drive out. The factory has an Airfield, and a Chinook has flown in. It lifts one " +
       "vehicle or two Infantry over anything, and the Airfield can build Attack Helicopters " +
-      "too. Green has an Airfield as well, so watch the skies. Fly your army out and take " +
-      "the fight to Green.",
+      "too. Green has an Airfield as well, so watch the skies: Anti-Aircraft Jeeps and " +
+      "Infantry can shoot its helicopters down. Fly your army out and take the fight to Green.",
     tip: { title: "Top tip", text: "Move a Tank or Infantry onto the Chinook to board it. " +
       "Fly the Chinook over the mountains, then tap Drop off and a hex next to it." },
     objective: "Overrun Green's home factory. Only the air can get you out of the crater.",
@@ -217,7 +217,7 @@ const MISSION_LIST = [
     crystals: [150, 100],
     upgrades: [["airfield"], ["airfield"]] },
     // Both factories start with an Airfield, so both sides can build the air units.
-    rules: { allowedUnits: [...SUPPORT_UNITS, "chinook", "attackHelicopter"],
+    rules: { allowedUnits: [...SUPPORT_UNITS, "chinook", "attackHelicopter", "antiAircraftJeep"],
       allowedUpgrades: ["lab"] },
     ai: "default",
     done: null,

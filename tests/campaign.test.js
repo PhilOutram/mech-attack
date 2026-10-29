@@ -87,6 +87,7 @@ test("in Over the Mountains blue's home is cut off from Green by ground", () => 
     const factory = s.units[s.players[p].factoryId];
     assert.ok(factoryBuilds(s, factory, "attackHelicopter"), `player ${p} builds helicopters`);
     assert.ok(factoryBuilds(s, factory, "chinook"), `player ${p} builds Chinooks`);
+    assert.ok(factoryBuilds(s, factory, "antiAircraftJeep"), `player ${p} builds AA Jeeps`);
   }
 });
 
