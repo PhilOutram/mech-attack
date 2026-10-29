@@ -53,11 +53,20 @@ export function testRules(overrides = {}) {
 // units: [{ id, type, owner, at, ...extra }]. crystals: { key: pile fields }.
 // Everything is explored (every block turned over) unless explored is false.
 // Players start with 100 crystals so that a side with no units has not already lost.
+// sides and phases (more than two players): see newGame; the extra factories go at the left
+// and right edges of the board (MORE_FACTORIES).
+export const MORE_FACTORIES = [key(TEST_RADIUS, 0), key(-TEST_RADIUS, 0)];
+
 export function scenario({
-  terrain = {}, units = [], crystals = {}, rules = {}, playerCrystals = [100, 100],
-  explored = true, seed = 1,
+  terrain = {}, units = [], crystals = {}, rules = {}, playerCrystals = null,
+  explored = true, seed = 1, sides = null, phases = null,
 } = {}) {
-  const state = newGame({ rules: testRules(rules), map: testMap(terrain), seed });
+  const map = testMap(terrain);
+  const count = sides ? sides.length : 2;
+  map.factories = [...map.factories, ...MORE_FACTORIES].slice(0, count);
+  map.starts = map.factories.map(() => []);
+  const state = newGame({ rules: testRules(rules), map, seed, sides, phases });
+  const crystalsEach = playerCrystals || state.players.map(() => 100);
   // newGame has already turned over the blocks round the factories; start from scratch.
   state.players.forEach((player) => {
     player.revealed = {};
@@ -74,7 +83,7 @@ export function scenario({
     state.crystals[k] = { harvestedThisTurn: false, ...crystals[k] };
   }
   state.players.forEach((player, p) => {
-    player.crystals = playerCrystals[p];
+    player.crystals = crystalsEach[p];
     if (!explored) return;
     for (const k in state.map.hexes) {
       player.explored[k] = true;

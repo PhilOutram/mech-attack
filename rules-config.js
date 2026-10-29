@@ -133,6 +133,9 @@ export const RULES = {
     heavyWorks: { name: "Heavy works", cost: 60 },
     airfield: { name: "Airfield", cost: 60 },
     lab: { name: "Crystal lab", cost: 60, income: 10 },
+    // Comms (Phil, 29 October 2026): two allies who both have it in one of their factories
+    // see everything either of them sees. Only offered to players with allies.
+    comms: { name: "Comms", cost: 30, sharesVision: true },
   },
 
   // Capturing ("overrunning") factories with infantry (Phil, 29 October 2026):

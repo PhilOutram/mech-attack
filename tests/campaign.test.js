@@ -151,5 +151,8 @@ test("units once unlocked stay available, and the campaign unlocks every unit", 
   const last = MISSIONS[MISSIONS.length - 1].rules;
   const buildable = Object.keys(RULES.units).filter((type) => RULES.units[type].cost !== null);
   assert.deepEqual([...last.allowedUnits].sort(), buildable.sort());
-  assert.deepEqual([...last.allowedUpgrades].sort(), Object.keys(RULES.factoryUpgrades).sort());
+  // Comms is for games with allies, which the campaign does not have.
+  const solo = Object.keys(RULES.factoryUpgrades)
+    .filter((u) => !RULES.factoryUpgrades[u].sharesVision);
+  assert.deepEqual([...last.allowedUpgrades].sort(), solo.sort());
 });

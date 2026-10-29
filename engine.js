@@ -31,10 +31,24 @@ import {
 // - A move cut short by turning over new ground (stoppedBy "revealed") leaves the unit able
 //   to use the rest of its move (unit.continues).
 // - players[p].lost counts that player's destroyed units by type.
+//
+// Sides, teams and turns (format 8):
+// - A game has 2 to 4 sides (players[p]), each with a colour and a team. Players on the same
+//   team are allies: they cannot fire on or overrun each other. A player whose factories all
+//   have no Comms keeps their view to themselves; two allies who both have Comms in one of
+//   their factories see everything either of them sees.
+// - Turns run in phases (state.phases, lists of players). Everyone in a phase acts at the
+//   same time and the phase ends when all of them have ended their turn; state.active holds
+//   those still to finish. An action may name its player (action.player); without one it is
+//   for state.current, the first player still active. Two-player games have one player a
+//   phase, as before.
+// - A player who loses while others play on is knocked out (players[p].out): their units go,
+//   their factories become unused and share out their crystals, and their turns are skipped.
+//   The game ends when only one team is left.
 
 // Saved games in any other format are not loaded.
-export const STATE_FORMAT = 7;
-export const PLAYER_COLOURS = ["blue", "green"];
+export const STATE_FORMAT = 8;
+export const PLAYER_COLOURS = ["blue", "green", "yellow", "purple"];
 
 // ---------------------------------------------------------------------------------------
 // Setting up
@@ -45,10 +59,19 @@ export const PLAYER_COLOURS = ["blue", "green"];
 // that game. A player whose home is unclaimed starts with their home factory unused and must
 // capture it with infantry first; a player with noHome has no factory at all. upgrades are
 // already fitted to the player's home factory.
+//
+// sides: one entry per player, { team } (default: two sides, each its own team); the map
+// needs a factory site for each. phases: who acts together, as lists of players (default:
+// one player at a time, firstPlayer first, then round the table). Players not in the first
+// phase get extra crystals (rules.start.secondPlayerCrystals, shared out by how late their
+// phase comes), to make up for moving later.
 export function newGame({
   rules, map, seed = 1, firstPlayer = 0, recordActions = true, setup = null,
+  sides = null, phases = null,
 }) {
-  const otherPlayer = 1 - firstPlayer;
+  const teams = (sides || [{ team: 0 }, { team: 1 }]).map((side, p) => side.team ?? p);
+  const count = teams.length;
+  const order = phases || Array.from({ length: count }, (_, i) => [(firstPlayer + i) % count]);
   const state = {
     format: STATE_FORMAT,
     rules,
@@ -56,11 +79,14 @@ export function newGame({
     seed,
     rng: seed >>> 0,
     round: 1,
-    order: [firstPlayer, otherPlayer],
-    turnIndex: 0,
-    current: firstPlayer,
-    players: PLAYER_COLOURS.map((colour) => ({
-      colour,
+    phases: order.map((phase) => [...phase]),
+    phaseIndex: 0,
+    active: [...order[0]],
+    current: order[0][0],
+    players: teams.map((team, p) => ({
+      colour: PLAYER_COLOURS[p],
+      team,
+      out: false,
       crystals: rules.start.crystals,
       factoryId: null,
       explored: {},
@@ -101,8 +127,14 @@ export function newGame({
   for (const site of map.neutralFactories || []) {
     addUnit(state, "factory", null, site.at).store = rules.capture.unusedFactoryCrystals || 0;
   }
-  if (setup) state.players.forEach((player, p) => { player.crystals = setup.crystals[p]; });
-  else state.players[otherPlayer].crystals += rules.start.secondPlayerCrystals || 0;
+  if (setup) {
+    state.players.forEach((player, p) => { player.crystals = setup.crystals[p]; });
+  } else if (order.length > 1) {
+    order.forEach((phase, i) => {
+      const extra = Math.round((rules.start.secondPlayerCrystals || 0) * i / (order.length - 1));
+      for (const p of phase) state.players[p].crystals += extra;
+    });
+  }
   for (const deposit of map.deposits) {
     const amount = rules.crystals.startAmount;
     state.crystals[deposit.at] = { amount, harvestedThisTurn: false };
@@ -164,9 +196,25 @@ export function factoriesOf(state, player) {
   return unitsOf(state, player).filter((u) => unitStats(state, u).isFactory);
 }
 
-// Units that can be attacked: the other player's. Unused factories belong to nobody.
-function isEnemy(unit, other) {
-  return other.owner !== null && other.owner !== unit.owner;
+// A player's team; players on the same team are allies. Works on a view too.
+export function teamOf(state, player) {
+  return state.players[player].team ?? player;
+}
+
+// Whether two players are on the same team (a player is their own ally).
+export function allied(state, a, b) {
+  return a === b || teamOf(state, a) === teamOf(state, b);
+}
+
+// The other players on a player's team.
+export function alliesOf(state, player) {
+  return state.players.map((_, p) => p).filter((p) => p !== player && allied(state, p, player));
+}
+
+// Units that can be attacked: those of players on another team. Unused factories belong to
+// nobody.
+function isEnemy(state, unit, other) {
+  return other.owner !== null && !allied(state, unit.owner, other.owner);
 }
 
 function isHomeFactory(state, unit) {
@@ -248,13 +296,35 @@ function revealFrom(state, player, at, range) {
   for (const k of hexesInSight(state, at, range)) revealed[blockOf(state, k)] = true;
 }
 
-// Hexes the player can see now: every hex of a turned-over block in fog mode "tiles", or the
-// hexes in sight of their units in fog mode "sight".
-export function visibleHexes(state, player) {
+// Hexes the player sees with their own units: every hex of a block they have turned over in
+// fog mode "tiles", or the hexes in sight of their units in fog mode "sight".
+function ownVisibleHexes(state, player) {
   if (!tilesFog(state)) return hexesSeenBy(state, player);
   const visible = {};
   const revealed = state.players[player].revealed;
   for (const k in state.map.hexes) if (revealed[blockOf(state, k)]) visible[k] = true;
+  return visible;
+}
+
+// Whether a player has an upgrade that shares vision (Comms) in one of their factories.
+function hasComms(state, player) {
+  const shares = Object.keys(state.rules.factoryUpgrades)
+    .filter((u) => state.rules.factoryUpgrades[u].sharesVision);
+  return factoriesOf(state, player).some((f) => f.upgrades.some((u) => shares.includes(u)));
+}
+
+// Allies whose view the player shares: both of them have Comms (Phil, 29 October 2026).
+function sharingAllies(state, player) {
+  if (!hasComms(state, player)) return [];
+  return alliesOf(state, player).filter((a) => !state.players[a].out && hasComms(state, a));
+}
+
+// Hexes the player can see now: their own, and those of allies they share a view with.
+export function visibleHexes(state, player) {
+  const visible = ownVisibleHexes(state, player);
+  for (const ally of sharingAllies(state, player)) {
+    Object.assign(visible, ownVisibleHexes(state, ally));
+  }
   return visible;
 }
 
@@ -329,11 +399,12 @@ export function viewFor(state, player) {
     map: { id: state.map.id, name: state.map.name, hexes, factories: state.map.factories,
       neutralFactories: state.map.neutralFactories || [] },
     round: state.round,
-    order: state.order,
-    turnIndex: state.turnIndex,
+    phases: state.phases,
+    phaseIndex: state.phaseIndex,
+    active: state.active,
     current: state.current,
-    players: state.players.map((pl, p) =>
-      p === player ? pl : { colour: pl.colour, factoryId: pl.factoryId }),
+    players: state.players.map((pl, p) => (p === player ? pl
+      : { colour: pl.colour, factoryId: pl.factoryId, team: pl.team, out: pl.out })),
     units,
     crystals,
     hits,
@@ -391,6 +462,8 @@ function moveLeft(state, unit) {
 export function canCapture(state, unit, factory) {
   if (!factory || !unitStats(state, unit).captures || factory.owner === unit.owner) return false;
   if (!unitStats(state, factory).isFactory) return false;
+  // Allies' factories cannot be overrun.
+  if (factory.owner !== null && allied(state, factory.owner, unit.owner)) return false;
   // A player's home can be taken only if the rules allow it, or while nobody holds it.
   if (isHomeFactory(state, factory) && factory.owner !== null &&
     !state.rules.capture.homeFactories) return false;
@@ -513,7 +586,7 @@ function lineDirection(from, to) {
 // Whether a unit can fire on another: an enemy its attack can hit, and not a factory unless
 // factories take fire. Works on a view too.
 function canTarget(state, unit, target) {
-  return isEnemy(unit, target) && canHit(state, unit, target) &&
+  return isEnemy(state, unit, target) && canHit(state, unit, target) &&
     (state.rules.combat.factoriesTakeFire || !unitStats(state, target).isFactory);
 }
 
@@ -650,21 +723,24 @@ export function buildableTypes(state) {
 }
 
 // The upgrades a factory has not bought yet, of those allowed in this game
-// (rules.allowedUpgrades; null = all).
+// (rules.allowedUpgrades; null = all). Comms is offered only to a player with allies.
 export function upgradeOptions(state, factoryId) {
   const factory = state.units[factoryId];
   if (!factory || !factory.upgrades) return [];
   const allowed = state.rules.allowedUpgrades;
+  const lonely = factory.owner === null || !alliesOf(state, factory.owner).length;
   return Object.keys(state.rules.factoryUpgrades).filter((u) =>
-    !factory.upgrades.includes(u) && (!allowed || allowed.includes(u)));
+    !factory.upgrades.includes(u) && (!allowed || allowed.includes(u)) &&
+    !(lonely && state.rules.factoryUpgrades[u].sharesVision));
 }
 
 // ---------------------------------------------------------------------------------------
 // Legal actions
 
-export function legalActions(state) {
-  if (state.result) return [];
-  const player = state.current;
+// The actions a player can take now (by default state.current). An action for a player in a
+// phase with others names its player.
+export function legalActions(state, player = state.current) {
+  if (state.result || !state.active.includes(player)) return [];
   const view = state.isView ? state : viewFor(state, player);
   const actions = [];
   for (const unit of unitsOf(view, player)) {
@@ -697,7 +773,7 @@ export function legalActions(state) {
     }
   }
   actions.push({ type: "endTurn" });
-  return actions;
+  return player === state.current ? actions : actions.map((a) => ({ ...a, player }));
 }
 
 // ---------------------------------------------------------------------------------------
@@ -723,10 +799,13 @@ export function applyAction(state, action) {
   if (state.result) throw new Error("The game is over");
   const handler = HANDLERS[action.type];
   if (!handler) throw new Error(`Unknown action: ${action.type}`);
+  // Resigning can happen at any time; everything else only in the player's own turn.
+  const actor = action.player ?? state.current;
+  if (action.type !== "resign" && !state.active.includes(actor)) illegal("not your turn");
 
   const next = cloneState(state);
   next.events = [];
-  handler(next, action);
+  handler(next, action, actor);
   refreshKnowledge(next);
   checkResult(next);
   if (next.actions) next.actions.push(action);
@@ -755,7 +834,8 @@ function cloneState(state) {
   }));
   return {
     ...state,
-    order: [...state.order],
+    phases: state.phases.map((phase) => [...phase]),
+    active: [...state.active],
     players,
     units,
     crystals,
@@ -770,9 +850,9 @@ function illegal(message) {
 }
 
 // The acting player's own unit, from the full state.
-function ownUnit(state, unitId) {
+function ownUnit(state, unitId, actor) {
   const unit = state.units[unitId];
-  if (!unit || unit.owner !== state.current) illegal(`no unit ${unitId} for this player`);
+  if (!unit || unit.owner !== actor) illegal(`no unit ${unitId} for this player`);
   return unit;
 }
 
@@ -788,9 +868,9 @@ function finishAction(unit) {
 // path runs onto ground that was face down when the move was planned; the unit can use the
 // rest of its move afterwards. A move into a factory captures it; a move onto a transporter
 // boards it.
-function applyMove(state, { unitId, to }) {
-  const unit = ownUnit(state, unitId);
-  const view = viewFor(state, state.current);
+function applyMove(state, { unitId, to }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  const view = viewFor(state, actor);
   const route = routes(view, view.units[unitId])[to];
   if (!route) illegal(`${unitId} cannot reach ${to}`);
 
@@ -894,9 +974,9 @@ function removeUnit(state, unit) {
 
 // Drops the transporter's first passenger next to it, or into a factory to capture it. The
 // passenger has finished for the turn; the transporter can still move if it has not.
-function applyDrop(state, { unitId, at }) {
-  const transporter = ownUnit(state, unitId);
-  if (!dropSites(viewFor(state, state.current), unitId).includes(at)) {
+function applyDrop(state, { unitId, at }, actor) {
+  const transporter = ownUnit(state, unitId, actor);
+  if (!dropSites(viewFor(state, actor), unitId).includes(at)) {
     illegal(`${unitId} cannot drop off at ${at}`);
   }
   const [passenger, ...rest] = transporter.cargo;
@@ -911,9 +991,9 @@ function applyDrop(state, { unitId, at }) {
 
 // An attack at a unit in sight (targetId), or blind into a hex the player cannot see (at),
 // which hits whatever enemy is there, if any.
-function applyAttack(state, { unitId, targetId, at }) {
-  const unit = ownUnit(state, unitId);
-  const view = viewFor(state, state.current);
+function applyAttack(state, { unitId, targetId, at }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  const view = viewFor(state, actor);
   const blind = targetId === undefined;
   if (blind ? !darkTargets(view, unitId).includes(at)
     : !attackTargets(view, unitId).includes(targetId)) illegal(`${unitId} cannot attack`);
@@ -1019,9 +1099,9 @@ function hit(state, target, amount) {
   }
 }
 
-function applyHeal(state, { unitId, targetId }) {
-  const unit = ownUnit(state, unitId);
-  if (!healTargets(viewFor(state, state.current), unitId).includes(targetId)) {
+function applyHeal(state, { unitId, targetId }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  if (!healTargets(viewFor(state, actor), unitId).includes(targetId)) {
     illegal(`${unitId} cannot heal ${targetId}`);
   }
   const target = state.units[targetId];
@@ -1031,9 +1111,9 @@ function applyHeal(state, { unitId, targetId }) {
   state.events.push({ type: "heal", unitId, targetId });
 }
 
-function applyHarvest(state, { unitId, at }) {
-  const unit = ownUnit(state, unitId);
-  if (!harvestTargets(viewFor(state, state.current), unitId).includes(at)) {
+function applyHarvest(state, { unitId, at }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  if (!harvestTargets(viewFor(state, actor), unitId).includes(at)) {
     illegal(`${unitId} cannot harvest at ${at}`);
   }
   const pile = state.crystals[at];
@@ -1047,9 +1127,9 @@ function applyHarvest(state, { unitId, at }) {
   state.events.push({ type: "harvest", unitId, at, amount });
 }
 
-function applyUnload(state, { unitId }) {
-  const unit = ownUnit(state, unitId);
-  if (!canUnload(viewFor(state, state.current), unitId)) illegal(`${unitId} cannot unload`);
+function applyUnload(state, { unitId }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  if (!canUnload(viewFor(state, actor), unitId)) illegal(`${unitId} cannot unload`);
   unload(state, unit, false);
   finishAction(unit);
 }
@@ -1061,8 +1141,8 @@ function unload(state, unit, automatic) {
 }
 
 // Setting up takes the unit's action for the turn, so it can fire from the next turn.
-function applySetUp(state, { unitId }) {
-  const unit = ownUnit(state, unitId);
+function applySetUp(state, { unitId }, actor) {
+  const unit = ownUnit(state, unitId, actor);
   if (!canSetUp(state, unitId)) illegal(`${unitId} cannot set up`);
   unit.setUp = true;
   finishAction(unit);
@@ -1070,16 +1150,16 @@ function applySetUp(state, { unitId }) {
 }
 
 // Packing up also takes the action, so the unit can move again from the next turn.
-function applyPackUp(state, { unitId }) {
-  const unit = ownUnit(state, unitId);
+function applyPackUp(state, { unitId }, actor) {
+  const unit = ownUnit(state, unitId, actor);
   if (!canPackUp(state, unitId)) illegal(`${unitId} cannot pack up`);
   unit.setUp = false;
   finishAction(unit);
   state.events.push({ type: "packUp", unitId });
 }
 
-function applyBuild(state, { unitType, at }) {
-  const player = state.current;
+function applyBuild(state, { unitType, at }, actor) {
+  const player = actor;
   const stats = state.rules.units[unitType];
   if (!stats || stats.cost === null) illegal(`${unitType} cannot be built`);
   if (stats.cost > state.players[player].crystals) illegal(`not enough crystals`);
@@ -1090,44 +1170,66 @@ function applyBuild(state, { unitType, at }) {
   state.events.push({ type: "build", unitId: unit.id, unitType, at });
 }
 
-function applyUpgrade(state, { factoryId, upgrade }) {
-  const factory = ownUnit(state, factoryId);
+function applyUpgrade(state, { factoryId, upgrade }, actor) {
+  const factory = ownUnit(state, factoryId, actor);
   if (!upgradeOptions(state, factoryId).includes(upgrade)) {
     illegal(`${factoryId} cannot add ${upgrade}`);
   }
   const { cost } = state.rules.factoryUpgrades[upgrade];
-  if (cost > state.players[state.current].crystals) illegal(`not enough crystals`);
-  state.players[state.current].crystals -= cost;
+  if (cost > state.players[actor].crystals) illegal(`not enough crystals`);
+  state.players[actor].crystals -= cost;
   factory.upgrades = [...factory.upgrades, upgrade];
   state.events.push({ type: "upgrade", factoryId, upgrade, at: factory.at });
 }
 
-// A player gives up (the Quit button): the other player wins. Not offered by legalActions,
-// so the AI and the simulator never choose it.
+// A player gives up (the Quit button). With two sides the other wins; with more, the player
+// is knocked out and the others play on. Not offered by legalActions, so the AI and the
+// simulator never choose it.
 function applyResign(state, { player = state.current }) {
-  if (player !== 0 && player !== 1) illegal(`no player ${player}`);
-  state.result = { winner: 1 - player, reason: "resigned", round: state.round };
-  state.events.push({ type: "gameOver", ...state.result });
+  if (!state.players[player] || state.players[player].out) illegal(`no player ${player}`);
+  settle(state, [{ p: player, reason: "resigned" }]);
 }
 
-function applyEndTurn(state) {
-  unloadAtFactory(state, state.current);
-  labIncome(state, state.current);
+// A player ends their turn. Their units next to a factory unload and their Crystal labs pay
+// out; once everyone in the phase has ended their turn, crystals grow and the next phase
+// begins.
+function applyEndTurn(state, action, actor) {
+  unloadAtFactory(state, actor);
+  labIncome(state, actor);
+  state.active = state.active.filter((p) => p !== actor);
+  if (state.active.length) {
+    state.current = state.active[0];
+    state.events.push({ type: "endTurn", player: actor });
+    return;
+  }
   crystalsBetweenTurns(state);
   state.hits = {};
-  state.events.push({ type: "endTurn", player: state.current });
-  state.turnIndex += 1;
-  if (state.turnIndex >= state.order.length) {
-    state.turnIndex = 0;
-    endRound(state);
-  }
-  state.current = state.order[state.turnIndex];
-  for (const unit of unitsOf(state, state.current)) {
-    unit.moved = false;
-    unit.moveUsed = 0;
-    unit.continues = false;
-    unit.acted = false;
-    if (unit.cooldown > 0) unit.cooldown -= 1;
+  state.events.push({ type: "endTurn", player: actor });
+  nextPhase(state);
+}
+
+// Starts the next phase that has a player still in the game, turning the round when the
+// phases come round again. Its players' units are ready to move and act.
+function nextPhase(state) {
+  for (let step = 0; step < state.phases.length * 2 && !state.result; step++) {
+    state.phaseIndex += 1;
+    if (state.phaseIndex >= state.phases.length) {
+      state.phaseIndex = 0;
+      endRound(state);
+    }
+    const players = state.phases[state.phaseIndex].filter((p) => !state.players[p].out);
+    if (!players.length) continue;
+    state.active = players;
+    state.current = players[0];
+    for (const unit of Object.values(state.units)) {
+      if (!players.includes(unit.owner)) continue;
+      unit.moved = false;
+      unit.moveUsed = 0;
+      unit.continues = false;
+      unit.acted = false;
+      if (unit.cooldown > 0) unit.cooldown -= 1;
+    }
+    return;
   }
 }
 
@@ -1186,7 +1288,7 @@ function drawSpawnsPerTurn(state) {
 
 function endRound(state) {
   state.round += 1;
-  if (state.rules.turnOrder === "alternate") state.order = [...state.order].reverse();
+  if (state.rules.turnOrder === "alternate") state.phases = [...state.phases].reverse();
   state.spawnsPerTurn = drawSpawnsPerTurn(state);
   state.events.push({ type: "newRound", round: state.round });
   if (state.round > state.rules.roundCap) {
@@ -1226,6 +1328,7 @@ function checkResult(state) {
     ...buildableTypes(state).map((type) => state.rules.units[type].cost));
   const losers = state.players
     .map((player, p) => {
+      if (player.out) return null;
       if (state.rules.winCondition === "allFactories") {
         if (!factoriesOf(state, p).length) return { p, reason: "noFactories" };
       } else if (player.factoryId !== null) {
@@ -1241,10 +1344,53 @@ function checkResult(state) {
       return null;
     })
     .filter(Boolean);
-  if (!losers.length) return;
-  const winner = losers.length === 1 ? 1 - losers[0].p : null;
-  state.result = { winner, reason: losers[0].reason, round: state.round };
-  state.events.push({ type: "gameOver", ...state.result });
+  if (losers.length) settle(state, losers);
+}
+
+// Deals with players who have lost. If only one team is left (or none), the game is over:
+// the winner is the player left (with two sides, the other player), or the first of the
+// winning team, listed in full in winners. Otherwise the losers are knocked out.
+function settle(state, losers) {
+  const lost = losers.map((l) => l.p);
+  const left = state.players.map((_, p) => p)
+    .filter((p) => !state.players[p].out && !lost.includes(p));
+  const teams = new Set(left.map((p) => teamOf(state, p)));
+  if (teams.size <= 1) {
+    state.result = { winner: left.length ? left[0] : null, reason: losers[0].reason,
+      round: state.round };
+    if (left.length > 1) state.result.winners = left;
+    state.events.push({ type: "gameOver", ...state.result });
+    return;
+  }
+  for (const { p, reason } of losers) knockOut(state, p, reason);
+  if (!state.active.length) nextPhase(state);
+}
+
+// A knocked-out player's units are removed (with anything they carry), their factories
+// become unused, and their crystals are shared among those factories' stores (Phil, 29
+// October 2026); with no factory left, they go to whoever overran their home (provisional).
+function knockOut(state, p, reason) {
+  const player = state.players[p];
+  player.out = true;
+  state.events.push({ type: "knockedOut", player: p, reason });
+  for (const unit of unitsOf(state, p)) {
+    if (!unitStats(state, unit).isFactory) removeUnit(state, unit);
+  }
+  const factories = factoriesOf(state, p);
+  if (factories.length) {
+    const share = Math.floor(player.crystals / factories.length);
+    factories.forEach((factory, i) => {
+      factory.owner = null;
+      factory.store = (factory.store || 0) + share +
+        (i === 0 ? player.crystals - share * factories.length : 0);
+    });
+  } else {
+    const home = state.units[player.factoryId];
+    if (home && home.owner !== null) state.players[home.owner].crystals += player.crystals;
+  }
+  player.crystals = 0;
+  state.active = state.active.filter((x) => x !== p);
+  if (state.current === p && state.active.length) state.current = state.active[0];
 }
 
 // ---------------------------------------------------------------------------------------
