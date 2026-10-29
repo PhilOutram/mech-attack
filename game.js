@@ -1,22 +1,22 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.25";
-import { mapById, seededRandom } from "./maps.js?v=0.25";
+import { RULES } from "./rules-config.js?v=0.26";
+import { mapById, seededRandom } from "./maps.js?v=0.26";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.25";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.25";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.25";
-import { distance } from "./hex.js?v=0.25";
+} from "./engine.js?v=0.26";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.26";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.26";
+import { distance } from "./hex.js?v=0.26";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.25";
-import { confirmDialog } from "./dialog.js?v=0.25";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.25";
-import { showTip } from "./tips.js?v=0.25";
+} from "./board.js?v=0.26";
+import { confirmDialog } from "./dialog.js?v=0.26";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.26";
+import { showTip } from "./tips.js?v=0.26";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -27,7 +27,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.25";
+const ASSET_VERSION = "0.26";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -922,21 +922,63 @@ function showGameOver() {
 // ---------------------------------------------------------------------------------------
 // Pan, zoom and taps
 
+// viewBox is where the player has panned and zoomed to; shown is the viewBox last written to
+// the SVG. Writing the viewBox makes the browser redraw every tile and token at the new scale,
+// which is slow on a phone, so during a drag or pinch only a CSS transform on the SVG changes
+// (the phone slides and scales the picture it has already drawn, once per frame) and the
+// viewBox is written when the gesture ends. Touch points are turned into board coordinates
+// from the SVG's box measured when the gesture starts, so no layout is forced mid-gesture.
+let shown = null;
+let boardBox = null;
+let frameRequest = null;
+let wheelTimer = null;
+// After the last wheel step, the zoom is committed (redrawn sharp) after this pause.
+const WHEEL_COMMIT_MS = 150;
+
 function fitBoard() {
   fitBox = boardBounds(state.map);
   viewBox = { ...fitBox };
-  applyViewBox();
+  commitView();
 }
 
-function applyViewBox() {
-  const { x, y, width, height } = viewBox;
-  els.svg.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+// Writes the viewBox (the board redraws sharp) and drops the gesture transform.
+function commitView() {
+  clearTimeout(wheelTimer);
+  cancelAnimationFrame(frameRequest);
+  frameRequest = null;
+  shown = { ...viewBox };
+  els.svg.setAttribute("viewBox", `${shown.x} ${shown.y} ${shown.width} ${shown.height}`);
+  els.svg.style.transform = "";
+  boardBox = els.svg.getBoundingClientRect();
 }
 
+// How the browser lays a viewBox out in the SVG's box (preserveAspectRatio xMidYMid meet):
+// screen pixels per board unit, and where the drawing starts inside the box.
+function layoutOf(box) {
+  const scale = Math.min(boardBox.width / box.width, boardBox.height / box.height);
+  return { scale, dx: (boardBox.width - box.width * scale) / 2,
+    dy: (boardBox.height - box.height * scale) / 2 };
+}
+
+// A point on the screen in board coordinates, for the current view.
 function toBoard(clientX, clientY) {
-  const point = new DOMPoint(clientX, clientY).matrixTransform(
-    els.svg.getScreenCTM().inverse());
-  return [point.x, point.y];
+  const { scale, dx, dy } = layoutOf(viewBox);
+  return [viewBox.x + (clientX - boardBox.left - dx) / scale,
+    viewBox.y + (clientY - boardBox.top - dy) / scale];
+}
+
+// Shows the current view as a transform of what was last drawn, on the next frame.
+function showView() {
+  if (frameRequest) return;
+  frameRequest = requestAnimationFrame(() => {
+    frameRequest = null;
+    const from = layoutOf(shown);
+    const to = layoutOf(viewBox);
+    const k = to.scale / from.scale;
+    const tx = to.dx - k * from.dx + to.scale * (shown.x - viewBox.x);
+    const ty = to.dy - k * from.dy + to.scale * (shown.y - viewBox.y);
+    els.svg.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+  });
 }
 
 // Zooms by factor around a board point, keeping that point under the finger or cursor.
@@ -950,7 +992,7 @@ function zoomAt(factor, [px, py]) {
     height: viewBox.height * scale,
   };
   clampView();
-  applyViewBox();
+  showView();
 }
 
 function clampView() {
@@ -967,6 +1009,7 @@ function wireBoardInput() {
   let pinchStart = null;
 
   svg.addEventListener("pointerdown", (e) => {
+    if (!pointers.size) commitView();
     svg.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX,
       startY: e.clientY, target: e.target });
@@ -994,7 +1037,7 @@ function wireBoardInput() {
       viewBox.x -= bx - ax;
       viewBox.y -= by - ay;
       clampView();
-      applyViewBox();
+      showView();
     }
     p.x = e.clientX;
     p.y = e.clientY;
@@ -1004,6 +1047,8 @@ function wireBoardInput() {
     const p = pointers.get(e.pointerId);
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinchStart = null;
+    // The last finger up ends the gesture: draw the board sharp at its new view straight away.
+    if (!pointers.size && dragged) commitView();
     if (!p || dragged || e.type === "pointercancel") return;
     const hex = p.target.closest && p.target.closest("[data-hex]");
     if (hex) onHexTap(hex.dataset.hex);
@@ -1014,6 +1059,8 @@ function wireBoardInput() {
   svg.addEventListener("wheel", (e) => {
     e.preventDefault();
     zoomAt(Math.exp(e.deltaY * WHEEL_ZOOM_RATE), toBoard(e.clientX, e.clientY));
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(commitView, WHEEL_COMMIT_MS);
   }, { passive: false });
 }
 

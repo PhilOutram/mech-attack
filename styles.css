@@ -552,6 +552,7 @@ h1 {
   position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   background-color: #0d0504;
 }
 
@@ -561,6 +562,9 @@ h1 {
   display: block;
   touch-action: none;
   user-select: none;
+  /* Pan and zoom move the drawn board as one layer (see showView in game.js). */
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 .board .hit {

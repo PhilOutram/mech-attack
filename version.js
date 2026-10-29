@@ -1,8 +1,16 @@
-export const VERSION = "v0.25";
+export const VERSION = "v0.26";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.26",
+    date: "2026-10-29",
+    notes: [
+      "Smoother pan and zoom on phones: the board slides as one picture during a gesture and " +
+        "redraws sharp when you let go.",
+    ],
+  },
   {
     version: "v0.25",
     date: "2026-10-29",
