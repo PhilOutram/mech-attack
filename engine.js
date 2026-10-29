@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.28";
+} from "./hex.js?v=0.29";
 
 // Factories, infantry and transporters (format 6):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
@@ -33,8 +33,10 @@ export const PLAYER_COLOURS = ["blue", "green"];
 // ---------------------------------------------------------------------------------------
 // Setting up
 
-// setup (campaign missions): { units: [blue types, green types], crystals: [blue, green] }
-// replaces the starting units and crystals in rules.start for that game.
+// setup (campaign missions): { units: [blue types, green types], crystals: [blue, green],
+// unclaimedHome: [blue?, green?] } replaces the starting units and crystals in rules.start for
+// that game. A player whose home is unclaimed starts with their home factory unused and must
+// capture it with infantry first.
 export function newGame({
   rules, map, seed = 1, firstPlayer = 0, recordActions = true, setup = null,
 }) {
@@ -74,7 +76,8 @@ export function newGame({
   const factorySites = [...map.factories, ...(map.neutralFactories || []).map((f) => f.at)];
   const taken = new Set([...factorySites, ...map.deposits.map((d) => d.at)]);
   state.players.forEach((player, p) => {
-    const factory = addUnit(state, "factory", p, map.factories[p]);
+    const unclaimed = Boolean(setup && setup.unclaimedHome && setup.unclaimedHome[p]);
+    const factory = addUnit(state, "factory", unclaimed ? null : p, map.factories[p]);
     player.factoryId = factory.id;
     const types = setup ? setup.units[p] : rules.start.units;
     types.forEach((type, i) => {
@@ -372,7 +375,9 @@ function moveLeft(state, unit) {
 export function canCapture(state, unit, factory) {
   if (!factory || !unitStats(state, unit).captures || factory.owner === unit.owner) return false;
   if (!unitStats(state, factory).isFactory) return false;
-  if (isHomeFactory(state, factory) && !state.rules.capture.homeFactories) return false;
+  // A player's home can be taken only if the rules allow it, or while nobody holds it.
+  if (isHomeFactory(state, factory) && factory.owner !== null &&
+    !state.rules.capture.homeFactories) return false;
   return !state.rules.capture.guarded || factory.owner === null ||
     !unitsOf(state, factory.owner).some((u) => distance(u.at, factory.at) === 1);
 }
@@ -1122,7 +1127,8 @@ function checkResult(state) {
       } else {
         const home = state.units[player.factoryId];
         if (!home) return { p, reason: "factoryDestroyed" };
-        if (home.owner !== p) return { p, reason: "factoryCaptured" };
+        // An unclaimed home (campaign) is not lost until the enemy takes it.
+        if (home.owner !== p && home.owner !== null) return { p, reason: "factoryCaptured" };
       }
       const army = unitsOf(state, p).filter((u) => !unitStats(state, u).isFactory);
       if (state.rules.loseWithNoUnits && !army.length && player.crystals < cheapest) {

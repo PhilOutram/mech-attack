@@ -1,23 +1,23 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.28";
-import { mapById, seededRandom } from "./maps.js?v=0.28";
+import { RULES } from "./rules-config.js?v=0.29";
+import { mapById, seededRandom } from "./maps.js?v=0.29";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.28";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.28";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.28";
-import { distance } from "./hex.js?v=0.28";
+} from "./engine.js?v=0.29";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.29";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.29";
+import { distance } from "./hex.js?v=0.29";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.28";
-import { confirmDialog } from "./dialog.js?v=0.28";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.28";
-import { showTip } from "./tips.js?v=0.28";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.28";
+} from "./board.js?v=0.29";
+import { confirmDialog } from "./dialog.js?v=0.29";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.29";
+import { showTip } from "./tips.js?v=0.29";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.29";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -28,7 +28,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.28";
+const ASSET_VERSION = "0.29";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -918,7 +918,11 @@ function renderPanel(view) {
   const unit = view.units[ui.selectedId];
   if (!unit) {
     const m = missionOf(state);
-    const objective = m ? `<p class="panel-objective">Objective: ${m.objective}</p>` : "";
+    let objective = m ? `<p class="panel-objective">Objective: ${m.objective}</p>` : "";
+    if (m && m.steps) {
+      objective += `<ol class="mission-steps">${m.steps.map((step) =>
+        `<li${step.done(state) ? ' class="done"' : ""}>${step.text}</li>`).join("")}</ol>`;
+    }
     const hint = myTurn()
       ? "Tap a unit to see its orders, or your factory to build. Drag to pan, pinch or " +
         "scroll to zoom."

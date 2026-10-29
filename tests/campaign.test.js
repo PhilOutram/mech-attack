@@ -4,7 +4,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RULES } from "../rules-config.js";
 import { mapById } from "../maps.js";
-import { newGame, applyAction, unitsOf, legalActions } from "../engine.js";
+import {
+  newGame, applyAction, unitsOf, legalActions, reachableHexes, viewFor,
+} from "../engine.js";
 import { MISSIONS, missionRules, missionsDone } from "../campaign.js";
 import { scenario } from "./helpers.js";
 
@@ -39,9 +41,23 @@ test("in the first mission Green has nothing but does not lose for it", () => {
   assert.ok(legalActions(s).some((a) => a.type === "endTurn"));
 });
 
-test("the first mission is won by building a Tank", () => {
+test("in the first mission the infantry capture their own unclaimed home factory", () => {
   const m = MISSIONS[0];
-  const s = scenario({ units: [{ id: "t", type: "tank", owner: BLUE, at: "0,0" }] });
+  let s = missionGame(m);
+  const home = s.units[s.players[BLUE].factoryId];
+  assert.equal(home.owner, null);
+  const infantry = unitsOf(s, BLUE).find((u) => u.type === "infantry");
+  assert.ok(home.at in reachableHexes(viewFor(s, BLUE), infantry.id));
+  s = applyAction(s, { type: "move", unitId: infantry.id, to: home.at });
+  assert.equal(s.units[home.id].owner, BLUE);
+  assert.equal(s.result, null);
+  assert.ok(m.steps[0].done(s) && !m.steps[1].done(s));
+});
+
+test("the first mission is won once the factory is held and a Scout Bike and Tank built", () => {
+  const m = MISSIONS[0];
+  const s = scenario({ units: [{ id: "t", type: "tank", owner: BLUE, at: "0,0" },
+    { id: "b", type: "scoutBike", owner: BLUE, at: "1,0" }] });
   assert.ok(m.done(s));
 });
 

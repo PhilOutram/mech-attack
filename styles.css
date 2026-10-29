@@ -379,9 +379,33 @@ h1 {
   color: var(--text);
 }
 
-.recent-map:disabled {
+/* Campaign missions: the name in the title lettering, then Play, Replay or Locked. */
+.mission {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem 0.45rem 0.8rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  background-color: var(--bg);
+}
+
+.mission-name {
+  font-family: var(--title-font);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.mission.locked .mission-name {
   opacity: 0.45;
-  cursor: default;
+}
+
+.map-picker-card .mission-play {
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
 }
 
 /* The campaign mission's objective, above the hint when nothing is selected. */
@@ -977,4 +1001,22 @@ h1 {
 @keyframes banner-in {
   from { opacity: 0; transform: translate(-50%, -0.4rem); }
   to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* A campaign mission's steps; finished ones are ticked and dimmed. */
+.mission-steps {
+  margin: 0.25rem 0 0;
+  padding-left: 1.4rem;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.mission-steps li.done {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.mission-steps li.done::marker {
+  content: "✓  ";
+  color: #7dff8a;
 }

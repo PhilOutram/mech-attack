@@ -2,7 +2,7 @@
 // on a bigger map with more to do. A mission sets the map, the starting units and crystals,
 // any rule changes, how the AI plays, and its objective; finishing one unlocks the next.
 // Progress is remembered on this device.
-import { unitsOf, factoriesOf } from "./engine.js?v=0.28";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.29";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;
@@ -10,24 +10,38 @@ const HUMAN = 0;
 export const CAMPAIGN_NAME = "Red Dust";
 
 // done(state): the objective is met (the mission is won). null: win the usual way, by
-// destroying Green's home factory. ai: "default" is the gentler hand-tuned AI, "evolved" the
-// strongest. Crystal targets and counts are kept here, next to the text that names them.
+// destroying Green's home factory. steps (optional): the objective in parts, ticked off in the
+// panel as they are done; the mission is won when they all are. ai: "default" is the gentler
+// hand-tuned AI, "evolved" the strongest. Crystal targets and counts are kept here, next to the
+// text that names them.
 const BANK_TARGET = 200;
+const LANDFALL_INFANTRY = 3;
+const LANDFALL_CRYSTALS = 75;
+
+const owns = (state, type) => unitsOf(state, HUMAN).some((u) => u.type === type);
+const holdsHome = (state) => state.units[state.players[HUMAN].factoryId]?.owner === HUMAN;
+
+const LANDFALL_STEPS = [
+  { text: "Capture the factory with your Infantry", done: holdsHome },
+  { text: "Build a Scout Bike", done: (state) => holdsHome(state) && owns(state, "scoutBike") },
+  { text: "Harvest crystals and build a Tank", done: (state) => owns(state, "tank") },
+];
 const FACTORIES_TO_CAPTURE = 3;
 
 export const MISSIONS = [
   {
     title: "Landfall",
     mapId: "map-3",
-    story: "The Blue Expedition has landed on Kharon, a red world rich in power crystals. " +
-      "Your drop ship came down beside an old factory. All you have is one Scout Bike, but " +
-      "crystals glitter in the dust nearby, and the factory can still build.",
-    objective: "Harvest crystals with your Scout Bike, bring them back to the factory and " +
-      "build a Tank.",
-    setup: { units: [["scoutBike"], []], crystals: [20, 0] },
+    story: "The Blue Expedition has reached Kharon, a red world rich in power crystals. Your " +
+      "drop ship has set a squad of Infantry down beside an abandoned factory. Its store " +
+      `still holds ${LANDFALL_CRYSTALS} crystals, and crystals glitter in the dust nearby.`,
+    objective: "Take the factory, build a Scout Bike, then harvest and build a Tank.",
+    steps: LANDFALL_STEPS,
+    setup: { units: [Array(LANDFALL_INFANTRY).fill("infantry"), []],
+      crystals: [LANDFALL_CRYSTALS, 0], unclaimedHome: [true, false] },
     rules: { loseWithNoUnits: false },
     ai: "default",
-    done: (state) => unitsOf(state, HUMAN).some((u) => u.type === "tank"),
+    done: (state) => LANDFALL_STEPS.every((step) => step.done(state)),
   },
   {
     title: "Supply Lines",

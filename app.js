@@ -1,12 +1,12 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.28";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.28";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.28";
-import { confirmDialog } from "./dialog.js?v=0.28";
-import { showTip, resetTips } from "./tips.js?v=0.28";
-import { RULES } from "./rules-config.js?v=0.28";
-import { MISSIONS, missionsDone } from "./campaign.js?v=0.28";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.28";
+import { VERSION, CHANGELOG } from "./version.js?v=0.29";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.29";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.29";
+import { confirmDialog } from "./dialog.js?v=0.29";
+import { showTip, resetTips } from "./tips.js?v=0.29";
+import { RULES } from "./rules-config.js?v=0.29";
+import { MISSIONS, missionsDone } from "./campaign.js?v=0.29";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.29";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -76,10 +76,11 @@ document.getElementById("campaign-list").addEventListener("click", async (e) => 
 function showCampaign() {
   const done = missionsDone();
   document.getElementById("campaign-list").innerHTML = MISSIONS.map((m, i) => {
-    const status = i < done ? "Done" : i === done ? "Play" : "Locked";
-    return `<li><button type="button" class="recent-map" data-mission="${i}"` +
-      `${i > done ? " disabled" : ""}><span>${i + 1}. ${m.title}</span>` +
-      `<span class="muted">${status}</span></button></li>`;
+    const action = i > done ? `<span class="muted">Locked</span>`
+      : `<button type="button" class="start-btn mission-play" data-mission="${i}">` +
+        `${i < done ? "Replay" : "Play"}</button>`;
+    return `<li class="mission${i > done ? " locked" : ""}">` +
+      `<span class="mission-name">${i + 1}. ${m.title}</span>${action}</li>`;
   }).join("");
   campaignPicker.hidden = false;
 }

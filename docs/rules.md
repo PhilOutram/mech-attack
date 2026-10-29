@@ -128,13 +128,13 @@ Five missions that introduce the game (Phil, 29 October 2026), defined in `campa
 
 | # | Mission | Map | Blue starts with | Green starts with | Objective |
 |---|---|---|---|---|---|
-| 1 | Landfall | Map 3 (classic) | Scout Bike, 20 crystals | nothing, 0 (`loseWithNoUnits` off) | Build a Tank |
+| 1 | Landfall | Map 3 (classic) | 3 Infantry beside an unclaimed home factory (`unclaimedHome`), 75 crystals | nothing, 0 (`loseWithNoUnits` off) | Capture the factory, build a Scout Bike, then harvest and build a Tank (steps ticked off in the panel) |
 | 2 | Supply Lines | Map 8 (classic) | Light Harvester, Scout Bike, 60 | Light Harvester, Scout Bike, 50 | Bank 200 crystals |
 | 3 | First Contact | Map 5 (3-4-4-3) | Light Harvester, Scout Bike, 2 Tanks, 80 | Light Harvester, Scout Bike, Tank, 60 | Destroy Green's home factory |
 | 4 | Storm the Works | Map 12 (4-5-5-4) | Light Harvester, Tank, 2 Infantry, Transporter, 100 | Light Harvester, Scout Bike, Tank, Infantry, 80 | Hold 3 captured factories |
 | 5 | The Crystal War | Map 21 (4-5-6-5-4) | Light Harvester, Scout Bike, Tank, Infantry, 150 | 2 Light Harvesters, Scout Bike, 2 Tanks, Infantry, 200 | Destroy Green's home factory |
 
-Missions 1 to 4 play the hand-tuned AI; mission 5 plays an evolved personality. All figures are provisional. Played AI against AI, mission 1 is won by round 8, mission 3 by round 8 and mission 4 by round 5.
+Missions 1 to 4 play the hand-tuned AI; mission 5 plays an evolved personality. A home factory that starts unclaimed belongs to nobody until its player's infantry capture it; it is not lost while unclaimed. All figures are provisional. Played AI against AI, mission 1 is won by round 8, mission 3 by round 8 and mission 4 by round 5.
 
 ## Fog of war
 
