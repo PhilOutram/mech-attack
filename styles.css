@@ -371,6 +371,24 @@ h1 {
 .confirm-text {
   margin: 0;
   color: var(--text);
+  white-space: pre-line;
+}
+
+.campaign-intro {
+  margin: 0;
+  color: var(--text);
+}
+
+.recent-map:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The campaign mission's objective, above the hint when nothing is selected. */
+.panel-objective {
+  margin: 0.3rem 0 0;
+  color: #ffd84a;
+  font-size: 0.85rem;
 }
 
 .map-picker-card .confirm-yes {

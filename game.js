@@ -1,22 +1,23 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.26";
-import { mapById, seededRandom } from "./maps.js?v=0.26";
+import { RULES } from "./rules-config.js?v=0.27";
+import { mapById, seededRandom } from "./maps.js?v=0.27";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.26";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.26";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.26";
-import { distance } from "./hex.js?v=0.26";
+} from "./engine.js?v=0.27";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.27";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.27";
+import { distance } from "./hex.js?v=0.27";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.26";
-import { confirmDialog } from "./dialog.js?v=0.26";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.26";
-import { showTip } from "./tips.js?v=0.26";
+} from "./board.js?v=0.27";
+import { confirmDialog } from "./dialog.js?v=0.27";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.27";
+import { showTip } from "./tips.js?v=0.27";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.27";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -27,7 +28,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.26";
+const ASSET_VERSION = "0.27";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -64,6 +65,7 @@ const REASONS = {
   noUnits: "no units left and not enough crystals to build one",
   roundCap: "the round limit was reached",
   resigned: "quit the game",
+  objective: "the mission objective was met",
 };
 
 let state = null;
@@ -83,6 +85,7 @@ let fitBox = null;
 let viewBox = null;
 let els = null;
 let wired = false;
+let leaveGame = null;
 
 // ---------------------------------------------------------------------------------------
 // Saving
@@ -191,18 +194,31 @@ function shapeOf(mapId) {
 // Starting and leaving
 
 // Opens the game screen: the saved game when resume is set, otherwise a new game on mapId.
-export async function openGame({ resume = false, mapId = "fixed-1", onLeave }) {
+// Opens the game screen: the saved game when resume is set, otherwise a new game on mapId, or
+// campaign mission number mission (0-based).
+export async function openGame({ resume = false, mapId = "fixed-1", mission = null, onLeave }) {
   els = els || findElements();
   if (!wired) wire(onLeave);
   state = resume ? loadSave() : null;
+  let briefing = false;
   if (!state) {
     const seed = Math.floor(Math.random() * MAX_SEED);
-    const map = mapById(mapId, RULES);
-    state = newGame({ rules: RULES, map, seed, firstPlayer: HUMAN });
-    noteMap(map);
+    if (mission !== null) {
+      const m = MISSIONS[mission];
+      const rules = missionRules(m, RULES);
+      const game = newGame({ rules, map: mapById(m.mapId, rules), seed, firstPlayer: HUMAN,
+        setup: m.setup });
+      state = { ...game, campaign: { mission } };
+      briefing = true;
+    } else {
+      const map = mapById(mapId, RULES);
+      state = newGame({ rules: RULES, map, seed, firstPlayer: HUMAN });
+      noteMap(map);
+    }
     save();
   }
-  aiPersonality = personalityFor(state.seed);
+  const m = missionOf(state);
+  aiPersonality = m && m.ai === "default" ? DEFAULT_PERSONALITY : personalityFor(state.seed);
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
   facing = {};
@@ -219,9 +235,40 @@ export async function openGame({ resume = false, mapId = "fixed-1", onLeave }) {
   preloadArt();
   await loadTiles(ASSET_VERSION);
   fitBoard();
+  render();
+  if (briefing && !(await showBriefing(m, state.campaign.mission))) {
+    leaveGame();
+    return;
+  }
   tip("welcome");
   render();
   if (state.current === AI_PLAYER) runAiTurn();
+}
+
+// ---------------------------------------------------------------------------------------
+// Campaign
+
+function missionOf(s) {
+  return s && s.campaign ? MISSIONS[s.campaign.mission] : null;
+}
+
+// The mission's story and objective before it starts. Resolves false if the player goes back.
+function showBriefing(m, index) {
+  return confirmDialog({
+    title: `Mission ${index + 1}: ${m.title}`,
+    text: `${m.story}
+
+Objective: ${m.objective}`,
+    confirm: "Start",
+    cancel: "Back",
+  });
+}
+
+// A mission whose objective is met is won at once.
+function checkObjective() {
+  const m = missionOf(state);
+  if (!m || !m.done || state.result || !m.done(state)) return;
+  state = { ...state, result: { winner: HUMAN, reason: "objective", round: state.round } };
 }
 
 function findElements() {
@@ -242,11 +289,15 @@ function wire(onLeave) {
     els.screen.hidden = true;
     onLeave();
   };
+  leaveGame = leave;
   els.home.addEventListener("click", leave);
   els.toTitle.addEventListener("click", leave);
-  els.again.addEventListener("click", () => openGame({ mapId: state.map.id, onLeave }));
-  els.newMap.addEventListener("click", () =>
-    openGame({ mapId: newMapId(shapeOf(state.map.id)), onLeave }));
+  // In the campaign: retry the mission, or go on to the next one.
+  els.again.addEventListener("click", () => openGame(state.campaign
+    ? { mission: state.campaign.mission, onLeave } : { mapId: state.map.id, onLeave }));
+  els.newMap.addEventListener("click", () => openGame(state.campaign
+    ? { mission: state.campaign.mission + 1, onLeave }
+    : { mapId: newMapId(shapeOf(state.map.id)), onLeave }));
   els.endTurn.addEventListener("click", async () => {
     if (!myTurn()) return;
     await act({ type: "endTurn" });
@@ -284,6 +335,7 @@ async function act(action) {
     render();
     return false;
   }
+  checkObjective();
   // Undo can step back through this turn's actions; ending the turn closes them off.
   if (action.type === "endTurn") history = [];
   else history.push(previous);
@@ -408,6 +460,7 @@ async function runAiTurn() {
       console.error(error);
       state = applyAction(state, { type: "endTurn" });
     }
+    checkObjective();
     let seen = false;
     try {
       const after = viewFor(state, HUMAN);
@@ -641,7 +694,7 @@ function offerTips(view) {
     if (unit.owner === null) tip("unusedFactory");
     if (unit.owner === HUMAN) {
       if (stats.isFactory) tip("factory");
-      if (unit.type === "lightHarvester") tip("harvester");
+      if (stats.storage) tip("harvester");
       if (stats.captures) tip("infantry");
       if (stats.carries) tip("transporter");
       if (stats.needsSetup) tip("artillery");
@@ -763,7 +816,9 @@ function renderSoundButton() {
 }
 
 function renderBar(view) {
-  els.round.innerHTML = `<span class="map-name">${view.map.name} · </span>Round ${view.round}`;
+  const m = missionOf(state);
+  const name = m ? `Mission ${state.campaign.mission + 1}: ${m.title}` : view.map.name;
+  els.round.innerHTML = `<span class="map-name">${name} · </span>Round ${view.round}`;
   els.turn.textContent = view.current === HUMAN ? "Your turn" : "Green's turn";
   els.turn.className = view.current === HUMAN ? "turn-blue" : "turn-green";
   els.crystals.textContent = view.players[HUMAN].crystals;
@@ -842,6 +897,8 @@ function undoButton() {
 function renderPanel(view) {
   const unit = view.units[ui.selectedId];
   if (!unit) {
+    const m = missionOf(state);
+    const objective = m ? `<p class="panel-objective">Objective: ${m.objective}</p>` : "";
     const hint = myTurn()
       ? "Tap a unit to see its orders, or your factory to build. Drag to pan, pinch or " +
         "scroll to zoom."
@@ -849,7 +906,7 @@ function renderPanel(view) {
     const undo = history.length ? undoButton() : "";
     const surrender = orderButton("surrender",
       surrenderUsed ? "Surrender demanded" : "Demand surrender", myTurn() && !surrenderUsed);
-    els.panel.innerHTML = `<p class="panel-hint">${hint}</p>` +
+    els.panel.innerHTML = `${objective}<p class="panel-hint">${hint}</p>` +
       `<div class="orders">${undo}${surrender}</div>`;
     return;
   }
@@ -906,7 +963,8 @@ function renderPanel(view) {
 
 function showGameOver() {
   const { winner, reason } = state.result;
-  noteMap(state.map, state.result);
+  const m = missionOf(state);
+  if (!m) noteMap(state.map, state.result);
   els.overTitle.textContent =
     winner === HUMAN ? "You win" : winner === AI_PLAYER ? "Green wins" : "Draw";
   const round = `(round ${state.result.round})`;
@@ -914,6 +972,22 @@ function showGameOver() {
   let text = `${loser}${REASONS[reason]} ${round}.`;
   if (reason === "resigned") {
     text = winner === AI_PLAYER ? `You quit ${round}.` : `Green surrendered ${round}.`;
+  }
+  els.again.textContent = m ? "Retry mission" : "Replay this map";
+  els.newMap.textContent = m ? "Next mission" : "New game";
+  els.newMap.hidden = false;
+  if (m) {
+    const index = state.campaign.mission;
+    const last = index === MISSIONS.length - 1;
+    const won = winner === HUMAN;
+    if (won) markMissionDone(index);
+    els.overTitle.textContent = won ? "Mission complete" : "Mission failed";
+    if (won && reason === "objective") text = `Objective met ${round}.`;
+    if (won) {
+      text += last ? " The Consortium is beaten: Kharon's crystals are yours."
+        : " The next mission is unlocked.";
+    }
+    els.newMap.hidden = !won || last;
   }
   els.overText.textContent = text;
   els.over.hidden = false;

@@ -1,11 +1,12 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.26";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.26";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.26";
-import { confirmDialog } from "./dialog.js?v=0.26";
-import { showTip, resetTips } from "./tips.js?v=0.26";
-import { RULES } from "./rules-config.js?v=0.26";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.26";
+import { VERSION, CHANGELOG } from "./version.js?v=0.27";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.27";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.27";
+import { confirmDialog } from "./dialog.js?v=0.27";
+import { showTip, resetTips } from "./tips.js?v=0.27";
+import { RULES } from "./rules-config.js?v=0.27";
+import { MISSIONS, missionsDone } from "./campaign.js?v=0.27";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.27";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -51,6 +52,37 @@ document.getElementById("menu-play").addEventListener("click", async () => {
 });
 resume.addEventListener("click", () => play({ resume: true }));
 document.getElementById("menu-units").addEventListener("click", showUnits);
+
+// The campaign: missions in order, each unlocked by finishing the one before.
+const campaignPicker = document.getElementById("campaign-picker");
+document.getElementById("menu-campaign").addEventListener("click", showCampaign);
+document.getElementById("campaign-cancel").addEventListener("click", () => {
+  campaignPicker.hidden = true;
+});
+document.getElementById("campaign-list").addEventListener("click", async (e) => {
+  const button = e.target.closest("button[data-mission]");
+  if (!button || button.disabled) return;
+  const replace = !hasSavedGame() || await confirmDialog({
+    title: "Start this mission?",
+    text: "You have a game in progress. Starting the mission ends it.",
+    confirm: "Start",
+    cancel: "Keep it",
+  });
+  if (!replace) return;
+  campaignPicker.hidden = true;
+  play({ mission: Number(button.dataset.mission) });
+});
+
+function showCampaign() {
+  const done = missionsDone();
+  document.getElementById("campaign-list").innerHTML = MISSIONS.map((m, i) => {
+    const status = i < done ? "Done" : i === done ? "Play" : "Locked";
+    return `<li><button type="button" class="recent-map" data-mission="${i}"` +
+      `${i > done ? " disabled" : ""}><span>${i + 1}. ${m.title}</span>` +
+      `<span class="muted">${status}</span></button></li>`;
+  }).join("");
+  campaignPicker.hidden = false;
+}
 // Help turns the tips back on: they show again as you play, starting with this one.
 document.getElementById("menu-help").addEventListener("click", () => {
   resetTips();

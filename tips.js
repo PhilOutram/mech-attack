@@ -16,9 +16,9 @@ const TIPS = {
   }),
   harvester: () => ({
     title: "Harvesting crystals",
-    text: "Move a harvester next to a crystal pile and choose Harvest to collect crystals, up " +
-      "to what it can carry. Then bring it back next to one of your factories: it unloads " +
-      "into your crystal store, which pays for new units.",
+    text: "Move a harvester (or a Scout Bike) next to a crystal pile and choose Harvest to " +
+      "collect crystals, up to what it can carry. Then bring it back next to one of your " +
+      "factories: it unloads into your crystal store, which pays for new units.",
   }),
   factory: (rules) => ({
     title: "Your factory",

@@ -13,19 +13,30 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.26" />
+  <link rel="stylesheet" href="styles.css?v=0.27" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
     <img class="splash-art" src="splash.jpg"
       alt="Mech Attack - a blue battle tank firing across a red Martian desert" />
     <nav class="splash-menu" aria-label="Main menu">
+      <button id="menu-campaign" class="start-btn" type="button">Campaign</button>
       <button id="menu-play" class="start-btn" type="button">Play</button>
       <button id="menu-resume" class="start-btn" type="button" hidden>Resume</button>
       <button id="menu-units" class="start-btn" type="button">Units</button>
       <button id="menu-help" class="start-btn" type="button">Help</button>
     </nav>
   </section>
+
+  <div id="campaign-picker" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="campaign-title">
+      <h2 id="campaign-title">Campaign: Red Dust</h2>
+      <p class="campaign-intro">Five missions on Kharon, the red crystal world. Each one is
+        bigger than the last and teaches a new part of the game.</p>
+      <ul id="campaign-list" class="map-recent"></ul>
+      <button id="campaign-cancel" class="start-btn" type="button">Back</button>
+    </div>
+  </div>
 
   <div id="map-picker" class="map-picker" hidden>
     <div class="map-picker-card" role="dialog" aria-labelledby="map-picker-title">
@@ -126,6 +137,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.26" type="module"></script>
+  <script src="app.js?v=0.27" type="module"></script>
 </body>
 </html>

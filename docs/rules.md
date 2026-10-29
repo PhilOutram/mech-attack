@@ -122,6 +122,20 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Round limit | A game reaching round 100 ends with no winner | `roundCap` |
 | Carried crystals | Lost when the carrying unit is destroyed | |
 
+## Campaign: Red Dust
+
+Five missions that introduce the game (Phil, 29 October 2026), defined in `campaign.js`. Each sets its map, both sides' starting units and crystals (`setup` in `newGame`), any rule changes, how strong the AI is, and its objective. Finishing a mission unlocks the next; progress is saved on the device.
+
+| # | Mission | Map | Blue starts with | Green starts with | Objective |
+|---|---|---|---|---|---|
+| 1 | Landfall | Map 3 (classic) | Scout Bike, 20 crystals | nothing, 0 (`loseWithNoUnits` off) | Build a Tank |
+| 2 | Supply Lines | Map 8 (classic) | Light Harvester, Scout Bike, 60 | Light Harvester, Scout Bike, 50 | Bank 200 crystals |
+| 3 | First Contact | Map 5 (3-4-4-3) | Light Harvester, Scout Bike, 2 Tanks, 80 | Light Harvester, Scout Bike, Tank, 60 | Destroy Green's home factory |
+| 4 | Storm the Works | Map 12 (4-5-5-4) | Light Harvester, Tank, 2 Infantry, Transporter, 100 | Light Harvester, Scout Bike, Tank, Infantry, 80 | Hold 3 captured factories |
+| 5 | The Crystal War | Map 21 (4-5-6-5-4) | Light Harvester, Scout Bike, Tank, Infantry, 150 | 2 Light Harvesters, Scout Bike, 2 Tanks, Infantry, 200 | Destroy Green's home factory |
+
+Missions 1 to 4 play the hand-tuned AI; mission 5 plays an evolved personality. All figures are provisional. Played AI against AI, mission 1 is won by round 8, mission 3 by round 8 and mission 4 by round 5.
+
 ## Fog of war
 
 ### Map blocks, as on the table (default: `fog.mode` = `"tiles"`)

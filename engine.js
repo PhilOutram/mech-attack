@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.26";
+} from "./hex.js?v=0.27";
 
 // Factories, infantry and transporters (format 6):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
@@ -33,7 +33,11 @@ export const PLAYER_COLOURS = ["blue", "green"];
 // ---------------------------------------------------------------------------------------
 // Setting up
 
-export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions = true }) {
+// setup (campaign missions): { units: [blue types, green types], crystals: [blue, green] }
+// replaces the starting units and crystals in rules.start for that game.
+export function newGame({
+  rules, map, seed = 1, firstPlayer = 0, recordActions = true, setup = null,
+}) {
   const otherPlayer = 1 - firstPlayer;
   const state = {
     format: STATE_FORMAT,
@@ -67,13 +71,21 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
     actions: recordActions ? [] : null,
   };
 
+  const factorySites = [...map.factories, ...(map.neutralFactories || []).map((f) => f.at)];
+  const taken = new Set([...factorySites, ...map.deposits.map((d) => d.at)]);
   state.players.forEach((player, p) => {
     const factory = addUnit(state, "factory", p, map.factories[p]);
     player.factoryId = factory.id;
-    rules.start.units.forEach((type, i) => addUnit(state, type, p, map.starts[p][i]));
+    const types = setup ? setup.units[p] : rules.start.units;
+    types.forEach((type, i) => {
+      const at = startSite(state, p, map.starts[p][i], taken);
+      taken.add(at);
+      addUnit(state, type, p, at);
+    });
   });
   for (const site of map.neutralFactories || []) addUnit(state, "factory", null, site.at);
-  state.players[otherPlayer].crystals += rules.start.secondPlayerCrystals || 0;
+  if (setup) state.players.forEach((player, p) => { player.crystals = setup.crystals[p]; });
+  else state.players[otherPlayer].crystals += rules.start.secondPlayerCrystals || 0;
   for (const deposit of map.deposits) {
     const amount = rules.crystals.startAmount;
     state.crystals[deposit.at] = { amount, harvestedThisTurn: false };
@@ -81,6 +93,16 @@ export function newGame({ rules, map, seed = 1, firstPlayer = 0, recordActions =
   state.spawnsPerTurn = drawSpawnsPerTurn(state);
   refreshKnowledge(state);
   return state;
+}
+
+// Where a starting unit goes: the map's starting hex for it if free, otherwise the nearest
+// free open hex to the player's factory.
+function startSite(state, player, preferred, taken) {
+  if (preferred && !taken.has(preferred)) return preferred;
+  const home = state.map.factories[player];
+  const open = Object.keys(state.map.hexes).filter((k) =>
+    !taken.has(k) && state.rules.terrain[state.map.hexes[k].terrain].moveCost !== null);
+  return open.sort((a, b) => distance(home, a) - distance(home, b) || a.localeCompare(b))[0];
 }
 
 function addUnit(state, type, owner, at) {
@@ -1103,7 +1125,9 @@ function checkResult(state) {
         if (home.owner !== p) return { p, reason: "factoryCaptured" };
       }
       const army = unitsOf(state, p).filter((u) => !unitStats(state, u).isFactory);
-      if (!army.length && player.crystals < cheapest) return { p, reason: "noUnits" };
+      if (state.rules.loseWithNoUnits && !army.length && player.crystals < cheapest) {
+        return { p, reason: "noUnits" };
+      }
       return null;
     })
     .filter(Boolean);

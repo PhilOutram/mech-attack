@@ -121,6 +121,9 @@ export const RULES = {
   // is destroyed (or captured), "allFactories" only when they have no factory left. Phil:
   // depends on the scenario (28 October 2026).
   winCondition: "homeFactory",
+  // A player with no units who cannot afford the cheapest one loses (off in the first campaign
+  // mission, where Green has nothing).
+  loseWithNoUnits: true,
 
   combat: {
     // Lives lost when the attack total on a target in one turn reaches these multiples
