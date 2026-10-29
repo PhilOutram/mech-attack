@@ -1356,8 +1356,9 @@ function statLine(stats) {
 // What a factory upgrade does, e.g. "Builds Heavy Cannon, Blast Cannon, Sonic Tank", for the
 // units this game allows.
 function upgradeEffect(upgrade) {
-  const { income } = RULES.factoryUpgrades[upgrade];
+  const { income, sharesVision } = RULES.factoryUpgrades[upgrade];
   if (income) return `+${income} crystals every turn`;
+  if (sharesVision) return "Share sight with allies who have Comms too";
   return `Builds ${buildableTypes(state).filter((t) => RULES.units[t].needs === upgrade)
     .map((t) => RULES.units[t].name).join(", ")}`;
 }

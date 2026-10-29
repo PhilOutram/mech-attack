@@ -3,8 +3,8 @@
 // definition into the plain-data map the engine stores in the game state; generateMap builds
 // a fair random map from a seed, so "Map 17" is always the same map.
 import {
-  key, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance, neighbourKeys,
-  toPixel,
+  key, parseKey, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance,
+  neighbourKeys, toPixel,
 } from "./hex.js?v=0.47";
 
 // Fixed map 1: 12 clusters, 84 hexes, about 11 hexes wide and 11 tall.
@@ -103,6 +103,7 @@ function isOpen(map, terrainRules, k) {
 // Problems that make a map unfair or unplayable; an empty list means it is fine. Distances
 // are path costs over terrain (units can drive over crystals, so deposits do not block).
 export function mapProblems(map, terrainRules) {
+  if (map.factories.length > 2) return multiSideProblems(map, terrainRules);
   const problems = [];
   const [blue, green] = map.factories.map((f) => pathCosts(map, terrainRules, f));
   for (const k in map.hexes) {
@@ -143,21 +144,131 @@ export function mapProblems(map, terrainRules) {
   return problems;
 }
 
+// Maps for more than two sides cannot be mirrored, so they are checked against limits.
+// Home factories: random mountains make exactly equal path costs between every two homes
+// almost impossible (four homes round a rectangle are not even equally far apart in a
+// straight line), so each side's path costs to the other homes, sorted, are compared rank by
+// rank: nearest rival with nearest rival, and so on. At each rank they may differ by at most
+// HOME_COST_SPREAD.
+const HOME_COST_SPREAD = 2;
+// Each set of piles or unused factories has one per side, nearer its own factory than any
+// other. Across the set, the path costs from the owners' factories may differ by at most
+// SET_OWN_SPREAD, and the costs from the nearest other factory by at most SET_RIVAL_SPREAD.
+// Sets are drawn with equal costs where they fit; with four or more sides there is seldom room
+// for exactly equal sets, so a difference of 1 is allowed.
+const SET_OWN_SPREAD = 1;
+const SET_RIVAL_SPREAD = 1;
+// The pile that belongs to no side: its path costs from the factories differ by at most this.
+const MIDDLE_PILE_SPREAD = 1;
+
+const spreadOf = (values) => Math.max(...values) - Math.min(...values);
+
+// The side whose factory is strictly nearest hex k, or -1 when two are equally near.
+function ownerOf(costs, k) {
+  const sorted = costs.map((c, side) => ({ side, cost: c[k] })).sort((a, b) => a.cost - b.cost);
+  return sorted[0].cost < sorted[1].cost ? sorted[0].side : -1;
+}
+
+// Path cost from the nearest factory other than side's.
+function rivalCost(costs, side, k) {
+  return Math.min(...costs.filter((c, other) => other !== side).map((c) => c[k]));
+}
+
+// Whether sites (one per side, any order) are a fair set for the given costs.
+function fairSet(costs, sites) {
+  const owners = sites.map((k) => ownerOf(costs, k));
+  if (sites.length !== costs.length || new Set(owners).size !== sites.length ||
+    owners.includes(-1)) return false;
+  const own = sites.map((k, i) => costs[owners[i]][k]);
+  const rival = sites.map((k, i) => rivalCost(costs, owners[i], k));
+  return spreadOf(own) <= SET_OWN_SPREAD && spreadOf(rival) <= SET_RIVAL_SPREAD;
+}
+
+function multiSideProblems(map, terrainRules,
+  costs = map.factories.map((f) => pathCosts(map, terrainRules, f))) {
+  const problems = [];
+  for (const k in map.hexes) {
+    if (isOpen(map, terrainRules, k) && costs.some((c) => c[k] === undefined)) {
+      problems.push(`${k} cannot be reached`);
+    }
+  }
+  const neutral = map.neutralFactories || [];
+  [...map.factories, ...neutral.map((f) => f.at)].forEach((f) => {
+    const free = neighbourKeys(f).filter((k) => isOpen(map, terrainRules, k));
+    if (free.length < MIN_FREE_FACTORY_NEIGHBOURS) problems.push(`factory at ${f} is hemmed in`);
+  });
+  if (problems.length) return problems;
+  const profiles = costs.map((c, side) => map.factories.filter((f, other) => other !== side)
+    .map((f) => c[f]).sort((a, b) => a - b));
+  for (let rank = 0; rank < map.factories.length - 1; rank++) {
+    if (spreadOf(profiles.map((p) => p[rank])) > HOME_COST_SPREAD) {
+      problems.push("factories differ");
+      break;
+    }
+  }
+  const sets = (list, what) => {
+    const byPair = {};
+    for (const item of list) if (item.pair !== null) (byPair[item.pair] ||= []).push(item.at);
+    for (const id in byPair) {
+      if (!fairSet(costs, byPair[id])) problems.push(`${what} ${id} is unfair`);
+    }
+  };
+  sets(neutral, "unused factory set");
+  sets(map.deposits, "pile set");
+  for (const d of map.deposits) {
+    if (d.pair === null && spreadOf(costs.map((c) => c[d.at])) > MIDDLE_PILE_SPREAD) {
+      problems.push(`pile at ${d.at} is nearer one side`);
+    }
+  }
+  return problems;
+}
+
 // ---------------------------------------------------------------------------------------
 // Generated maps
 
 // Map shapes (Phil, 28 October 2026): the classic 12-block layout of fixed map 1, or rows of
 // blocks from top to bottom, in three sizes. The bigger shapes have pairs of unused
-// factories for infantry to capture, one of each pair nearer each side.
+// factories for infantry to capture, one of each pair nearer each side (with more sides,
+// factoryPairs is the number of sets of them, one per side in each set). maxSides: the most
+// sides the shape has room for.
 export const MAP_SIZES = { small: "Small", medium: "Medium", large: "Large" };
 export const MAP_SHAPES = {
-  classic: { name: "Classic", size: "small", rows: null, factoryPairs: 0 },
-  "3-4-4-3": { name: "3-4-4-3", size: "small", rows: [3, 4, 4, 3], factoryPairs: 1 },
-  "3-5-5-3": { name: "3-5-5-3", size: "medium", rows: [3, 5, 5, 3], factoryPairs: 1 },
-  "4-5-5-4": { name: "4-5-5-4", size: "medium", rows: [4, 5, 5, 4], factoryPairs: 2 },
-  "5-6-6-5": { name: "5-6-6-5", size: "large", rows: [5, 6, 6, 5], factoryPairs: 2 },
-  "4-5-6-5-4": { name: "4-5-6-5-4", size: "large", rows: [4, 5, 6, 5, 4], factoryPairs: 2 },
+  classic: { name: "Classic", size: "small", rows: null, factoryPairs: 0, maxSides: 2 },
+  "3-4-4-3": { name: "3-4-4-3", size: "small", rows: [3, 4, 4, 3], factoryPairs: 1,
+    maxSides: 2 },
+  "3-5-5-3": { name: "3-5-5-3", size: "medium", rows: [3, 5, 5, 3], factoryPairs: 1,
+    maxSides: 2 },
+  "4-5-5-4": { name: "4-5-5-4", size: "medium", rows: [4, 5, 5, 4], factoryPairs: 2,
+    maxSides: 2 },
+  "5-6-6-5": { name: "5-6-6-5", size: "large", rows: [5, 6, 6, 5], factoryPairs: 2,
+    maxSides: 2 },
+  "4-5-6-5-4": { name: "4-5-6-5-4", size: "large", rows: [4, 5, 6, 5, 4], factoryPairs: 2,
+    maxSides: 4 },
 };
+// Shapes only for more than two sides. They are kept out of MAP_SHAPES so the two-player
+// shape picker, its "Any" choice and the AI's evolution pool stay as they are. The 37-block
+// hexagon is the smallest layout with room for five or six homes spaced round it.
+export const MULTI_SIDE_SHAPES = {
+  "4-5-6-7-6-5-4": { name: "4-5-6-7-6-5-4", size: "large", rows: [4, 5, 6, 7, 6, 5, 4],
+    factoryPairs: 2, minSides: 3, maxSides: 6 },
+};
+const MIN_SIDES = 2;
+
+function shapeInfo(shape) {
+  return Object.hasOwn(MAP_SHAPES, shape) ? MAP_SHAPES[shape]
+    : Object.hasOwn(MULTI_SIDE_SHAPES, shape) ? MULTI_SIDE_SHAPES[shape] : null;
+}
+
+function shapeAllows(shape, sides) {
+  const info = shapeInfo(shape);
+  return Boolean(info) && sides >= (info.minSides || MIN_SIDES) && sides <= info.maxSides;
+}
+
+// The shapes that have maps for the given number of sides.
+export function shapesForSides(sides) {
+  return [...Object.keys(MAP_SHAPES), ...Object.keys(MULTI_SIDE_SHAPES)]
+    .filter((shape) => shapeAllows(shape, sides));
+}
 
 // A layout: block positions on the cluster lattice, and the blocks in pairs, each pair
 // point-reflected (or nearly) through the middle of the map. middle is the pair nearest the
@@ -196,6 +307,8 @@ const LAYOUT_SPAN = 8;
 // Cluster centres along a row are this lattice step apart (about 11 degrees off horizontal).
 const ROW_STEP = [3, -2];
 const ROW_TOLERANCE = 0.01;
+const LETTER_A = 65;
+const LETTERS = 26;
 
 // A layout of rows of blocks, e.g. [3, 4, 4, 3]. The clusters tile on a slanted grid, so the
 // lattice is turned until rows run left to right, and each row takes the blocks nearest the
@@ -226,8 +339,10 @@ function rowsLayout(rows) {
   });
 
   const blocks = {};
+  // Blocks are lettered A to Z, then AA, AB and so on.
   chosen.forEach((pt, n) => {
-    pt.id = String.fromCharCode(65 + n);
+    pt.id = n < LETTERS ? String.fromCharCode(LETTER_A + n)
+      : String.fromCharCode(LETTER_A) + String.fromCharCode(LETTER_A + n - LETTERS);
     blocks[pt.id] = pt.at;
   });
   // Pair each block with the one nearest its reflection through the middle.
@@ -256,7 +371,7 @@ const layouts = {};
 
 function layoutFor(shape) {
   if (!layouts[shape]) {
-    const rows = MAP_SHAPES[shape].rows;
+    const rows = shapeInfo(shape).rows;
     layouts[shape] = rows ? rowsLayout(rows) : classicLayout();
   }
   return layouts[shape];
@@ -434,9 +549,14 @@ function startHexes(map, terrainRules, count) {
   });
 }
 
-// A fair random map of the given shape. The same seed and shape always give the same map.
-// Layouts that fail the checks in mapProblems are thrown away and redrawn.
-export function generateMap(seed, terrainRules, startUnits, shape = "classic") {
+// A fair random map of the given shape for 2 to 6 sides (see shapesForSides). The same seed,
+// shape and sides always give the same map. Layouts that fail the checks in mapProblems are
+// thrown away and redrawn.
+export function generateMap(seed, terrainRules, startUnits, shape = "classic", sides = 2) {
+  if (!shapeAllows(shape, sides)) {
+    throw new Error(`No ${sides}-sided maps of shape ${shape}`);
+  }
+  if (sides !== 2) return generateMultiSideMap(seed, terrainRules, startUnits, shape, sides);
   const random = seededRandom(seed);
   const layout = layoutFor(shape);
   const classic = shape === "classic";
@@ -464,15 +584,286 @@ export function generateMap(seed, terrainRules, startUnits, shape = "classic") {
   throw new Error(`No fair map found for seed ${seed}`);
 }
 
-// The map for an id: "fixed-1", "map-<seed>" for a classic generated map, or
-// "map-<seed>-<shape>" (e.g. "map-17-3-4-4-3") for another shape.
+// ---------------------------------------------------------------------------------------
+// Generated maps for more than two sides
+//
+// The homes are spread round the edge of the layout. Nothing can be mirrored, so each map is
+// drawn at random and kept only if multiSideProblems finds it fair.
+
+// Home blocks: sets of blocks on the edge of the layout (none in the middle pair) whose
+// closest two are at least this share of the furthest apart that any set's closest two can be,
+const MULTI_HOME_SPREAD_SHARE = 0.9;
+// and in which every home sees the others at much the same straight-line distances: at each
+// rank of a home's sorted distances to the others, the homes differ by at most this share of
+// the set's closest two. Where no set is that even (five homes cannot be spaced evenly round
+// a hexagonal layout), the evenest sets are used.
+const MULTI_HOME_EVENNESS = 0.15;
+const EVENNESS_ROUNDING = 1e-9;
+// Two blocks side by side are this far apart (in hex radii), and a block inside the layout has
+// this many such neighbours.
+const BLOCK_STEP = Math.sqrt(21);
+const BLOCK_NEIGHBOURS = 6;
+
+function combinations(list, n) {
+  if (n === 0) return [[]];
+  return list.flatMap((x, i) => combinations(list.slice(i + 1), n - 1).map((c) => [x, ...c]));
+}
+
+const homeSetCache = {};
+
+// The sets of home blocks for a shape and number of sides, each set in order round the map.
+function homeSets(shape, sides) {
+  const cacheKey = `${shape}/${sides}`;
+  if (homeSetCache[cacheKey]) return homeSetCache[cacheKey];
+  const layout = layoutFor(shape);
+  const points = {};
+  for (const id in layout.blocks) points[id] = blockPoint(layout.blocks[id]);
+  const ids = Object.keys(points);
+  const cx = ids.reduce((sum, id) => sum + points[id][0], 0) / ids.length;
+  const cy = ids.reduce((sum, id) => sum + points[id][1], 0) / ids.length;
+  const apart = (a, b) => Math.hypot(points[a][0] - points[b][0], points[a][1] - points[b][1]);
+  const touching = (a, b) => a !== b && apart(a, b) < BLOCK_STEP + ROW_TOLERANCE;
+  const edge = ids.filter((a) => !layout.middle.includes(a) &&
+    ids.filter((b) => touching(a, b)).length < BLOCK_NEIGHBOURS);
+  const sets = combinations(edge, sides).map((set) => {
+    const profiles = set.map((a) => set.filter((b) => b !== a).map((b) => apart(a, b))
+      .sort((x, y) => x - y));
+    const closest = Math.min(...profiles.map((p) => p[0]));
+    const ranks = profiles[0].map((d, rank) => spreadOf(profiles.map((p) => p[rank])));
+    return { set, closest, unevenness: Math.max(...ranks) / closest };
+  });
+  const best = sets.reduce((most, c) => Math.max(most, c.closest), 0);
+  const far = sets.filter((c) => c.closest >= MULTI_HOME_SPREAD_SHARE * best);
+  const evenest = far.reduce((least, c) => Math.min(least, c.unevenness), Infinity);
+  const limit = Math.max(MULTI_HOME_EVENNESS, evenest) + EVENNESS_ROUNDING;
+  const angle = (id) => Math.atan2(points[id][1] - cy, points[id][0] - cx);
+  homeSetCache[cacheKey] = far.filter((c) => c.unevenness <= limit)
+    .map((c) => [...c.set].sort((a, b) => angle(a) - angle(b)));
+  return homeSetCache[cacheKey];
+}
+
+// Picks the home blocks for a map: one of the sets, with side 0 at any of them. Returns
+// { home, pairs } for randomClusters, where pairs are the groups of other blocks (outside the
+// middle) that draw the same number of mountains.
+function chooseHomes(random, layout, shape, sides) {
+  const set = pick(random, homeSets(shape, sides));
+  const first = Math.floor(random() * sides);
+  const home = [...set.slice(first), ...set.slice(0, first)];
+  const others = Object.keys(layout.blocks)
+    .filter((id) => !home.includes(id) && !layout.middle.includes(id));
+  return { home, pairs: turnGroups(layout, set, others) };
+}
+
+// Blocks that a turn of the map about its middle carries onto each other, where the turn also
+// carries the homes onto each other (for six homes round a hexagon, the six blocks one turn of
+// 60 degrees apart). Each group draws one number of mountains, as each pair does on a two-sided
+// map, so every side has much the same ground round it. A block no turn moves is on its own.
+function turnGroups(layout, homes, ids) {
+  const points = {};
+  for (const id in layout.blocks) points[id] = blockPoint(layout.blocks[id]);
+  const all = Object.keys(points);
+  const cx = all.reduce((sum, id) => sum + points[id][0], 0) / all.length;
+  const cy = all.reduce((sum, id) => sum + points[id][1], 0) / all.length;
+  const blockAt = (x, y) => all.find((id) =>
+    Math.hypot(points[id][0] - x, points[id][1] - y) < ROW_TOLERANCE);
+  const turn = (id, angle) => {
+    const [x, y] = [points[id][0] - cx, points[id][1] - cy];
+    return blockAt(cx + x * Math.cos(angle) - y * Math.sin(angle),
+      cy + x * Math.sin(angle) + y * Math.cos(angle));
+  };
+  const turns = [];
+  for (let step = 1; step < homes.length; step++) {
+    const angle = (2 * Math.PI * step) / homes.length;
+    const moved = all.map((id) => turn(id, angle));
+    if (moved.every(Boolean) && homes.every((id) => homes.includes(turn(id, angle)))) {
+      turns.push(angle);
+    }
+  }
+  const groups = [];
+  const placed = new Set();
+  for (const id of ids) {
+    if (placed.has(id)) continue;
+    const group = [...new Set([id, ...turns.map((angle) => turn(id, angle))])]
+      .filter((other) => ids.includes(other) && !placed.has(other));
+    group.forEach((other) => placed.add(other));
+    groups.push(group);
+  }
+  return groups;
+}
+
+// A set of sites, one per side in side order: each at a path cost from its own factory in
+// range, every other factory at least margin further, and (for fairness) much the same own
+// cost and nearest-rival cost for every side, as fairSet checks. Sites are at least spacing
+// from taken hexes and each other, and must pass allowed. null if there is none.
+function siteSet(random, costs, taken, { distance: [nearest, furthest], margin },
+  { spacing = PILE_SPACING, allowed = () => true } = {}) {
+  const free = (k) => allowed(k) && !taken.some((t) => distance(t, k) < spacing);
+  const bySide = costs.map((own, side) => {
+    const out = [];
+    for (const k in own) {
+      if (own[k] < nearest || own[k] > furthest || !free(k)) continue;
+      const rival = rivalCost(costs, side, k);
+      if (rival >= own[k] + margin) out.push({ k, own: own[k], rival });
+    }
+    return out;
+  });
+  // Exactly equal costs if possible, then within the spreads the checks allow. A window is
+  // the lowest own cost and nearest-rival cost a set may have.
+  const windows = [...new Set(bySide.flat().map((c) => `${c.own},${c.rival}`))].sort()
+    .map((w) => w.split(",").map(Number));
+  for (let ownSpread = 0; ownSpread <= SET_OWN_SPREAD; ownSpread++) {
+    for (let rivalSpread = 0; rivalSpread <= SET_RIVAL_SPREAD; rivalSpread++) {
+      for (const [own, rival] of shuffled(random, windows)) {
+        const fits = (c) => c.own >= own && c.own <= own + ownSpread && c.rival >= rival &&
+          c.rival <= rival + rivalSpread;
+        const lists = bySide.map((options) => options.filter(fits).map((c) => c.k));
+        if (lists.some((list) => !list.length)) continue;
+        const sites = spacedChoice(random, lists, spacing);
+        if (sites) return sites;
+      }
+    }
+  }
+  return null;
+}
+
+// Searching for spaced sites gives up after this many tries, so a crowded map is soon redrawn.
+const MAX_SET_SEARCH = 2000;
+
+// One hex from each list, all at least spacing apart, chosen at random; null if none found.
+function spacedChoice(random, lists, spacing) {
+  const options = lists.map((list) => shuffled(random, list));
+  const chosen = [];
+  let tries = 0;
+  const search = (side) => {
+    if (side === options.length) return true;
+    for (const k of options[side]) {
+      if (++tries > MAX_SET_SEARCH) return false;
+      if (!chosen.every((s) => distance(s, k) >= spacing)) continue;
+      chosen.push(k);
+      if (search(side + 1)) return true;
+      chosen.pop();
+    }
+    return false;
+  };
+  return search(0) ? chosen : null;
+}
+
+// Half the path cost between the two nearest home factories, rounded up.
+function halfWayCost(map, costs) {
+  return Math.ceil(Math.min(...map.factories.flatMap((f, side) =>
+    map.factories.filter((g, other) => other !== side).map((g) => costs[side][g]))) / 2);
+}
+
+// Unused factory sites: count sets of open hexes with room round them, one per side. Unlike
+// a two-sided map they may be anywhere nearer their own home, not only up to half way, as the
+// homes are closer together. null if they will not fit.
+function placeNeutralSets(random, map, terrainRules, costs, count) {
+  const roomy = (k) => isOpen(map, terrainRules, k) &&
+    neighbourKeys(k).filter((n) => isOpen(map, terrainRules, n)).length >=
+      MIN_FREE_FACTORY_NEIGHBOURS;
+  const taken = [...map.factories];
+  const out = [];
+  for (let pair = 0; pair < count; pair++) {
+    const sites = siteSet(random, costs, taken, FACTORY_PAIR_BAND,
+      { spacing: FACTORY_SPACING, allowed: roomy });
+    if (!sites) return null;
+    taken.push(...sites);
+    out.push(...sites.map((at) => ({ at, pair })));
+  }
+  return out;
+}
+
+// Starting piles: one set per band, extra sets where they fit, then one pile about equally far
+// from every factory if one fits. null if a band's set will not fit.
+function placeMultiSidePiles(random, map, costs, extraSets) {
+  const taken = map.factories.flatMap((f) => [f, ...neighbourKeys(f)]);
+  const extra = { ...EXTRA_PAIR_BAND,
+    distance: [EXTRA_PAIR_BAND.distance[0], halfWayCost(map, costs)] };
+  const bands = [...PILE_PAIR_BANDS, ...Array.from({ length: extraSets }, () => extra)];
+  const unused = (map.neutralFactories || []).map((f) => f.at);
+  const allowed = (k) => !unused.includes(k);
+  const piles = [];
+  for (const [pair, band] of bands.entries()) {
+    const sites = siteSet(random, costs, taken, band, { allowed });
+    if (!sites && band === extra) continue;
+    if (!sites) return null;
+    taken.push(...sites);
+    piles.push(...sites.map((at) => ({ at, pair })));
+  }
+  const spreads = {};
+  for (const k in costs[0]) {
+    if (!allowed(k) || taken.some((t) => distance(t, k) < PILE_SPACING)) continue;
+    const spread = spreadOf(costs.map((c) => c[k]));
+    if (spread <= MIDDLE_PILE_SPREAD) (spreads[spread] ||= []).push(k);
+  }
+  const evenest = Object.keys(spreads).map(Number).sort((x, y) => x - y)[0];
+  if (evenest !== undefined) piles.push({ at: pick(random, spreads[evenest]), pair: null });
+  return piles;
+}
+
+// Starting hexes: the free neighbours of each factory nearest the middle of the map.
+function middleStartHexes(map, terrainRules, layout, count) {
+  const points = Object.values(layout.blocks).map(blockPoint);
+  const cx = points.reduce((sum, [x]) => sum + x, 0) / points.length;
+  const cy = points.reduce((sum, [, y]) => sum + y, 0) / points.length;
+  const fromMiddle = (k) => {
+    const [x, y] = toPixel(...parseKey(k), 1);
+    return Math.hypot(x - cx, y - cy);
+  };
+  return map.factories.map((f) => neighbourKeys(f)
+    .filter((k) => isOpen(map, terrainRules, k))
+    .sort((a, b) => fromMiddle(a) - fromMiddle(b) || a.localeCompare(b))
+    .slice(0, count));
+}
+
+// Sets of unused factories (one per side in each set) for each number of sides, at most; with
+// more sides there is less room round each home.
+const MAX_FACTORY_SETS = { 3: 2, 4: 1, 5: 1, 6: 1 };
+
+function generateMultiSideMap(seed, terrainRules, startUnits, shape, sides) {
+  const random = seededRandom(seed);
+  const layout = layoutFor(shape);
+  const id = `map-${seed}-${shape}-${sides}p`;
+  const name = `Map ${seed} (${shapeInfo(shape).name}, ${sides} sides)`;
+  const blockCount = Object.keys(layout.blocks).length;
+  // As many piles in all as a two-sided map of this size would have, shared out in sets.
+  const twoSidedPiles = 2 * (PILE_PAIR_BANDS.length +
+    Math.max(0, Math.round((blockCount - CLASSIC_BLOCKS) / BLOCKS_PER_EXTRA_PAIR)));
+  const extraSets = Math.max(0, Math.round(twoSidedPiles / sides) - PILE_PAIR_BANDS.length);
+  const factorySets = Math.min(shapeInfo(shape).factoryPairs, MAX_FACTORY_SETS[sides]);
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const homes = chooseHomes(random, layout, shape, sides);
+    const map = buildMap({
+      id, name, clusters: randomClusters(random, layout, homes),
+      factories: homes.home, starts: homes.home.map(() => []), deposits: [],
+    });
+    // Path costs do not change once the terrain is drawn (units drive over piles), so they are
+    // worked out once, and a map whose homes are unfair is redrawn before anything is placed.
+    const costs = map.factories.map((f) => pathCosts(map, terrainRules, f));
+    if (multiSideProblems(map, terrainRules, costs).length) continue;
+    const neutral = placeNeutralSets(random, map, terrainRules, costs, factorySets);
+    if (!neutral) continue;
+    map.neutralFactories = neutral;
+    const deposits = placeMultiSidePiles(random, map, costs, extraSets);
+    if (!deposits) continue;
+    map.deposits = deposits;
+    map.starts = middleStartHexes(map, terrainRules, layout, startUnits);
+    if (!multiSideProblems(map, terrainRules, costs).length) return map;
+  }
+  throw new Error(`No fair ${sides}-sided map found for seed ${seed}`);
+}
+
+// The map for an id: "fixed-1", "map-<seed>" for a classic generated map,
+// "map-<seed>-<shape>" (e.g. "map-17-3-4-4-3") for another shape, or
+// "map-<seed>-<shape>-<n>p" (e.g. "map-17-4-5-6-5-4-3p") for a map for 3 to 6 sides.
 export function mapById(id, rules) {
   if (id === FIXED_MAP_1.id) return buildMap(FIXED_MAP_1);
-  const match = /^map-(\d+)(?:-(.+))?$/.exec(String(id));
+  const match = /^map-(\d+)(?:-(.+?))?(?:-([3-6])p)?$/.exec(String(id));
   const seed = match ? Number(match[1]) : NaN;
   const shape = (match && match[2]) || "classic";
-  if (!Number.isInteger(seed) || seed < 1 || !MAP_SHAPES[shape]) {
+  const sides = match && match[3] ? Number(match[3]) : 2;
+  if (!Number.isInteger(seed) || seed < 1 || !shapeAllows(shape, sides)) {
     throw new Error(`Unknown map: ${id}`);
   }
-  return generateMap(seed, rules.terrain, rules.start.units.length, shape);
+  return generateMap(seed, rules.terrain, rules.start.units.length, shape, sides);
 }

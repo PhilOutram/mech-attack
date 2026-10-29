@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
-  FIXED_MAP_1, buildMap, generateMap, mapProblems, mapById, MAP_SHAPES,
+  FIXED_MAP_1, buildMap, generateMap, mapProblems, mapById, MAP_SHAPES, MULTI_SIDE_SHAPES,
+  shapesForSides,
 } from "../maps.js";
 import { RULES } from "../rules-config.js";
 import { distance } from "../hex.js";
@@ -18,7 +20,7 @@ function checkLayout(m) {
     const terrain = m.hexes[k] && m.hexes[k].terrain;
     assert.ok(terrain === "plain" || terrain === "rocky", `${m.id}: ${k} is ${terrain}`);
   }
-  for (const p of [0, 1]) {
+  for (const p of m.factories.keys()) {
     assert.equal(m.starts[p].length, START_UNITS);
     for (const k of m.starts[p]) assert.equal(distance(k, m.factories[p]), 1);
   }
@@ -113,4 +115,100 @@ test("players start in different places on different maps", () => {
     starts.add(generateMap(seed, RULES.terrain, START_UNITS, "4-5-5-4").factories.join(" "));
   }
   assert.ok(starts.size > 2, `only ${starts.size} start positions`);
+});
+
+// SHA-256 of the JSON of two-sided maps, taken before maps for more sides were added.
+const TWO_SIDED_HASHES = {
+  "map-7": "7acd5defa8274850b2d66125f9be7471f90a617aa442ca3211f00371a462417b",
+  "map-5-3-4-4-3": "d1deebc1671f6637a1bb0920e9bac8623f5da975e20f530b37776a8309f07fb9",
+  "map-12-4-5-5-4": "e476c5e3f7c9eed5670e2cab708e69b3ec4cdc13a0646aed1f70d60b4cecd79f",
+  "map-9-5-6-6-5": "456e2a902482f25b9786c2cf2f3d56a879a55df6310945e8dbb0b83360bbed49",
+};
+
+test("two-sided maps are unchanged", () => {
+  for (const id in TWO_SIDED_HASHES) {
+    const json = JSON.stringify(mapById(id, RULES));
+    assert.equal(createHash("sha256").update(json).digest("hex"), TWO_SIDED_HASHES[id], id);
+  }
+});
+
+test("shapes are offered for the sides they have room for", () => {
+  assert.deepEqual(shapesForSides(2), Object.keys(MAP_SHAPES));
+  assert.deepEqual(shapesForSides(3), ["4-5-6-5-4", "4-5-6-7-6-5-4"]);
+  assert.deepEqual(shapesForSides(4), ["4-5-6-5-4", "4-5-6-7-6-5-4"]);
+  assert.deepEqual(shapesForSides(5), ["4-5-6-7-6-5-4"]);
+  assert.deepEqual(shapesForSides(6), ["4-5-6-7-6-5-4"]);
+  assert.deepEqual(shapesForSides(7), []);
+  for (const shape in MULTI_SIDE_SHAPES) assert.ok(!MAP_SHAPES[shape], shape);
+});
+
+// Groups items by their pair number and returns the sizes of the groups.
+function setSizes(items) {
+  const sizes = {};
+  for (const item of items) {
+    if (item.pair !== null) sizes[item.pair] = (sizes[item.pair] || 0) + 1;
+  }
+  return Object.values(sizes);
+}
+
+test("maps for 3 to 6 sides are fair, playable and the same every time for a seed", () => {
+  const SEEDS = 5;
+  const MIN_PILE_SETS = 4;
+  for (const sides of [3, 4, 5, 6]) {
+    for (const shape of shapesForSides(sides)) {
+      for (let seed = 1; seed <= SEEDS; seed++) {
+        const m = generateMap(seed, RULES.terrain, START_UNITS, shape, sides);
+        assert.equal(m.id, `map-${seed}-${shape}-${sides}p`);
+        assert.deepEqual(mapProblems(m, RULES.terrain), [], m.id);
+        assert.equal(m.factories.length, sides, m.id);
+        assert.equal(new Set(m.factories).size, sides, m.id);
+        assert.equal(m.starts.length, sides, m.id);
+        checkLayout(m);
+        assert.ok(m.neutralFactories.length > 0, m.id);
+        for (const size of setSizes(m.neutralFactories)) assert.equal(size, sides, m.id);
+        const pileSets = setSizes(m.deposits);
+        assert.ok(pileSets.length >= MIN_PILE_SETS, m.id);
+        for (const size of pileSets) assert.equal(size, sides, m.id);
+        if (seed === 1) {
+          assert.deepEqual(generateMap(seed, RULES.terrain, START_UNITS, shape, sides), m);
+        }
+      }
+    }
+  }
+});
+
+test("maps for more sides are looked up by id", () => {
+  const m = mapById("map-17-4-5-6-5-4-3p", RULES);
+  assert.equal(m.name, "Map 17 (4-5-6-5-4, 3 sides)");
+  assert.equal(m.factories.length, 3);
+  assert.deepEqual(mapById("map-17-4-5-6-5-4-3p", RULES), m);
+  assert.equal(mapById("map-2-4-5-6-7-6-5-4-6p", RULES).factories.length, 6);
+  assert.equal(mapById("map-17-4-5-6-5-4", RULES).factories.length, 2);
+  for (const id of ["map-17-3p", "map-17-3-4-4-3-3p", "map-17-4-5-6-5-4-5p",
+    "map-17-4-5-6-7-6-5-4", "map-17-4-5-6-7-6-5-4-7p", "map-17-4-5-6-5-4-2p"]) {
+    assert.throws(() => mapById(id, RULES), id);
+  }
+});
+
+test("homes on maps for more sides are not always in the same places", () => {
+  const SEEDS = 10;
+  const homes = new Set();
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const m = generateMap(seed, RULES.terrain, START_UNITS, "4-5-6-5-4", 3);
+    homes.add([...m.factories].sort().join(" "));
+  }
+  assert.ok(homes.size > 2, `only ${homes.size} sets of homes`);
+});
+
+test("the fairness checks catch an unfair set on a map for more sides", () => {
+  const m = structuredClone(generateMap(1, RULES.terrain, START_UNITS, "4-5-6-5-4", 4));
+  const first = m.deposits.findIndex((d) => d.pair === 0);
+  m.deposits[first] = { ...m.deposits[first], at: m.starts[1][0] };
+  let problems = mapProblems(m, RULES.terrain);
+  assert.ok(problems.includes("pile set 0 is unfair"), problems.join("; "));
+
+  const hemmed = structuredClone(generateMap(1, RULES.terrain, START_UNITS, "4-5-6-5-4", 4));
+  for (const k of hemmed.starts[2]) hemmed.hexes[k].terrain = "mountain";
+  problems = mapProblems(hemmed, RULES.terrain);
+  assert.ok(problems.some((p) => p.endsWith("is hemmed in")), problems.join("; "));
 });
