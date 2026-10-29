@@ -1,21 +1,22 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.23";
-import { mapById, seededRandom } from "./maps.js?v=0.23";
+import { RULES } from "./rules-config.js?v=0.24";
+import { mapById, seededRandom } from "./maps.js?v=0.24";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.23";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.23";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.23";
-import { distance } from "./hex.js?v=0.23";
+} from "./engine.js?v=0.24";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.24";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.24";
+import { distance } from "./hex.js?v=0.24";
 import {
-  renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.23";
-import { confirmDialog } from "./dialog.js?v=0.23";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.23";
+  renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
+} from "./board.js?v=0.24";
+import { confirmDialog } from "./dialog.js?v=0.24";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.24";
+import { showTip } from "./tips.js?v=0.24";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -26,9 +27,11 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.23";
+const ASSET_VERSION = "0.24";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
+// A moving unit hops one hex at a time along its route, this long per hex.
+const HOP_MS = 140;
 const EFFECT_MS = 500;
 // A pointer that moves further than this is panning the board, not tapping it.
 const DRAG_THRESHOLD_PX = 8;
@@ -64,8 +67,11 @@ const REASONS = {
 };
 
 let state = null;
+// moving: a unit part way along its route while its move is shown, { unit, at, hidden }.
 const ui = { selectedId: null, mode: null, buildType: null, busy: false, effects: [],
-  messages: [] };
+  messages: [], moving: null };
+// Which way each unit faces (unitId -> angle), from its last move; display only.
+let facing = {};
 // Undo: states before each of your actions this turn, and how many undos the game has left.
 let history = [];
 let undosLeft = 0;
@@ -198,7 +204,8 @@ export async function openGame({ resume = false, mapId = "fixed-1", onLeave }) {
   }
   aiPersonality = personalityFor(state.seed);
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
-    effects: [], messages: ["Tap one of your units to give it orders."] });
+    effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
+  facing = {};
   history = [];
   if (resume) {
     loadExtras();
@@ -212,6 +219,7 @@ export async function openGame({ resume = false, mapId = "fixed-1", onLeave }) {
   preloadArt();
   await loadTiles(ASSET_VERSION);
   fitBoard();
+  tip("welcome");
   render();
   if (state.current === AI_PLAYER) runAiTurn();
 }
@@ -239,9 +247,9 @@ function wire(onLeave) {
   els.again.addEventListener("click", () => openGame({ mapId: state.map.id, onLeave }));
   els.newMap.addEventListener("click", () =>
     openGame({ mapId: newMapId(shapeOf(state.map.id)), onLeave }));
-  els.endTurn.addEventListener("click", () => {
+  els.endTurn.addEventListener("click", async () => {
     if (!myTurn()) return;
-    act({ type: "endTurn" });
+    await act({ type: "endTurn" });
     runAiTurn();
   });
   els.quit.addEventListener("click", quitGame);
@@ -266,7 +274,7 @@ function myTurn() {
 // ---------------------------------------------------------------------------------------
 // Acting
 
-function act(action) {
+async function act(action) {
   const before = viewFor(state, HUMAN);
   const previous = state;
   try {
@@ -279,8 +287,12 @@ function act(action) {
   // Undo can step back through this turn's actions; ending the turn closes them off.
   if (action.type === "endTurn") history = [];
   else history.push(previous);
-  showEvents(state.events, before, viewFor(state, HUMAN));
+  const after = viewFor(state, HUMAN);
+  showEvents(state.events, before, after);
   save();
+  ui.busy = true;
+  await showMoves(state.events, before, after);
+  ui.busy = false;
   afterAction(action);
   render();
   if (state.result) showGameOver();
@@ -398,7 +410,9 @@ async function runAiTurn() {
     }
     let seen = false;
     try {
-      seen = showEvents(state.events, before, viewFor(state, HUMAN));
+      const after = viewFor(state, HUMAN);
+      seen = showEvents(state.events, before, after);
+      await showMoves(state.events, before, after);
       if (seen) render();
     } catch (error) {
       console.error(error);
@@ -410,6 +424,26 @@ async function runAiTurn() {
   if (!state.result) say(`Round ${state.round}: your turn.`);
   render();
   if (state.result) showGameOver();
+}
+
+// Shows each move hex by hex along its route, turning the unit to face the way it goes. A
+// Green unit is drawn only on hexes you can see.
+async function showMoves(events, before, after) {
+  const seen = (k) => before.visible[k] || after.visible[k];
+  for (const e of events) {
+    if (e.type !== "move" || !e.path.length) continue;
+    const unit = before.units[e.unitId] || after.units[e.unitId];
+    if (!unit || !(seen(e.from) || e.path.some(seen))) continue;
+    let from = e.from;
+    for (const k of e.path) {
+      facing[unit.id] = facingAngle(from, k);
+      ui.moving = { unit, at: k, hidden: unit.owner !== HUMAN && !seen(k) };
+      render();
+      await sleep(HOP_MS);
+      from = k;
+    }
+    ui.moving = null;
+  }
 }
 
 function sleep(ms) {
@@ -470,6 +504,9 @@ function showEvents(events, before, after) {
         any = true;
         if (e.path.length) sound(moveSound(typeOf(e.unitId)));
       }
+      const mover = before.units[e.unitId];
+      if (mover && mover.owner === HUMAN && !unitStats(before, mover).air &&
+        e.path.some((k) => after.map.hexes[k].terrain === "rocky")) tip("rough");
       // Only your own units say so; a Green unit stopped out of sight is not in your view.
       if (e.stoppedBy === "unit" && after.units[e.unitId]?.owner === HUMAN) {
         lines.push("Something hidden blocked the way.");
@@ -477,6 +514,7 @@ function showEvents(events, before, after) {
     } else if (e.type === "crushed" && seen(e.at)) {
       lines.push(`${e.amount} crystals crushed.`);
     } else if (e.type === "crystalsExploded" && seen(e.at)) {
+      tip("explosion");
       any = true;
       effects.push({ at: e.at, size: 0.9 });
       lines.push(`A crystal pile reached ${e.amount} and exploded.`);
@@ -584,6 +622,40 @@ function onHexTap(k) {
   render();
 }
 
+// ---------------------------------------------------------------------------------------
+// Helper popups: each shows once, the first time the player meets that part of the game.
+// Tips noticed during Green's turn wait for yours.
+
+let pendingTips = [];
+
+function tip(id) {
+  pendingTips.push(id);
+}
+
+// The tips for what is selected and shown now, plus any waiting; called after each render.
+function offerTips(view) {
+  if (!myTurn()) return;
+  const unit = view.units[ui.selectedId];
+  if (unit) {
+    const stats = unitStats(view, unit);
+    if (unit.owner === null) tip("unusedFactory");
+    if (unit.owner === HUMAN) {
+      if (stats.isFactory) tip("factory");
+      if (unit.type === "lightHarvester") tip("harvester");
+      if (stats.captures) tip("infantry");
+      if (stats.carries) tip("transporter");
+      if (stats.needsSetup) tip("artillery");
+      if (stats.healing) tip("medic");
+      if (stats.air) tip("air");
+    }
+  }
+  if (ui.mode === "fire") tip("combat");
+  if (ui.mode === "move" && crushingMoves(view, ui.selectedId).length) tip("crystals");
+  const ids = pendingTips;
+  pendingTips = [];
+  for (const id of ids) showTip(id, RULES);
+}
+
 function onPanelClick(event) {
   const button = event.target.closest("button[data-order]");
   if (!button || button.disabled || !myTurn()) return;
@@ -636,11 +708,13 @@ function render() {
     overlays.push({ hexes: targets, style });
   }
   renderBoard(els.root, {
-    view, selectedId: ui.selectedId, overlays, effects: ui.effects, notes,
+    view, selectedId: ui.selectedId, overlays, effects: ui.effects, notes, facing,
+    moving: ui.moving,
   });
   renderBar(view);
   renderPanel(view);
   els.message.innerHTML = ui.messages.map((m) => `<span>${m}</span>`).join("");
+  offerTips(view);
 }
 
 // What firing at each target would do, adding to any damage it has taken this turn: flip it,

@@ -7,6 +7,8 @@ export const RULES = {
   // Each unit tile has two sides: undamaged, and damaged (explosion).
   lives: 2,
 
+  // Costs of units the evolved AI never bought were cut by about a quarter (the Spotter Drone
+  // to 15, Phil's figure), 29 October 2026. All provisional.
   units: {
     scoutBike: {
       name: "Scout Bike", cost: 30, move: 6, defence: 10, attack: 15,
@@ -17,12 +19,12 @@ export const RULES = {
       range: [1, 2], storage: 0, healing: 0, sight: 3,
     },
     heavyCannon: {
-      name: "Heavy Cannon", cost: 110, move: 2, defence: 40, attack: 40,
+      name: "Heavy Cannon", cost: 80, move: 2, defence: 40, attack: 40,
       range: [1, 3], storage: 0, healing: 0, sight: 3,
       needs: "heavyWorks",
     },
     artillery: {
-      name: "Artillery", cost: 70, move: 2, defence: 10, attack: 30,
+      name: "Artillery", cost: 50, move: 2, defence: 10, attack: 30,
       range: [2, 5], storage: 0, healing: 0, sight: 3,
       needsSetup: true,
     },
@@ -34,7 +36,7 @@ export const RULES = {
     // (Phil, 28 October 2026). splitMove: it can move, look, and move again until its 5 move
     // points are used.
     spotterDrone: {
-      name: "Spotter Drone", cost: 30, move: 5, defence: 5, attack: 0,
+      name: "Spotter Drone", cost: 15, move: 5, defence: 5, attack: 0,
       range: null, storage: 0, healing: 0, sight: 5,
       air: true, splitMove: true, needs: "airfield",
     },
@@ -51,7 +53,7 @@ export const RULES = {
     // dropped off next to it (or straight into a factory). Infantry inside are lost with it.
     // Stats provisional.
     transporter: {
-      name: "Transporter", cost: 50, move: 6, defence: 25, attack: 0,
+      name: "Transporter", cost: 35, move: 6, defence: 25, attack: 0,
       range: null, storage: 0, healing: 0, sight: 3,
       carries: 2,
     },
@@ -61,28 +63,28 @@ export const RULES = {
     // Blast Cannon: cluster bomb (enemies next to the target take splash x attack) and it
     // fires every other turn (reload 1).
     blastCannon: {
-      name: "Blast Cannon", cost: 90, move: 3, defence: 10, attack: 40,
+      name: "Blast Cannon", cost: 65, move: 3, defence: 10, attack: 40,
       range: [2, 4], storage: 0, healing: 0, sight: 3,
       splash: 0.5, reload: 1, needs: "heavyWorks",
     },
     // Sonic Tank: sonic boom hits every enemy on a straight line up to range 5, ground and air.
     sonicTank: {
-      name: "Sonic Tank", cost: 80, move: 4, defence: 20, attack: 15,
+      name: "Sonic Tank", cost: 60, move: 4, defence: 20, attack: 15,
       range: [1, 5], storage: 0, healing: 0, sight: 4,
       hits: "both", line: true, needs: "heavyWorks",
     },
     antiAircraftJeep: {
-      name: "Anti-Aircraft Jeep", cost: 40, move: 5, defence: 15, attack: 30,
+      name: "Anti-Aircraft Jeep", cost: 30, move: 5, defence: 15, attack: 30,
       range: [1, 3], storage: 0, healing: 0, sight: 3,
       hits: "air",
     },
     attackHelicopter: {
-      name: "Attack Helicopter", cost: 60, move: 5, defence: 10, attack: 20,
+      name: "Attack Helicopter", cost: 45, move: 5, defence: 10, attack: 20,
       range: [1, 2], storage: 0, healing: 0, sight: 3,
       air: true, needs: "airfield",
     },
     fighter: {
-      name: "Fighter", cost: 80, move: 7, defence: 15, attack: 30,
+      name: "Fighter", cost: 60, move: 7, defence: 15, attack: 30,
       range: [1, 4], storage: 0, healing: 0, sight: 4,
       air: true, hits: "air", needs: "airfield",
     },

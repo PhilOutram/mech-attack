@@ -1,8 +1,17 @@
-export const VERSION = "v0.23";
+export const VERSION = "v0.24";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.24",
+    date: "2026-10-29",
+    notes: [
+      "Units hop hex by hex along their route and turn to face the way they go.",
+      "Tips for new players pop up as you meet each part of the game. Help turns them back on.",
+      "Cheaper units: Spotter Drone 15, and the units nobody bought cost about a quarter less.",
+    ],
+  },
   {
     version: "v0.23",
     date: "2026-10-29",
@@ -14,14 +23,16 @@ export const CHANGELOG = [
     version: "v0.22",
     date: "2026-10-29",
     notes: [
-      "The original plain tiles are back as extra plain variants, so plain ground has five looks.",
+      "The original plain tiles are back as extra plain variants, so plain ground has five " +
+        "looks.",
     ],
   },
   {
     version: "v0.21",
     date: "2026-10-29",
     notes: [
-      "New plain and rough terrain art redrawn by Phil, so rough ground stands out clearly from plain ground.",
+      "New plain and rough terrain art redrawn by Phil, so rough ground stands out clearly " +
+        "from plain ground.",
     ],
   },
   {

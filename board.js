@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.23";
-import { unitStats, defenceOf } from "./engine.js?v=0.23";
+import { parseKey, toPixel } from "./hex.js?v=0.24";
+import { unitStats, defenceOf } from "./engine.js?v=0.24";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -72,6 +72,17 @@ const UNIT_FILES = {
 
 export function unitImage(type, owner) {
   return `units/${UNIT_FILES[type]}-${PLAYER_COLOURS[owner].file}.svg`;
+}
+
+// The way a unit faces moving from one hex to the next: degrees clockwise from facing up the
+// board, which is how the token art is drawn.
+const DEGREES_PER_RADIAN = 180 / Math.PI;
+const GREEN_FACING = 180;
+
+export function facingAngle(from, to) {
+  const [ax, ay] = hexCentre(from);
+  const [bx, by] = hexCentre(to);
+  return Math.atan2(bx - ax, ay - by) * DEGREES_PER_RADIAN;
 }
 
 export function hexCentre(k) {
@@ -214,10 +225,14 @@ function drawCrystals(view) {
   return out;
 }
 
-function drawUnits(view, selectedId) {
+// facing: unitId -> angle for units that have moved (others face the enemy's side). moving: a
+// unit part way along its route, { unit, at, hidden }, drawn there instead of where it ended.
+function drawUnits(view, selectedId, facing, moving) {
   let out = "";
-  for (const id in view.units) {
-    const unit = view.units[id];
+  const units = Object.values(view.units).filter((u) => !moving || u.id !== moving.unit.id);
+  if (moving && !moving.hidden) units.push({ ...moving.unit, at: moving.at });
+  for (const unit of units) {
+    const id = unit.id;
     const stats = unitStats(view, unit);
     const [x, y] = hexCentre(unit.at);
     const ring = unit.owner === null ? NEUTRAL_RING : PLAYER_COLOURS[unit.owner].ring;
@@ -237,8 +252,9 @@ function drawUnits(view, selectedId) {
       if (letters) out += label(letters, x, y + HEX_HEIGHT * 0.36, "board-label upgrade-label");
     } else {
       const size = HEX_HEIGHT * UNIT_SCALE;
-      // Green's tokens face down the board, towards blue.
-      const turn = unit.owner === 1 ? ` transform="rotate(180 ${x} ${y})"` : "";
+      // Units face the way they last moved; before that, Green's face down the board.
+      const angle = facing[id] ?? (unit.owner === 1 ? GREEN_FACING : 0);
+      const turn = angle ? ` transform="rotate(${angle.toFixed(1)} ${x} ${y})"` : "";
       out += image(unitImage(unit.type, unit.owner), x, y, size, size, `${turn}${opacity}`);
       if (unit.setUp) out += label("SET", x, y - HEX_HEIGHT * 0.36, "board-label setup-label");
       if (unit.carrying > 0) {
@@ -326,14 +342,14 @@ function drawNotes(notes) {
 }
 
 export function renderBoard(group, {
-  view, selectedId = null, overlays = [], effects = [], notes = [],
+  view, selectedId = null, overlays = [], effects = [], notes = [], facing = {}, moving = null,
 }) {
   group.innerHTML = HEX_CLIP +
     `<g class="terrain">${drawTerrain(view)}</g>` +
     `<g class="fog">${drawFog(view)}</g>` +
     `<g class="crystals">${drawCrystals(view)}</g>` +
     `<g class="overlays">${drawOverlays(overlays)}</g>` +
-    `<g class="units">${drawUnits(view, selectedId)}</g>` +
+    `<g class="units">${drawUnits(view, selectedId, facing, moving)}</g>` +
     `<g class="effects">${drawEffects(effects)}</g>` +
     `<g class="notes">${drawNotes(notes)}</g>` +
     `<g class="hits">${drawHitTargets(view)}</g>`;

@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.23" />
+  <link rel="stylesheet" href="styles.css?v=0.24" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -23,6 +23,7 @@
       <button id="menu-play" class="start-btn" type="button">Play</button>
       <button id="menu-resume" class="start-btn" type="button" hidden>Resume</button>
       <button id="menu-units" class="start-btn" type="button">Units</button>
+      <button id="menu-help" class="start-btn" type="button">Help</button>
     </nav>
   </section>
 
@@ -113,6 +114,18 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.23" type="module"></script>
+  <div id="tip-dialog" class="map-picker tip-dialog" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="tip-title"
+      aria-describedby="tip-text">
+      <h2 id="tip-title"></h2>
+      <p id="tip-text" class="confirm-text"></p>
+      <div class="map-choices">
+        <button id="tip-hide" class="start-btn" type="button">Hide tips</button>
+        <button id="tip-ok" class="start-btn confirm-yes" type="button">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=0.24" type="module"></script>
 </body>
 </html>

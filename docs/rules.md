@@ -42,20 +42,23 @@ Settled with Phil, 28 October 2026: the rules are the same for every unit, and u
 - Infantry hit air as well as ground (Phil, 29 October 2026), so a cheap unit can answer the Attack Helicopter. The Scout Bike did this from 28 October and went back to ground only: it was doing too many jobs.
 
 ### Spotter Drone
-Cost 30, move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Sonic Tank and Infantry can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+Cost 15 (was 30), move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Sonic Tank and Infantry can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
 
 ### Units added on 28 October 2026
 Stats start from the full unit table, with costs scaled to the Game 2 prices. The numbers are provisional; the abilities were confirmed by Phil.
 
 | Unit | Ground or air | Hits | Cost | Move | Defence | Attack | Range | Ability |
 |---|---|---|---|---|---|---|---|---|
-| Blast Cannon | ground | ground | 90 | 3 | 10 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. |
-| Sonic Tank | ground | ground and air | 80 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
-| Anti-Aircraft Jeep | ground | air | 40 | 5 | 15 | 30 | 1–3 | |
-| Attack Helicopter | air | ground | 60 | 5 | 10 | 20 | 1–2 | |
-| Fighter | air | air | 80 | 7 | 15 | 30 | 1–4 | |
+| Blast Cannon | ground | ground | 65 | 3 | 10 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. |
+| Sonic Tank | ground | ground and air | 60 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
+| Anti-Aircraft Jeep | ground | air | 30 | 5 | 15 | 30 | 1–3 | |
+| Attack Helicopter | air | ground | 45 | 5 | 10 | 20 | 1–2 | |
+| Fighter | air | air | 60 | 7 | 15 | 30 | 1–4 | |
 
 Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
+
+### Cheaper unused units (Phil, 29 October 2026)
+The evolved AI never bought most units, so their costs were cut by about a quarter: Spotter Drone 30 → 15 (Phil's figure), Transporter 50 → 35, Anti-Aircraft Jeep 40 → 30, Artillery 70 → 50, Heavy Cannon 110 → 80, Blast Cannon 90 → 65, Sonic Tank 80 → 60, Attack Helicopter 60 → 45, Fighter 80 → 60. Provisional; the tables on this page show the new costs.
 
 ### Factory upgrades
 Settled with Phil, 28 October 2026: a factory starts out building light ground units only. Two upgrades, bought separately for each factory:
@@ -79,7 +82,7 @@ Settled with Phil, 28 October 2026: bigger maps have unused factories, and only 
 | Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
 |---|---|---|---|---|---|---|---|
 | Infantry | 20 | 3 | 5 | 10 | 1 | 2 | Captures factories; rides in a Transporter; hits ground and air |
-| Transporter | 50 | 6 | 25 | – | – | 3 | Carries 2 Infantry |
+| Transporter | 35 | 6 | 25 | – | – | 3 | Carries 2 Infantry |
 
 All the numbers are provisional, as is everything not listed as Phil's.
 
