@@ -82,6 +82,13 @@
       "png": "lossless"
     },
     {
+      "file": "rocky-2.png",
+      "terrain": "rocky",
+      "source": "Map Tiles/rough-terrain2.png (Phil, Affinity, 2026-10-29)",
+      "bytes": 38849,
+      "png": "lossless"
+    },
+    {
       "file": "mountain-1.png",
       "terrain": "mountain",
       "source": "Map Tiles/Mech Attack - Map Page 3.png",
