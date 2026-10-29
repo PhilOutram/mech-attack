@@ -150,6 +150,6 @@ Settled since (Phil, 29 October 2026), both handed to the AI and rules work:
   the turn. The attack blows up every crystal on that hex, because
   crystals are unstable: the same as driving over them, which already destroys them
   (`crystals.crushedByMovement`). Starving the enemy then works from range as well as by
-  driving through their piles. Still to decide: whether splash and sonic booms also destroy
-  piles they pass over.
+  driving through their piles. Blast Cannon splash also destroys piles on the hexes it hits;
+  sonic booms do not affect crystals. A unit cannot attack a pile it cannot see.
 - An "insane" rank above marshal, so wins there are rarer and more telling.
