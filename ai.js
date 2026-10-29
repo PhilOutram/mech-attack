@@ -214,15 +214,16 @@ function worth(state, player) {
 // Plays the game on from the current position once and scores it for player: 1 for a win,
 // 0 for a loss, and an unfinished game by player's share of what both sides own. It uses the
 // whole board, not just what the player can see. personalities: one for each player; random
-// varies them a little each time and drives new crystal spawns.
-export function playout(state, player, personalities, random) {
+// varies them a little each time and drives new crystal spawns. rounds: how many rounds it
+// runs before it is judged.
+export function playout(state, player, personalities, random, rounds = PLAYOUT_ROUNDS) {
   const vary = (p) => mutatePersonality(p, random, PLAYOUT_VARIATION);
   const players = personalities.map(vary);
   let s = {
     ...state,
     rng: Math.floor(random() * 2 ** 31),
     actions: null,
-    rules: { ...state.rules, roundCap: state.round + PLAYOUT_ROUNDS },
+    rules: { ...state.rules, roundCap: state.round + rounds },
   };
   while (!s.result) s = applyAction(s, chooseAction(viewFor(s, s.current), players[s.current]));
   const { winner } = s.result;

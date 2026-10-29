@@ -3,18 +3,25 @@
 // Two kinds of game:
 // - Take turns: 2 to 4 sides, each a human (on this device or another) or the AI, in teams
 //   chosen here; one side moves at a time.
-// - Same time (co-op): 2 to 4 humans, one device each, on one team against the AI. The humans
-//   play at the same time; then the AI takes its turn.
+// - Same time (co-op): 2 to 4 humans, one device each, on one team against one or two AI sides.
+//   The humans play at the same time; then the AI team takes its turn. The AI starts with more
+//   for each human it faces (see coopSetup).
 import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.50";
 import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.50";
 import { hostGame, joinGame as joinRemote } from "./net.js?v=0.50";
 import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.50";
 import { PLAYER_COLOURS } from "./board.js?v=0.50";
+import { RULES } from "./rules-config.js?v=0.50";
 
 const MIN_SIDES = 2;
 const MAX_TURN_SIDES = 4;
 const MIN_COOP_HUMANS = 2;
 const MAX_COOP_HUMANS = 4;
+// Sides a game can have: one per player colour.
+const MAX_SIDES = 5;
+const MAX_COOP_AIS = 2;
+// An AI side facing this many humans or more for each AI also starts with a Crystal lab.
+const HUMANS_PER_AI_FOR_LAB = 2;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
 const TEAM_NAMES = ["A", "B", "C", "D"];
@@ -29,6 +36,7 @@ const setup = {
   // Same time: where each human plays, and the AI's rank.
   humans: [HERE, REMOTE],
   aiLevel: DEFAULT_LEVEL,
+  aiCount: 1,
 };
 
 let hooks = null;
@@ -65,14 +73,37 @@ function showSetup() {
 function plan() {
   if (setup.mode === "coop") {
     const humans = setup.humans.map((where) => ({ kind: "human", remote: where === REMOTE }));
-    const seats = [...humans, { kind: "ai", level: setup.aiLevel }];
+    const ais = Array.from({ length: setup.aiCount },
+      () => ({ kind: "ai", level: setup.aiLevel }));
+    const seats = [...humans, ...ais];
     const sides = seats.map((seat) => ({ team: seat.kind === "ai" ? 1 : 0 }));
-    return { seats, sides, phases: [humans.map((_, p) => p), [humans.length]] };
+    const aiSeats = ais.map((_, i) => humans.length + i);
+    return { seats, sides, phases: [humans.map((_, p) => p), aiSeats],
+      setup: coopSetup(humans.length, aiSeats) };
   }
   const seats = setup.sides.map((side) => (side.kind === HERE ? { kind: "human" }
     : side.kind === REMOTE ? { kind: "human", remote: true } : { kind: "ai", level: side.kind }));
   const sides = setup.sides.map((side) => ({ team: side.team }));
   return { seats, sides, phases: seats.map((_, p) => [p]) };
+}
+
+// The start of a co-op game (provisional): humans start as usual; the AI team is scaled to the
+// number of humans it faces. Each AI side starts with the usual crystals and units (and the
+// second player's extra crystals, as it moves after the humans) times the number of humans
+// per AI side, rounded, and with a Crystal lab when that is 2 or more.
+function coopSetup(humanCount, aiSeats) {
+  const { crystals, units, secondPlayerCrystals } = RULES.start;
+  const scale = Math.max(1, Math.round(humanCount / aiSeats.length));
+  const count = humanCount + aiSeats.length;
+  const ai = (p) => aiSeats.includes(p);
+  return {
+    units: Array.from({ length: count }, (_, p) =>
+      (ai(p) ? Array.from({ length: scale }, () => units).flat() : [...units])),
+    crystals: Array.from({ length: count }, (_, p) =>
+      (ai(p) ? (crystals + (secondPlayerCrystals || 0)) * scale : crystals)),
+    upgrades: Array.from({ length: count }, (_, p) =>
+      (ai(p) && scale >= HUMANS_PER_AI_FOR_LAB ? ["lab"] : [])),
+  };
 }
 
 // What is wrong with the choices, or "" if the game can start.
@@ -108,10 +139,16 @@ function renderSetup() {
   if (setup.mode === "coop") {
     rows = setup.humans.map((where, p) => `<li>${colourChip(p)}<select data-human="${p}">` +
       `${kindOptions(where, true)}</select></li>`).join("");
-    const ai = setup.humans.length;
-    rows += `<li>${colourChip(ai)}<select data-ai-level>${LEVELS.map((level) =>
+    setup.aiCount = Math.min(setup.aiCount, MAX_SIDES - setup.humans.length);
+    const ais = Array.from({ length: setup.aiCount }, (_, i) => setup.humans.length + i);
+    rows += ais.map((ai) => `<li>${colourChip(ai)}<select data-ai-level>${LEVELS.map((level) =>
       `<option value="${level.id}"${level.id === setup.aiLevel ? " selected" : ""}>` +
-      `AI: ${level.rank} (${level.level})</option>`).join("")}</select></li>`;
+      `AI: ${level.rank} (${level.level})</option>`).join("")}</select></li>`).join("");
+    const room = Math.min(MAX_COOP_AIS, MAX_SIDES - setup.humans.length);
+    rows += `<li><label class="mp-team">AI sides <select data-ai-count>${[1, 2]
+      .filter((n) => n <= room).map((n) => `<option value="${n}"` +
+        `${n === setup.aiCount ? " selected" : ""}>${n}</option>`).join("")}</select>` +
+      "</label></li>";
   } else {
     rows = setup.sides.map((side, p) => `<li>${colourChip(p)}<select data-side="${p}">` +
       `${kindOptions(side.kind)}</select><label class="mp-team">Team <select ` +
@@ -139,8 +176,8 @@ function renderSetup() {
   $("mp-start").disabled = Boolean(wrong);
   $("mp-start").textContent = remote ? "Host game" : "Start";
   $("mp-explain").textContent = setup.mode === "coop"
-    ? "Everyone plays at the same time, one device each, against the AI. Whoever gets " +
-      "somewhere first gets there."
+    ? "Everyone plays at the same time, one device each, against the AI, which starts with " +
+      "more for each human it faces. Whoever gets somewhere first gets there."
     : "One side moves at a time. Humans can share this device (it is passed round) or " +
       "play on their own.";
 }
@@ -170,6 +207,7 @@ function onChange(e) {
   if (team !== undefined) setup.sides[team].team = Number(e.target.value);
   if (human !== undefined) setup.humans[human] = e.target.value;
   if (e.target.dataset.aiLevel !== undefined) setup.aiLevel = e.target.value;
+  if (e.target.dataset.aiCount !== undefined) setup.aiCount = Number(e.target.value);
   renderSetup();
 }
 

@@ -66,6 +66,12 @@ const MAX_ZOOM = 4;
 const WHEEL_ZOOM_RATE = 0.0015;
 const MAX_SEED = 2 ** 31;
 const MESSAGE_LINES = 2;
+// Demand surrender: the AI plays the game on until this much time has gone (at least
+// MIN_PLAYOUTS games, at most rules.surrenderPlayouts), so a game with many sides cannot keep
+// the screen waiting; with more than two sides each game runs this many rounds.
+const SURRENDER_THINK_MS = 8000;
+const MIN_PLAYOUTS = 4;
+const MULTI_SIDE_PLAYOUT_ROUNDS = 15;
 const PERCENT = 100;
 
 // Sounds (Phil, 29 October 2026). Air units fly with the helicopter clip, the Spotter Drone
@@ -308,8 +314,8 @@ function shapeOf(mapId) {
 // Opens the game screen: the saved game when resume is set, otherwise a new game on mapId, or
 // campaign mission number mission (0-based).
 // level: the difficulty level's id (see difficulty.js), for a game that is not a mission.
-// multiplayer: { seats, sides, phases, mapId } for a multiplayer game on this device (see
-// multiplayer.js), and linkTo the link to other devices when some seats are remote.
+// multiplayer: { seats, sides, phases, mapId, setup } for a multiplayer game on this device
+// (see multiplayer.js), and linkTo the link to other devices when some seats are remote.
 export async function openGame({
   resume = false, mapId = "fixed-1", mission = null, level = null, multiplayer = null,
   linkTo = null, onLeave,
@@ -323,7 +329,7 @@ export async function openGame({
     const seed = Math.floor(Math.random() * MAX_SEED);
     const map = mapById(multiplayer.mapId, RULES);
     state = { ...newGame({ rules: RULES, map, seed, sides: multiplayer.sides,
-      phases: multiplayer.phases }), seats: multiplayer.seats };
+      phases: multiplayer.phases, setup: multiplayer.setup || null }), seats: multiplayer.seats };
     save();
   }
   if (!state) {
@@ -701,14 +707,29 @@ function undo() {
 
 // Demand surrender (once per game): the AI plays the game on from here several times and
 // surrenders if it wins too few of them.
+// The AI players who would surrender: in a single-player game the AI; in a multiplayer
+// game with two teams, one of them all AI and you on the other (Phil, 29 October 2026: it is
+// still just two teams, and an AI losing badly should be able to finish early), that team.
+// Empty when Demand surrender does not apply.
+function surrenderingSide() {
+  if (!isMultiplayer()) return [AI_PLAYER];
+  if (isClient()) return [];
+  const players = state.players.map((_, p) => p).filter((p) => !state.players[p].out);
+  const enemies = players.filter((p) => !allied(state, p, me));
+  const teams = new Set(enemies.map((p) => state.players[p].team));
+  return teams.size === 1 && enemies.every(isAiSeat) ? enemies : [];
+}
+
 async function demandSurrender() {
   const m = missionOf(state);
-  if (!myTurn() || (m && m.noSurrender) || isMultiplayer()) return;
+  const side = surrenderingSide();
+  if (!myTurn() || (m && m.noSurrender) || !side.length) return;
+  const who = isMultiplayer() ? namesOf(side) : opponentName();
   if (surrenderUsed) {
     await confirmDialog({
       title: "Surrender already demanded",
       text: "You can demand surrender only once a game. It is there to end a game early " +
-        "when Green has no chance of winning.",
+        `when ${who} ${side.length > 1 ? "have" : "has"} no chance of winning.`,
       confirm: "OK",
       cancel: null,
     });
@@ -717,28 +738,37 @@ async function demandSurrender() {
   surrenderUsed = true;
   saveExtras();
   ui.busy = true;
-  say(`${opponentName()} is considering your demand…`);
+  say(`${who} ${side.length > 1 ? "are" : "is"} considering your demand…`);
   render();
   const random = seededRandom(state.seed + state.round);
-  const personalities = [];
-  personalities[HUMAN] = DEFAULT_PERSONALITY;
-  personalities[AI_PLAYER] = aiPersonality;
+  // Every side is played by an AI in the playouts: humans with the hand-tuned one.
+  const personalities = state.players.map((_, p) =>
+    (isAiSeat(p) ? personalityOf(p) : DEFAULT_PERSONALITY));
+  const rounds = state.players.length > 2 ? MULTI_SIDE_PLAYOUT_ROUNDS : undefined;
+  const started = performance.now();
   let total = 0;
-  for (let i = 0; i < RULES.surrenderPlayouts; i++) {
-    total += playout(state, AI_PLAYER, personalities, random);
+  let games = 0;
+  while (games < RULES.surrenderPlayouts &&
+    (games < MIN_PLAYOUTS || performance.now() - started < SURRENDER_THINK_MS)) {
+    total += playout(state, side[0], personalities, random, rounds);
+    games += 1;
     await sleep(0); // let the screen breathe between playouts
   }
   ui.busy = false;
-  const chance = total / RULES.surrenderPlayouts;
+  const chance = total / games;
   if (chance < RULES.surrenderBelow) {
-    state = applyAction(state, { type: "resign", player: AI_PLAYER });
+    for (const p of side) {
+      if (!state.result) state = applyAction(state, { type: "resign", player: p });
+    }
     history = [];
+    sendUpdates();
     save();
     render();
     showGameOver();
     return;
   }
-  say(`${opponentName()} refuses: rates their chances at ${Math.round(chance * PERCENT)}%.`);
+  say(`${who} ${side.length > 1 ? "refuse" : "refuses"}: rates their chances at ` +
+    `${Math.round(chance * PERCENT)}%.`);
   render();
 }
 
@@ -1490,8 +1520,9 @@ function renderPanel(view) {
     const undo = history.length ? undoButton() : "";
     // Some campaign missions (Green has nothing to surrender), and multiplayer games, leave
     // the button out.
-    const surrender = (m && m.noSurrender) || isMultiplayer() ? "" : orderButton("surrender",
-      surrenderUsed ? "Surrender demanded" : "Demand surrender", myTurn());
+    const surrender = (m && m.noSurrender) || !surrenderingSide().length ? ""
+      : orderButton("surrender", surrenderUsed ? "Surrender demanded" : "Demand surrender",
+        myTurn());
     els.panel.innerHTML = `${objective}<p class="panel-hint">${hint}</p>` +
       `<div class="orders">${undo}${surrender}</div>`;
     return;
