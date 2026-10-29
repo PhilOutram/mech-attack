@@ -11,10 +11,10 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
-  canBoard, allied,
-} from "./engine.js?v=0.49";
-import { neighbourKeys, distance } from "./hex.js?v=0.49";
-import { COUNTERS } from "./counters.js?v=0.49";
+  canBoard, allied, crystalTargets,
+} from "./engine.js?v=0.50";
+import { neighbourKeys, distance } from "./hex.js?v=0.50";
+import { COUNTERS } from "./counters.js?v=0.50";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
@@ -70,6 +70,7 @@ export const DEFAULT_PERSONALITY = {
   captureFactories: 1, // infantry kept while there are factories to capture
   transportInfantry: 0.3, // above TRANSPORT_THRESHOLD, infantry ride in a transporter
   labs: 1, // factories it fits with a Crystal lab, once its first harvesters are out
+  wreckPiles: 0.5, // keenness to blow up crystal piles on the enemy's side of the map
   // With more than one opponent, which to go for (its home factory is the army's goal):
   // how much nearness, weakness (what it has been seen to own) and threat (its fighters
   // near the AI's factories) count.
@@ -96,6 +97,7 @@ export const PERSONALITY_RANGES = {
   captureFactories: [0, 3, true],
   transportInfantry: [0, 1, false],
   labs: [0, 2, true],
+  wreckPiles: [0, 1, false],
   targetNearness: [0, 2, false],
   targetWeakness: [0, 2, false],
   targetThreat: [0, 2, false],
@@ -169,6 +171,7 @@ export function chooseAction(view, personality = DEFAULT_PERSONALITY, counters =
     firstUnload(ctx) ||
     captureDrop(ctx) ||
     bestHarvest(ctx) ||
+    wreckPile(ctx) ||
     labUpgrade(ctx) ||
     bestBuild(ctx) ||
     artilleryDrill(ctx) ||
@@ -474,6 +477,41 @@ function bestHarvest(ctx) {
     return { type: "harvest", unitId: unit.id, at };
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------------------
+// Starving the enemy
+
+// A pile is blown up only if its crystals, weighted by the wreckPiles gene, come to more
+// than this.
+const WRECK_MIN_SCORE = 10;
+
+// Blows up a crystal pile on the enemy's side of the map (nearer an enemy home factory than
+// any of its own factories), so the enemy cannot harvest it: the biggest such pile in reach of
+// a unit that does not gather crystals itself. Attacks on units come first.
+function wreckPile(ctx) {
+  const { view, me, mine, p, myFactories } = ctx;
+  if (!p.wreckPiles) return null;
+  const enemyHomes = view.players.map((_, q) => q)
+    .filter((q) => !allied(view, q, me) && !view.players[q].out)
+    .map((q) => view.map.factories[q]).filter(Boolean);
+  if (!enemyHomes.length) return null;
+  const nearest = (k, sites) => Math.min(...sites.map((site) => distance(k, site)));
+  const own = myFactories.map((f) => f.at);
+  let best = null;
+  let bestScore = WRECK_MIN_SCORE;
+  for (const unit of mine) {
+    if (unitStats(view, unit).storage) continue;
+    for (const k of crystalTargets(view, unit.id)) {
+      if (own.length && nearest(k, own) <= nearest(k, enemyHomes)) continue;
+      const score = view.crystals[k].amount * p.wreckPiles;
+      if (score > bestScore) {
+        bestScore = score;
+        best = { type: "blast", unitId: unit.id, at: k };
+      }
+    }
+  }
+  return best;
 }
 
 // ---------------------------------------------------------------------------------------

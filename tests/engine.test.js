@@ -4,7 +4,7 @@ import { RULES } from "../rules-config.js";
 import { FIXED_MAP_1, buildMap } from "../maps.js";
 import {
   newGame, applyAction, legalActions, viewFor, reachableHexes, attackTargets, healTargets,
-  harvestTargets, defenceOf, crushingMoves, darkTargets,
+  harvestTargets, defenceOf, crushingMoves, darkTargets, crystalTargets,
 } from "../engine.js";
 import { distance } from "../hex.js";
 import { scenario, TEST_RADIUS } from "./helpers.js";
@@ -529,6 +529,57 @@ describe("combat", () => {
       units: [art, target, unit("s", "scoutBike", BLUE, "0,-3")], rules: SIGHT_FOG,
     });
     assert.deepEqual(attackTargets(viewFor(spotted, BLUE), "r"), ["e"]);
+  });
+});
+
+describe("blowing up crystals", () => {
+  const blast = (unitId, at) => ({ type: "blast", unitId, at });
+
+  test("a unit that hits ground units destroys a whole pile in range, as its attack", () => {
+    let s = scenario({
+      units: [unit("t", "tank", BLUE, "0,0")], crystals: { "0,-2": { amount: 75 } },
+    });
+    assert.deepEqual(crystalTargets(viewFor(s, BLUE), "t"), ["0,-2"]);
+    s = play(s, blast("t", "0,-2"));
+    assert.equal(s.crystals["0,-2"], undefined);
+    assert.ok(s.events.some((e) => e.type === "blast" && e.amount === 75));
+    assert.equal(s.units.t.acted, true, "it was the tank's attack for the turn");
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "t"), []);
+  });
+
+  test("Attack Helicopters can, air-only attackers cannot", () => {
+    const s = scenario({
+      units: [unit("h", "attackHelicopter", BLUE, "0,0"),
+        unit("j", "antiAircraftJeep", BLUE, "1,0")],
+      crystals: { "0,-1": { amount: 30 } },
+    });
+    assert.deepEqual(crystalTargets(viewFor(s, BLUE), "h"), ["0,-1"]);
+    assert.deepEqual(crystalTargets(viewFor(s, BLUE), "j"), []);
+  });
+
+  test("a pile out of range or out of sight cannot be aimed at", () => {
+    const far = scenario({
+      units: [unit("t", "tank", BLUE, "0,0")], crystals: { "0,-4": { amount: 30 } },
+    });
+    assert.deepEqual(crystalTargets(viewFor(far, BLUE), "t"), []);
+    // A pile on a hex in range that blue cannot see.
+    const dark = darkTargets(viewFor(scenario({ units: [unit("t", "tank", BLUE, "0,0")],
+      explored: false }), BLUE), "t")[0];
+    assert.ok(dark, "the tank has a face-down hex in range");
+    const unseen = scenario({
+      units: [unit("t", "tank", BLUE, "0,0")], crystals: { [dark]: { amount: 30 } },
+      explored: false,
+    });
+    assert.deepEqual(crystalTargets(viewFor(unseen, BLUE), "t"), []);
+  });
+
+  test("a cluster bomb's splash leaves piles next to the target alone", () => {
+    let s = scenario({
+      units: [unit("b", "blastCannon", BLUE, "0,2"), unit("e", "tank", GREEN, "0,-1")],
+      crystals: { "1,-1": { amount: 40 } },
+    });
+    s = play(s, attack("b", "e"));
+    assert.equal(s.crystals["1,-1"].amount, 40);
   });
 });
 

@@ -5,11 +5,11 @@
 //   chosen here; one side moves at a time.
 // - Same time (co-op): 2 to 4 humans, one device each, on one team against the AI. The humans
 //   play at the same time; then the AI takes its turn.
-import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.49";
-import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.49";
-import { hostGame, joinGame as joinRemote } from "./net.js?v=0.49";
-import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.49";
-import { PLAYER_COLOURS } from "./board.js?v=0.49";
+import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.50";
+import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.50";
+import { hostGame, joinGame as joinRemote } from "./net.js?v=0.50";
+import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.50";
+import { PLAYER_COLOURS } from "./board.js?v=0.50";
 
 const MIN_SIDES = 2;
 const MAX_TURN_SIDES = 4;

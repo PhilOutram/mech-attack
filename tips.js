@@ -37,6 +37,12 @@ const TIPS = {
       "several units in the same turn add up. A unit attacked from next door fires back if " +
       `its range is ${rules.combat.returnFireMaxRange} or less.`,
   }),
+  blastCrystals: () => ({
+    title: "Blowing up crystals",
+    text: "Crystal piles in range show yellow. Crystals are unstable: one shot destroys the " +
+      "whole pile and uses the unit's attack for the turn. Use it to starve your enemy of " +
+      "piles near their side; harvest the ones near yours.",
+  }),
   blindFire: () => ({
     title: "Firing blind",
     text: "The faint red hexes are in range but out of sight. You can fire into them blind: " +

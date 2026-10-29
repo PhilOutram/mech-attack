@@ -1,13 +1,15 @@
 // Difficulty levels for a game against the AI (Phil, 29 October 2026). The player picks the
 // rank they play at; each rank faces its own Consortium commander, who plays in their own way
 // and starts with more or less than you. Campaign missions set their own opponent instead.
-import { RULES } from "./rules-config.js?v=0.49";
+import { RULES } from "./rules-config.js?v=0.50";
 
 const LEVEL_KEY = "mech-attack.level";
 
 // ai: "default" is the hand-tuned AI, "evolved" one of the evolved personalities (picked by
 // the game's seed), "best" the strongest of them. Extra crystals and units are on top of the
-// usual start (rules.start) for each side.
+// usual start (rules.start) for each side; upgrades are fitted to each home factory at the
+// start; firstPlayer: who moves first (blue unless given). The second player's usual extra
+// crystals go to whoever moves second.
 export const LEVELS = [
   {
     id: "cadet",
@@ -41,6 +43,22 @@ export const LEVELS = [
     extraCrystals: [0, 60],
     extraUnits: [[], ["tank"]],
   },
+  // Insane (Phil, 29 October 2026): so hard that a human win is rare and worth studying.
+  // Provisional: Green moves first with a big head start, and you get no second player's
+  // crystals.
+  {
+    id: "insane",
+    rank: "Supreme Commander",
+    level: "Insane",
+    opponent: "The Overseer",
+    persona: "The Consortium's war computer. It moves first, starts with 120 more crystals, " +
+      "two extra Tanks and Heavy works already built. Beat it and you have beaten the best.",
+    ai: "best",
+    firstPlayer: 1,
+    extraCrystals: [-RULES.start.secondPlayerCrystals, 120],
+    extraUnits: [[], ["tank", "tank"]],
+    upgrades: [[], ["heavyWorks"]],
+  },
 ];
 
 export const DEFAULT_LEVEL = "major";
@@ -49,14 +67,16 @@ export function levelById(id) {
   return LEVELS.find((level) => level.id === id) || levelById(DEFAULT_LEVEL);
 }
 
-// The starting setup for a game at this level (see newGame in engine.js), with blue moving
-// first: the usual start plus the level's extras.
+// The starting setup for a game at this level (see newGame in engine.js): the usual start
+// plus the level's extras.
 export function levelSetup(level, rules) {
   const { crystals, units, secondPlayerCrystals } = rules.start;
+  const second = 1 - (level.firstPlayer || 0);
   return {
     units: level.extraUnits.map((extra) => [...units, ...extra]),
     crystals: level.extraCrystals.map((extra, p) =>
-      crystals + (p === 1 ? secondPlayerCrystals : 0) + extra),
+      crystals + (p === second ? secondPlayerCrystals : 0) + extra),
+    upgrades: level.upgrades || [[], []],
   };
 }
 

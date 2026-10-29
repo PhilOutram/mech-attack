@@ -21,6 +21,9 @@ In the physical game, two or more harvesters next to the same pile would split i
 ### Driving over crystals
 Units can drive onto or over crystals, and doing so destroys them (`crystals.crushedByMovement`). A unit takes a route that keeps off crystals whenever one fits within its move, even a longer one (Phil, 28 October 2026). Hexes it can only reach by driving over crystals show with a yellow dashed outline, and the game asks before such a move. Only crystals you can see count: a face-down hex shows yellow only when the route to it crosses a pile you can see (Phil, 29 October 2026). Crystals you cannot see are destroyed without warning. Before this rule, crystal piles blocked movement and the simulator showed spawned piles walling off the middle of the map by round 30–40.
 
+### Blowing up crystals
+Phil, 29 October 2026: any unit whose attack hits ground units (Attack Helicopters included) can fire at a crystal pile in range and in sight. Crystals are unstable, so the shot destroys the whole pile, and it uses the unit's attack for the turn (reloads and Artillery set-up apply as for any shot). This makes starving the enemy of crystals a tactic. Provisional, still to settle with Phil: a cluster bomb's splash and a sonic boom passing over a pile leave it alone (only a shot aimed at the pile destroys it), and a pile you cannot see now cannot be aimed at (`crystals.blastable`; `crystalTargets` in `engine.js`).
+
 ### Crystal piles grow and explode
 - Each map starts with crystal piles of 50 (`crystals.startAmount`): 4 fair pairs, one pile of each pair per side, plus one pile equally far from both factories. The old Crystals / Crystal Base / Crystal Cave deposits (180, 500, 560) are gone.
 - Crystals change between goes, never during them, so neither player gets an advantage (Phil, 28 October 2026). After every turn, yours and the AI's:
@@ -110,6 +113,7 @@ Games against the AI are played at a rank (Phil, 29 October 2026), each with its
 | Cadet | Beginner | Sergeant Brack | hand-tuned | You get 30 extra crystals; Green does not get the second player's 30 |
 | Major | Intermediate | Colonel Rane | an evolved personality | The usual start |
 | Field Marshal | Master | General Kaldra | the strongest evolved personality | Green gets 60 extra crystals and an extra Tank |
+| Supreme Commander | Insane (Phil, 29 October 2026: a human win should be rare and worth studying) | The Overseer | the strongest evolved personality | Green moves first, with 120 extra crystals, two extra Tanks and Heavy works built; you get no second player's crystals (provisional) |
 
 All the numbers are provisional, as is everything not listed as Phil's.
 

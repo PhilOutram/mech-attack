@@ -202,6 +202,9 @@ export const RULES = {
     // for each player, Phil 29 October 2026), then explodes and its crystals are lost.
     explodeAt: 80,
     holdTurns: 2,
+    // Units whose attack hits ground units can blow up a crystal pile they can see and reach,
+    // destroying all of it, as their attack for the turn (Phil, 29 October 2026).
+    blastable: true,
     spawnMinDistanceFromFactory: 3, // provisional
   },
 

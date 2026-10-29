@@ -7,29 +7,29 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.49";
-import { mapById, seededRandom } from "./maps.js?v=0.49";
+import { RULES } from "./rules-config.js?v=0.50";
+import { mapById, seededRandom } from "./maps.js?v=0.50";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
-  defenceOf, darkTargets, canCapture, allied,
+  defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.49";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.49";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.49";
-import { distance } from "./hex.js?v=0.49";
+} from "./engine.js?v=0.50";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.50";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.50";
+import { distance } from "./hex.js?v=0.50";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage,
-} from "./board.js?v=0.49";
-import { confirmDialog } from "./dialog.js?v=0.49";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.49";
-import { showTip, showNote } from "./tips.js?v=0.49";
+} from "./board.js?v=0.50";
+import { confirmDialog } from "./dialog.js?v=0.50";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.50";
+import { showTip, showNote } from "./tips.js?v=0.50";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.49";
-import { levelById, levelSetup } from "./difficulty.js?v=0.49";
+} from "./campaign.js?v=0.50";
+import { levelById, levelSetup } from "./difficulty.js?v=0.50";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -41,7 +41,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.49";
+const ASSET_VERSION = "0.50";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -338,7 +338,7 @@ export async function openGame({
     } else {
       const map = mapById(mapId, RULES);
       const chosen = levelById(level);
-      const game = newGame({ rules: RULES, map, seed, firstPlayer: HUMAN,
+      const game = newGame({ rules: RULES, map, seed, firstPlayer: chosen.firstPlayer || HUMAN,
         setup: levelSetup(chosen, RULES) });
       state = { ...game, level: chosen.id };
       noteMap(map);
@@ -940,6 +940,11 @@ function showEvents(events, before, after) {
       }
     } else if (e.type === "crushed" && seen(e.at)) {
       lines.push(`${e.amount} crystals crushed.`);
+    } else if (e.type === "blast" && seen(e.at)) {
+      any = true;
+      sound(fireSound(typeOf(e.unitId)));
+      effects.push({ at: e.at, size: 0.9 });
+      lines.push(`${unitName(before, e.unitId)} blew up ${e.amount} crystals.`);
     } else if (e.type === "crystalsExploded" && seen(e.at)) {
       tip("explosion");
       any = true;
@@ -1089,7 +1094,7 @@ function targetsFor(view, mode, unitId) {
   if (mode === "move") return Object.keys(reachableHexes(view, unitId));
   if (mode === "fire") {
     return [...attackTargets(view, unitId).map((id) => view.units[id].at),
-      ...darkTargets(view, unitId)];
+      ...crystalTargets(view, unitId), ...darkTargets(view, unitId)];
   }
   if (mode === "harvest") return harvestTargets(view, unitId);
   if (mode === "heal") return healTargets(view, unitId).map((id) => view.units[id].at);
@@ -1114,7 +1119,9 @@ function actionFor(view, mode, unitId, k) {
   if (mode === "move") return { type: "move", unitId, to: k };
   if (mode === "fire") {
     const targetId = attackTargets(view, unitId).find((id) => view.units[id].at === k);
-    return targetId ? { type: "attack", unitId, targetId } : { type: "attack", unitId, at: k };
+    if (targetId) return { type: "attack", unitId, targetId };
+    if (crystalTargets(view, unitId).includes(k)) return { type: "blast", unitId, at: k };
+    return { type: "attack", unitId, at: k };
   }
   if (mode === "harvest") return { type: "harvest", unitId, at: k };
   if (mode === "heal") return { type: "heal", unitId, targetId: unitOn.id };
@@ -1131,6 +1138,8 @@ async function onHexTap(k) {
     const unitId = ui.selectedId;
     if (ui.mode === "move" && crushingMoves(view, unitId).includes(k) &&
       !(await confirmCrush(view, unitId))) return;
+    if (ui.mode === "fire" && crystalTargets(view, unitId).includes(k) &&
+      !(await confirmBlast(view.crystals[k].amount))) return;
     act(actionFor(view, ui.mode, unitId, k));
     return;
   }
@@ -1152,6 +1161,18 @@ function confirmCrush(view, unitId) {
       "\n\nDo you really want to crush them?",
     confirm: "Crush them",
     cancel: "Cancel move",
+  });
+}
+
+// Firing on a crystal pile blows all of it up; ask first.
+function confirmBlast(amount) {
+  return confirmDialog({
+    title: "Blow up the crystals?",
+    text: `Crystals are unstable: a shot destroys the whole pile of ${amount}, and uses this ` +
+      "unit's attack for the turn. Worth it to keep them from your enemy; a waste if you " +
+      "could harvest them.",
+    confirm: "Blow them up",
+    cancel: "Cancel",
   });
 }
 
@@ -1184,6 +1205,7 @@ function offerTips(view) {
   }
   if (ui.mode === "fire") tip("combat");
   if (ui.mode === "fire" && darkTargets(view, ui.selectedId).length) tip("blindFire");
+  if (ui.mode === "fire" && crystalTargets(view, ui.selectedId).length) tip("blastCrystals");
   if (ui.mode === "move" && crushingMoves(view, ui.selectedId).length) tip("crystals");
   terrainTips(view);
   siegeTips(view);
@@ -1255,10 +1277,12 @@ function render() {
     const style = ui.mode === "build" ? "build" : MODES[ui.mode].style;
     let targets = targetsFor(view, ui.mode, ui.selectedId);
     if (ui.mode === "fire") {
-      // Hexes out of sight can be fired into blind; they show fainter.
+      // Hexes out of sight can be fired into blind; they show fainter. Crystal piles that can
+      // be blown up show yellow, like moves that would crush crystals.
       const blind = darkTargets(view, ui.selectedId);
-      overlays.push({ hexes: blind, style: "fireBlind" });
-      targets = targets.filter((k) => !blind.includes(k));
+      const piles = crystalTargets(view, ui.selectedId);
+      overlays.push({ hexes: blind, style: "fireBlind" }, { hexes: piles, style: "crush" });
+      targets = targets.filter((k) => !blind.includes(k) && !piles.includes(k));
     }
     if (ui.mode === "move") {
       // Moves that can only be made by driving over crystals (destroying them) show yellow.

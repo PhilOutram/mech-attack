@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.49";
+} from "./hex.js?v=0.50";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -625,6 +625,20 @@ export function attackTargets(view, unitId) {
     .map((t) => t.id);
 }
 
+// Crystal piles the unit can blow up (Phil, 29 October 2026): piles in sight and in range of
+// a unit whose attack hits ground units. Crystals are unstable, so a shot destroys the whole
+// pile, and it takes the unit's attack for the turn. Provisional: only a shot aimed at the
+// pile destroys it (a cluster bomb's splash and a sonic boom passing over leave piles alone),
+// and only piles the player can see now can be aimed at.
+export function crystalTargets(view, unitId) {
+  const unit = view.units[unitId];
+  const reach = unit && firingReach(view, unit);
+  if (!reach || !view.rules.crystals.blastable) return [];
+  const hits = unitStats(view, unit).hits || "ground";
+  if (hits === "air") return [];
+  return Object.keys(view.crystals).filter((k) => view.visible[k] && reach(k));
+}
+
 // Hexes the unit can fire into blind (Phil, 29 October 2026): hexes in range that the player
 // cannot see. Whatever is there, if anything, is hit.
 export function darkTargets(view, unitId) {
@@ -755,6 +769,7 @@ export function legalActions(state, player = state.current) {
       actions.push({ type: "attack", unitId: id, targetId });
     }
     for (const at of darkTargets(view, id)) actions.push({ type: "attack", unitId: id, at });
+    for (const at of crystalTargets(view, id)) actions.push({ type: "blast", unitId: id, at });
     for (const targetId of healTargets(view, id)) {
       actions.push({ type: "heal", unitId: id, targetId });
     }
@@ -787,6 +802,7 @@ export function legalActions(state, player = state.current) {
 const HANDLERS = {
   move: applyMove,
   attack: applyAttack,
+  blast: applyBlast,
   heal: applyHeal,
   harvest: applyHarvest,
   unload: applyUnload,
@@ -1051,6 +1067,20 @@ function applyAttack(state, { unitId, targetId, at }, actor) {
     }
     hit(state, unit, attackBack);
   }
+}
+
+// A shot at a crystal pile: the whole pile is destroyed, and the shot is spent.
+function applyBlast(state, { unitId, at }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  if (!crystalTargets(viewFor(state, actor), unitId).includes(at)) {
+    illegal(`${unitId} cannot blow up crystals at ${at}`);
+  }
+  const stats = unitStats(state, unit);
+  finishAction(unit);
+  if (stats.reload) unit.cooldown = stats.reload + 1;
+  const pile = state.crystals[at];
+  delete state.crystals[at];
+  state.events.push({ type: "blast", unitId, at, amount: pile.amount });
 }
 
 // Return fire: a target with a short range attacked from an adjacent hex hits back once,

@@ -1,8 +1,18 @@
-export const VERSION = "v0.49";
+export const VERSION = "v0.50";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.50",
+    date: "2026-10-29",
+    notes: [
+      "Units that can hit ground units can blow up a crystal pile in range: the whole pile " +
+        "goes, and it uses the unit's attack. The AI blows up piles on your side.",
+      "New rank: Supreme Commander (Insane) against The Overseer, which moves first with a " +
+        "big head start.",
+    ],
+  },
   {
     version: "v0.49",
     date: "2026-10-29",

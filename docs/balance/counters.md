@@ -4,19 +4,19 @@ Produced by `node tools/matchups.mjs --games 8`. For each enemy unit and each un
 
 | Enemy unit | Best answers (score) | Worst answer (score) |
 |---|---|---|
-| Scout Bike | Attack Helicopter (1), Blast Cannon (0.96), Tank (0.93) | Infantry (-0.5) |
-| Tank | Attack Helicopter (1), Heavy Cannon (0.92), Turret (0.69) | Scout Bike (-1) |
-| Heavy Cannon | Attack Helicopter (1), Heavy Cannon (0.17), Turret (0.06) | Infantry (-1) |
-| Artillery | Attack Helicopter (1), Tank (0.75), Heavy Cannon (0.73) | Scout Bike (-0.66) |
-| Light Harvester | Scout Bike (1), Attack Helicopter (1), Tank (0.94) | Anti-Aircraft Jeep (0) |
+| Scout Bike | Attack Helicopter (1), Tank (0.96), Heavy Cannon (0.93) | Infantry (-0.39) |
+| Tank | Attack Helicopter (1), Heavy Cannon (0.83), Turret (0.79) | Scout Bike (-1) |
+| Heavy Cannon | Attack Helicopter (1), Turret (0.48), Heavy Cannon (0) | Tank (-1) |
+| Artillery | Attack Helicopter (1), Heavy Cannon (0.88), Tank (0.75) | Scout Bike (-0.7) |
+| Light Harvester | Scout Bike (1), Tank (1), Attack Helicopter (1) | Anti-Aircraft Jeep (0) |
 | Spotter Drone | Infantry (1), Anti-Aircraft Jeep (0.95), Fighter (0.93) | Scout Bike (0) |
 | Infantry | Tank (1), Heavy Cannon (1), Turret (1) | Fighter (-1) |
-| Transporter | Tank (1), Attack Helicopter (1), Scout Bike (0.92) | Turret (0) |
+| Transporter | Attack Helicopter (1), Tank (0.96), Scout Bike (0.92) | Turret (0) |
 | Chinook | Infantry (0.88), Scout Bike (0), Tank (0) | Scout Bike (0) |
-| Turret | Attack Helicopter (1), Turret (0), Anti-Aircraft Jeep (0) | Infantry (-1) |
-| Blast Cannon | Attack Helicopter (1), Heavy Cannon (0.67), Tank (0.42) | Scout Bike (-0.89) |
-| Sonic Tank | Heavy Cannon (1), Tank (0.92), Attack Helicopter (0.88) | Infantry (-0.75) |
-| Anti-Aircraft Jeep | Tank (1), Infantry (0.93), Heavy Cannon (0.54) | Attack Helicopter (-0.68) |
-| Attack Helicopter | Fighter (0.94), Anti-Aircraft Jeep (0.68), Attack Helicopter (0) | Scout Bike (-1) |
+| Turret | Attack Helicopter (1), Turret (0), Sonic Tank (0) | Infantry (-1) |
+| Blast Cannon | Attack Helicopter (1), Tank (0.92), Heavy Cannon (0.67) | Scout Bike (-0.68) |
+| Sonic Tank | Tank (1), Heavy Cannon (1), Blast Cannon (0.67) | Infantry (-0.75) |
+| Anti-Aircraft Jeep | Tank (0.93), Infantry (0.93), Heavy Cannon (0.71) | Attack Helicopter (-0.69) |
+| Attack Helicopter | Fighter (0.88), Anti-Aircraft Jeep (0.75), Attack Helicopter (0) | Scout Bike (-1) |
 | Fighter | Infantry (1), Scout Bike (0), Tank (0) | Attack Helicopter (-1) |
 | Light Medic | Scout Bike (1), Tank (1), Attack Helicopter (1) | Turret (0) |

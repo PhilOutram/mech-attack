@@ -173,6 +173,22 @@ describe("AI targets", () => {
   });
 });
 
+describe("AI and crystal piles", () => {
+  test("it blows up a pile on the enemy's side, not one on its own", () => {
+    // Blue's factory is at the bottom (0,6), green's at the top (0,-6).
+    const s = scenario({
+      units: [unit("t", "tank", BLUE, "0,0")],
+      crystals: { "0,-2": { amount: 60 }, "0,2": { amount: 70 } },
+      playerCrystals: [0, 100],
+    });
+    const keen = { ...DEFAULT_PERSONALITY, wreckPiles: 1 };
+    assert.deepEqual(chooseAction(viewFor(s, BLUE), keen),
+      { type: "blast", unitId: "t", at: "0,-2" });
+    const action = chooseAction(viewFor(s, BLUE), { ...keen, wreckPiles: 0 });
+    assert.notEqual(action.type, "blast", "a personality without the gene leaves piles alone");
+  });
+});
+
 describe("AI and factories", () => {
   test("infantry move next to an unused factory, then break in the next turn", () => {
     const factory = unit("n", "factory", null, "0,0", { upgrades: [] });
