@@ -7,30 +7,30 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.52";
-import { mapById, seededRandom } from "./maps.js?v=0.52";
+import { RULES } from "./rules-config.js?v=0.53";
+import { mapById, seededRandom } from "./maps.js?v=0.53";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.52";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.52";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.52";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.52";
-import { distance } from "./hex.js?v=0.52";
+} from "./engine.js?v=0.53";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.53";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.53";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.53";
+import { distance } from "./hex.js?v=0.53";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-  upgradeImage, factoryImage,
-} from "./board.js?v=0.52";
-import { confirmDialog } from "./dialog.js?v=0.52";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.52";
-import { showTip, showNote } from "./tips.js?v=0.52";
+  upgradeImage, factoryImage, tokenImage, hexCentre,
+} from "./board.js?v=0.53";
+import { confirmDialog } from "./dialog.js?v=0.53";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.53";
+import { showTip, showNote } from "./tips.js?v=0.53";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.52";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.52";
+} from "./campaign.js?v=0.53";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.53";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -42,11 +42,13 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.52";
+const ASSET_VERSION = "0.53";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
-// A moving unit hops one hex at a time along its route, this long per hex.
-const HOP_MS = 90;
+// A move is shown by gliding the unit along its route in this long, about the length of the
+// movement sounds, each step taking an equal share (Phil, 29 October 2026).
+const MOVE_MS = 1500;
+const SVG_NS = "http://www.w3.org/2000/svg";
 // How long a banner such as "60 crystals unloaded" stays over the board (a tap anywhere
 // clears it sooner), the "Round 5" banner at the start of your turn, and the one naming your
 // opponent at the start of a game.
@@ -863,16 +865,53 @@ async function showMoves(events, before, after) {
     if (e.type !== "move" || !e.path.length) continue;
     const unit = before.units[e.unitId] || after.units[e.unitId];
     if (!unit || !(seen(e.from) || e.path.some(seen))) continue;
-    let from = e.from;
-    for (const k of e.path) {
-      facing[unit.id] = facingAngle(from, k);
-      ui.moving = { unit, at: k, hidden: unit.owner !== me && !seen(k) };
-      render();
-      await sleep(HOP_MS);
-      from = k;
-    }
+    const route = [e.from, ...e.path];
+    facing[unit.id] = facingAngle(route[route.length - 2], route[route.length - 1]);
+    if (prefersReducedMotion()) continue;
+    // The board is drawn once without the unit; then only its token moves.
+    ui.moving = { unit, at: e.from, hidden: true };
+    render();
+    const token = document.createElementNS(SVG_NS, "g");
+    token.innerHTML = tokenImage(unit);
+    els.root.appendChild(token);
+    // A Green unit shows only on hexes you can see.
+    const shown = (k) => unit.owner === me || seen(k);
+    await glide(route, MOVE_MS / e.path.length, (x, y, angle, k) => {
+      token.setAttribute("transform", `translate(${x} ${y}) rotate(${angle})`);
+      token.style.visibility = shown(k) ? "visible" : "hidden";
+    });
+    token.remove();
     ui.moving = null;
   }
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// Runs once per screen frame until the route is done: draw(x, y, angle, hex) with the token's
+// position, interpolated in a straight line between hex centres, each step taking stepMs, and
+// the way it faces on that step; hex is the hex it is nearer.
+function glide(route, stepMs, draw) {
+  const steps = route.length - 1;
+  const total = stepMs * steps;
+  return new Promise((resolve) => {
+    let start = null;
+    const frame = (now) => {
+      start ??= now;
+      const t = Math.min(now - start, total);
+      const step = Math.min(steps - 1, Math.floor(t / stepMs));
+      const share = t / stepMs - step;
+      const [from, to] = [route[step], route[step + 1]];
+      const [ax, ay] = hexCentre(from);
+      const [bx, by] = hexCentre(to);
+      draw(ax + (bx - ax) * share, ay + (by - ay) * share, facingAngle(from, to),
+        share < 0.5 ? from : to);
+      if (t < total) requestAnimationFrame(frame);
+      else resolve();
+    };
+    requestAnimationFrame(frame);
+  });
 }
 
 function sleep(ms) {

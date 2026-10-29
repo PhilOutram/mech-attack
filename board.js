@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.52";
-import { unitStats, defenceOf } from "./engine.js?v=0.52";
+import { parseKey, toPixel } from "./hex.js?v=0.53";
+import { unitStats, defenceOf } from "./engine.js?v=0.53";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -129,6 +129,13 @@ export function facingAngle(from, to) {
   const [ax, ay] = hexCentre(from);
   const [bx, by] = hexCentre(to);
   return Math.atan2(bx - ax, ay - by) * DEGREES_PER_RADIAN;
+}
+
+// A unit's token on its own, centred on (0, 0), for showing a move: the game screen glides
+// and turns it with a transform instead of redrawing the board for every step.
+export function tokenImage(unit) {
+  const size = HEX_HEIGHT * UNIT_SCALE;
+  return image(unitImage(unit.type, unit.owner), 0, 0, size, size);
 }
 
 export function hexCentre(k) {
