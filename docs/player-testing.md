@@ -144,7 +144,9 @@ first player; steps 2 to 4 need the numbers above.
 ## Open questions for Phil
 1. Address: `mech-attack.vercel.app` or a custom domain?
 2. How long to keep the data (provisional 12 months)?
-3. Is starving the enemy meant to work with today's rules (harvest near them, kill their
-   harvesters, stand on their piles), or do you want a rule that lets units destroy a pile?
-4. An "insane" rank above marshal, so wins there are rarer and more telling. That belongs
-   with the AI work, not this plan.
+
+Settled since (Phil, 29 October 2026), both handed to the AI and rules work:
+- Units should be able to blow up crystal piles, so starving the enemy is a real tactic.
+  The details (what it costs, whether a pile is destroyed outright or loses some crystals)
+  are still to be decided.
+- An "insane" rank above marshal, so wins there are rarer and more telling.
