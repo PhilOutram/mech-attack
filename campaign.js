@@ -2,7 +2,7 @@
 // on a bigger map with more to do. A mission sets the map, the starting units and crystals,
 // any rule changes, how the AI plays, and its objective; finishing one unlocks the next.
 // Progress is remembered on this device.
-import { unitsOf, factoriesOf } from "./engine.js?v=0.31";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.32";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;

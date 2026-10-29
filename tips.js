@@ -85,6 +85,46 @@ const TIPS = {
   }),
 };
 
+// "built:<unit type>": shown the first time you build that type. What it can do, from its
+// stats in the rules.
+const HITS = { ground: "ground units", air: "air units only", both: "ground and air units" };
+const BUILT_PREFIX = "built:";
+
+function builtTip(type, rules) {
+  const s = rules.units[type];
+  const [near, far] = s.range || [];
+  const range = near === far ? `${near}` : `${near} to ${far}`;
+  const parts = [`Move ${s.move}, defence ${s.defence}.`];
+  if (s.attack) {
+    parts.push(`Attack ${s.attack} at range ${range}, hitting ${HITS[s.hits || "ground"]}.`);
+  }
+  if (s.air) parts.push("It flies over everything; only attacks that hit air can touch it.");
+  if (s.storage) {
+    parts.push(`It carries up to ${s.storage} crystals: drive next to a pile and tap Harvest ` +
+      "(then the pile, if there are several). Next turn, bring it back next to one of your " +
+      "factories and it unloads.");
+  }
+  if (s.healing) {
+    parts.push("Move it next to a damaged unit and tap Repair to restore a life.");
+  }
+  if (s.captures) parts.push("Move it into a factory to capture it.");
+  if (s.carries) {
+    parts.push(`It carries up to ${s.carries} Infantry: move them onto it to board.`);
+  }
+  if (s.needsSetup) parts.push("It must Set up before it can fire.");
+  if (s.splash) parts.push("Its blast also hits enemies next to the target.");
+  if (s.line) parts.push("Its sonic boom hits every enemy along a straight line.");
+  if (s.reload) parts.push("It fires every other turn.");
+  parts.push("New units can act from your next turn.");
+  return { title: `New unit: ${s.name}`, text: parts.join(" ") };
+}
+
+function tipFor(id) {
+  if (TIPS[id]) return TIPS[id];
+  if (!id.startsWith(BUILT_PREFIX)) return null;
+  return (rules) => builtTip(id.slice(BUILT_PREFIX.length), rules);
+}
+
 const queue = [];
 let showing = false;
 
@@ -114,7 +154,7 @@ function store(key, value) {
 
 // Shows the tip with this id, unless it has been seen or tips are off.
 export function showTip(id, rules) {
-  if (!TIPS[id] || tipsOff() || seenList().includes(id) || queue.includes(id)) return;
+  if (!tipFor(id) || tipsOff() || seenList().includes(id) || queue.includes(id)) return;
   queue.push(id);
   if (!showing) next(rules);
 }
@@ -140,7 +180,7 @@ function next(rules) {
   }
   showing = true;
   if (typeof item === "string") store(SEEN_KEY, JSON.stringify([...seenList(), item]));
-  const { title, text } = typeof item === "string" ? TIPS[item](rules) : item;
+  const { title, text } = typeof item === "string" ? tipFor(item)(rules) : item;
   const overlay = document.getElementById("tip-dialog");
   const ok = document.getElementById("tip-ok");
   const hide = document.getElementById("tip-hide");

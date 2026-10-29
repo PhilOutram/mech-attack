@@ -1,23 +1,23 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.31";
-import { mapById, seededRandom } from "./maps.js?v=0.31";
+import { RULES } from "./rules-config.js?v=0.32";
+import { mapById, seededRandom } from "./maps.js?v=0.32";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.31";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.31";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.31";
-import { distance } from "./hex.js?v=0.31";
+} from "./engine.js?v=0.32";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.32";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.32";
+import { distance } from "./hex.js?v=0.32";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.31";
-import { confirmDialog } from "./dialog.js?v=0.31";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.31";
-import { showTip, showNote } from "./tips.js?v=0.31";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.31";
+} from "./board.js?v=0.32";
+import { confirmDialog } from "./dialog.js?v=0.32";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.32";
+import { showTip, showNote } from "./tips.js?v=0.32";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.32";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -28,13 +28,15 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.31";
+const ASSET_VERSION = "0.32";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
 const HOP_MS = 90;
-// How long a banner such as "60 crystals unloaded" stays over the board.
+// How long a banner such as "60 crystals unloaded" stays over the board, and the longer
+// "Round 5" banner at the start of your turn.
 const BANNER_MS = 1000;
+const ROUND_BANNER_MS = 2000;
 // How long End turn flashes once every unit has done all it can this turn.
 const END_TURN_FLASH_MS = 3000;
 const EFFECT_MS = 500;
@@ -485,6 +487,7 @@ async function runAiTurn() {
   if (!state.result) say(`Round ${state.round}: your turn.`);
   render();
   if (state.result) showGameOver();
+  else showBanner(`Round ${state.round}`, ROUND_BANNER_MS);
 }
 
 // Shows each move hex by hex along its route, turning the unit to face the way it goes. A
@@ -588,6 +591,7 @@ function showEvents(events, before, after) {
     } else if (e.type === "build" && (after.units[e.unitId]?.owner === HUMAN || seen(e.at))) {
       any = true;
       lines.push(`${unitName(after, e.unitId)} built.`);
+      if (after.units[e.unitId]?.owner === HUMAN) tip(`built:${e.unitType}`);
     } else if (e.type === "heal" && seen(after.units[e.unitId]?.at)) {
       lines.push(`${unitName(after, e.targetId)} repaired.`);
     } else if (e.type === "capture" && (seen(e.at) || e.from === HUMAN)) {
@@ -638,7 +642,7 @@ function nudgeEndTurn() {
 // A short message over the board, gone after BANNER_MS.
 let bannerTimer = null;
 
-function showBanner(text) {
+function showBanner(text, ms = BANNER_MS) {
   els.banner.textContent = text;
   els.banner.hidden = false;
   // Restart the fade-in when banners come one after another.
@@ -646,7 +650,7 @@ function showBanner(text) {
   void els.banner.offsetWidth;
   els.banner.classList.add("show");
   clearTimeout(bannerTimer);
-  bannerTimer = setTimeout(() => { els.banner.hidden = true; }, BANNER_MS);
+  bannerTimer = setTimeout(() => { els.banner.hidden = true; }, ms);
 }
 
 function flash(effects) {
