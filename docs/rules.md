@@ -69,7 +69,7 @@ Settled with Phil, 28 October 2026: a factory starts out building light ground u
 | Airfield | 100 | Attack Helicopter, Fighter, Spotter Drone, Chinook (provisional) |
 | Crystal lab | 60 | Makes 10 crystals at the end of each of its owner's turns (Phil, 29 October 2026; cost and income provisional) |
 
-A unit's `needs` stat names the upgrade it needs (`factoryUpgrades` in the config). Buying an upgrade is not a unit's action and can happen any time in your turn. The factory shows H, A and L for its upgrades.
+A unit's `needs` stat names the upgrade it needs (`factoryUpgrades` in the config). Buying an upgrade is not a unit's action and can happen any time in your turn. A factory shows each upgrade as a badge on its tile: a helipad (Airfield), a gear (Heavy works) and a crystal dome (Crystal lab); placeholders until Phil's art is ready (`docs/art-brief-factory-upgrades.md`). The crystal count shows what Crystal labs add each turn.
 
 ### Factories are overrun, not destroyed
 Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, and only Infantry can capture ("overrun") a factory. Troops are weak and vulnerable and need looking after; a Transporter or Chinook can carry them, for more money.

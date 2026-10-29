@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.40";
-import { unitStats, defenceOf } from "./engine.js?v=0.40";
+import { parseKey, toPixel } from "./hex.js?v=0.41";
+import { unitStats, defenceOf } from "./engine.js?v=0.41";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -27,8 +27,19 @@ export const PLAYER_COLOURS = {
 };
 // Ring round an unused factory, which belongs to nobody.
 const NEUTRAL_RING = "#b9b2a8";
-// Factory upgrade letters shown on the factory: H = Heavy works, A = Airfield, L = Crystal lab.
-const UPGRADE_LETTERS = { heavyWorks: "H", airfield: "A", lab: "L" };
+// Factory upgrades show as badges on the factory tile, each in its own corner (as shares of
+// the hex: across, down), so a factory's upgrades can be read at a glance.
+const UPGRADE_BADGES = {
+  airfield: { file: "upgrade-airfield", at: [0.42, -0.3] },
+  heavyWorks: { file: "upgrade-heavy-works", at: [-0.42, -0.3] },
+  lab: { file: "upgrade-lab", at: [0, 0.36] },
+};
+const BADGE_SCALE = 0.42;
+
+// The badge image for a factory upgrade.
+export function upgradeImage(upgrade) {
+  return `units/${UPGRADE_BADGES[upgrade].file}.svg`;
+}
 
 // Plain fills used when no tile image is available.
 const TERRAIN_FILL = {
@@ -263,8 +274,11 @@ function drawUnits(view, selectedId, facing, moving) {
       const size = HEX_SIZE * 2 * FACTORY_SCALE;
       out += image("units/factory.svg", x, y, size, size, 'clip-path="url(#hex-clip)"');
       out += polygon(unit.at, { scale: SELECTED_INSET, stroke: ring, width: 6 });
-      const letters = (unit.upgrades || []).map((u) => UPGRADE_LETTERS[u]).join(" ");
-      if (letters) out += label(letters, x, y + HEX_HEIGHT * 0.36, "board-label upgrade-label");
+      for (const upgrade of unit.upgrades || []) {
+        const { at: [dx, dy] } = UPGRADE_BADGES[upgrade];
+        const badge = HEX_HEIGHT * BADGE_SCALE;
+        out += image(upgradeImage(upgrade), x + HEX_SIZE * dx, y + HEX_HEIGHT * dy, badge, badge);
+      }
     } else {
       const size = HEX_HEIGHT * UNIT_SCALE;
       // Units face the way they last moved; before that, Green's face down the board.
@@ -337,7 +351,8 @@ const preloaded = [];
 
 export function preloadArt() {
   if (preloaded.length) return;
-  const files = ["units/factory.svg", "units/crystals.svg", "units/explosion.svg"];
+  const files = ["units/factory.svg", "units/crystals.svg", "units/explosion.svg",
+    ...Object.keys(UPGRADE_BADGES).map(upgradeImage)];
   for (const type in UNIT_FILES) {
     for (const owner in PLAYER_COLOURS) files.push(unitImage(type, owner));
   }

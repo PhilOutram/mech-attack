@@ -1,13 +1,17 @@
 // App-styled confirmation dialog, used instead of the browser's confirm() box.
 // confirmDialog resolves true when the player chooses the confirm button, false otherwise.
-// With cancel null there is only the confirm button (a message to acknowledge).
+// With cancel null there is only the confirm button (a message to acknowledge). extra: HTML
+// the app builds itself (never text from elsewhere), shown under the text.
 
-export function confirmDialog({ title, text, confirm = "OK", cancel = "Cancel" }) {
+export function confirmDialog({ title, text, confirm = "OK", cancel = "Cancel", extra = "" }) {
   const overlay = document.getElementById("confirm-dialog");
   const yes = document.getElementById("confirm-yes");
   const no = document.getElementById("confirm-no");
   document.getElementById("confirm-title").textContent = title;
   document.getElementById("confirm-text").textContent = text;
+  const more = document.getElementById("confirm-extra");
+  more.innerHTML = extra;
+  more.hidden = !extra;
   yes.textContent = confirm;
   no.textContent = cancel || "";
   no.hidden = cancel === null;

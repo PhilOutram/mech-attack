@@ -1,25 +1,28 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.40";
-import { mapById, seededRandom } from "./maps.js?v=0.40";
+import { RULES } from "./rules-config.js?v=0.41";
+import { mapById, seededRandom } from "./maps.js?v=0.41";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture,
   STATE_FORMAT,
-} from "./engine.js?v=0.40";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.40";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.40";
-import { distance } from "./hex.js?v=0.40";
+} from "./engine.js?v=0.41";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.41";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.41";
+import { distance } from "./hex.js?v=0.41";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.40";
-import { confirmDialog } from "./dialog.js?v=0.40";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.40";
-import { showTip, showNote } from "./tips.js?v=0.40";
-import { MISSIONS, missionRules, missionMap, markMissionDone } from "./campaign.js?v=0.40";
-import { levelById, levelSetup } from "./difficulty.js?v=0.40";
+  upgradeImage,
+} from "./board.js?v=0.41";
+import { confirmDialog } from "./dialog.js?v=0.41";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.41";
+import { showTip, showNote } from "./tips.js?v=0.41";
+import {
+  MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
+} from "./campaign.js?v=0.41";
+import { levelById, levelSetup } from "./difficulty.js?v=0.41";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -30,7 +33,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.40";
+const ASSET_VERSION = "0.41";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -304,14 +307,32 @@ function missionOf(s) {
   return s && s.campaign ? MISSIONS[s.campaign.mission] : null;
 }
 
-// The mission's story and objective before it starts. Resolves false if the player goes back.
+// The mission's story and objective before it starts, with the units it brings in (the first
+// mission's are your first units). Resolves false if the player goes back.
 function showBriefing(m, index) {
+  const heading = index === 0 ? "Your units" : "New this mission";
   return confirmDialog({
     title: `Mission ${index + 1}: ${m.title}`,
     text: `${m.story}\n\nObjective: ${m.objective}`,
     confirm: "Start",
     cancel: "Back",
+    extra: unlockCards(heading, m.newUnits, m.newUpgrades),
   });
+}
+
+// Cards for units and factory upgrades a mission unlocks: picture, name and what it is for.
+// Empty when there are none.
+function unlockCards(heading, units, upgrades) {
+  if (!units.length && !upgrades.length) return "";
+  const card = (image, name, role) => `<li class="unlock"><img src="${image}" alt="">` +
+    `<div><b>${name}</b><span>${role}</span></div></li>`;
+  const cards = [
+    ...units.map((type) => card(unitImage(type, HUMAN), RULES.units[type].name,
+      UNIT_ROLES[type])),
+    ...upgrades.map((upgrade) => card(upgradeImage(upgrade),
+      RULES.factoryUpgrades[upgrade].name, UPGRADE_ROLES[upgrade])),
+  ];
+  return `<h3 class="unlock-heading">${heading}</h3><ul class="unlocks">${cards.join("")}</ul>`;
 }
 
 // A mission whose objective is met is won at once; one that can fail is lost at once.
@@ -348,6 +369,7 @@ function findElements() {
     turn: $("game-turn"), crystals: $("game-crystals"), endTurn: $("end-turn"),
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
+    overUnlocks: $("game-over-unlocks"),
     again: $("play-again"), newMap: $("play-new-map"), toTitle: $("game-over-home"),
     quit: $("quit-game"), sound: $("sound-toggle"), objective: $("objective-btn"),
     buildInfo: $("build-info"),
@@ -1049,7 +1071,12 @@ function renderBar(view) {
   els.round.innerHTML = `<span class="map-name">${name} · </span>Round ${view.round}`;
   els.turn.textContent = view.current === HUMAN ? "Your turn" : `${opponentName()}'s turn`;
   els.turn.className = view.current === HUMAN ? "turn-blue" : "turn-green";
-  els.crystals.textContent = view.players[HUMAN].crystals;
+  // Crystals in store, and what Crystal labs add at the end of each of your turns.
+  const lab = view.rules.factoryUpgrades.lab;
+  const labs = Object.values(view.units).filter((u) => u.owner === HUMAN &&
+    (u.upgrades || []).includes("lab")).length;
+  els.crystals.innerHTML = `${view.players[HUMAN].crystals}` +
+    (labs ? `<small class="crystal-income">+${labs * lab.income}/turn</small>` : "");
   els.endTurn.disabled = !myTurn();
 }
 
@@ -1101,12 +1128,13 @@ function statLine(stats) {
   return parts.join(" · ");
 }
 
-// What a factory upgrade does, e.g. "Unlocks Heavy Cannon, Blast Cannon, Sonic Tank".
+// What a factory upgrade does, e.g. "Builds Heavy Cannon, Blast Cannon, Sonic Tank", for the
+// units this game allows.
 function upgradeEffect(upgrade) {
   const { income } = RULES.factoryUpgrades[upgrade];
-  if (income) return `Makes ${income} crystals every turn`;
-  return `Unlocks ${Object.values(RULES.units).filter((s) => s.needs === upgrade)
-    .map((s) => s.name).join(", ")}`;
+  if (income) return `+${income} crystals every turn`;
+  return `Builds ${buildableTypes(state).filter((t) => RULES.units[t].needs === upgrade)
+    .map((t) => RULES.units[t].name).join(", ")}`;
 }
 
 // A factory's panel: its upgrades, then the units it can build. Unused and enemy factories
@@ -1123,9 +1151,11 @@ function factoryPanel(view, unit, head) {
   const crystals = view.players[HUMAN].crystals;
   const upgradeOrders = upgradeOptions(view, unit.id).map((upgrade) => {
     const { name: upgradeName, cost } = RULES.factoryUpgrades[upgrade];
-    const label = `Add ${upgradeName}<span class="cost">${cost}</span>`;
+    const label = `<img src="${upgradeImage(upgrade)}" alt="">Add ${upgradeName}` +
+      `<small class="upgrade-effect">${upgradeEffect(upgrade)}</small>` +
+      `<span class="cost">${cost}</span>`;
     return orderButton("upgrade", label, myTurn() && cost <= crystals, false,
-      ` data-type="${upgrade}" title="${upgradeEffect(upgrade)}"`);
+      ` data-type="${upgrade}"`);
   }).join("");
   const buildOrders = buildableTypes(view).filter((type) => factoryBuilds(view, unit, type))
     .map((type) => {
@@ -1181,10 +1211,10 @@ function renderPanel(view) {
   if (stats.isFactory) {
     const home = view.players.some((p) => p.factoryId === unit.id);
     name = `${OWNER_WORDS[unit.owner]} ${home ? "home factory" : "factory"}`;
-    const upgrades = unit.upgrades.map((u) => RULES.factoryUpgrades[u].name);
+    const upgrades = unit.upgrades.map((u) => u === "lab"
+      ? `Crystal lab: +${RULES.factoryUpgrades.lab.income} crystals a turn`
+      : RULES.factoryUpgrades[u].name);
     status.push(upgrades.length ? upgrades.join(" · ") : "Light units only");
-    const lab = view.rules.factoryUpgrades.lab;
-    if (unit.upgrades.includes("lab")) status.push(`Makes ${lab.income} a turn`);
   }
   if (stats.storage) status.push(`Carrying ${unit.carrying}/${stats.storage}`);
   if (stats.carries) {
@@ -1246,6 +1276,7 @@ function showGameOver() {
   els.again.textContent = m ? "Retry mission" : "Replay this map";
   els.newMap.textContent = m ? "Next mission" : "New game";
   els.newMap.hidden = false;
+  els.overUnlocks.hidden = true;
   if (m) {
     const index = state.campaign.mission;
     const last = index === MISSIONS.length - 1;
@@ -1258,6 +1289,12 @@ function showGameOver() {
         : " The next mission is unlocked.";
     }
     els.newMap.hidden = !won || last;
+    // What winning unlocks: the units new in the next mission.
+    const next = MISSIONS[index + 1];
+    const cards = won && next ? unlockCards(`Unlocked for mission ${index + 2}`,
+      next.newUnits, next.newUpgrades) : "";
+    els.overUnlocks.innerHTML = cards;
+    els.overUnlocks.hidden = !cards;
   }
   els.overText.textContent = text;
   els.over.hidden = false;

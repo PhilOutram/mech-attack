@@ -3,9 +3,9 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.40";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.40";
-import { distance, cheapestPaths } from "./hex.js?v=0.40";
+import { RULES } from "./rules-config.js?v=0.41";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.41";
+import { distance, cheapestPaths } from "./hex.js?v=0.41";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;
@@ -16,7 +16,9 @@ export const CAMPAIGN_NAME = "Red Dust";
 // Mission fields:
 // - mapId, and terrain(map, rules) (optional): changes made to the generated map.
 // - setup: starting units, crystals and factory upgrades (see newGame in engine.js).
-// - rules: rule changes; allowedUnits and allowedUpgrades apply to both sides.
+// - newUnits, newUpgrades: what the mission unlocks (Phil, 29 October 2026). Once unlocked,
+//   a unit or upgrade can be built in every later mission, by both sides.
+// - rules: other rule changes.
 // - ai: "default" is the gentler hand-tuned AI, "evolved" one of the strongest; aiMix
 //   (optional) replaces the units it builds, and aiGenes (optional) changes other genes.
 // - tip (optional): a top tip shown when the mission starts. noSurrender: no Demand surrender.
@@ -38,10 +40,31 @@ const SCOUTS_TO_DESTROY = 8;
 const HELICOPTERS_TO_DESTROY = 5;
 const TANKS_TO_DESTROY = 5;
 
-// What each mission lets both sides build: a few units at first, more as the campaign goes on.
-const BASIC_UNITS = ["infantry", "scoutBike", "lightHarvester", "tank"];
-const SUPPORT_UNITS = [...BASIC_UNITS, "lightMedic"];
-const DEFENCE_UNITS = [...SUPPORT_UNITS, "turret"];
+// What each unit and upgrade is for, in a line, for the cards that show what a mission
+// unlocks.
+export const UNIT_ROLES = {
+  infantry: "Overruns factories. Cheap, and shoots down aircraft.",
+  scoutBike: "Fast scout that can carry crystals home.",
+  tank: "Your workhorse: tough, and hits hard.",
+  lightHarvester: "Carries 90 crystals home in one trip.",
+  lightMedic: "Repairs damaged units.",
+  artillery: "Long range, once set up.",
+  turret: "A fixed gun to guard your factory.",
+  chinook: "Flies a vehicle or two Infantry over anything.",
+  attackHelicopter: "Flies over everything to strike ground units.",
+  antiAircraftJeep: "Shoots down aircraft.",
+  transporter: "Carries two Infantry fast.",
+  blastCannon: "Cluster bomb: hits everything round its target.",
+  fighter: "Hunts enemy aircraft.",
+  spotterDrone: "A flying eye that sees far.",
+  sonicTank: "Sonic boom: hits every enemy in a line.",
+  heavyCannon: "The toughest gun on Kharon.",
+};
+export const UPGRADE_ROLES = {
+  lab: "A factory upgrade that makes crystals every turn.",
+  airfield: "A factory upgrade for building air units.",
+  heavyWorks: "A factory upgrade for building heavy units.",
+};
 
 const owns = (state, type) => unitsOf(state, HUMAN).some((u) => u.type === type);
 const holdsHome = (state) => state.units[state.players[HUMAN].factoryId]?.owner === HUMAN;
@@ -145,7 +168,8 @@ const MISSION_LIST = [
     steps: LANDFALL_STEPS,
     setup: { units: [Array(LANDFALL_INFANTRY).fill("infantry"), []],
       crystals: [LANDFALL_CRYSTALS, 0], unclaimedHome: [true, false] },
-    rules: { loseWithNoUnits: false, allowedUnits: BASIC_UNITS, allowedUpgrades: [] },
+    newUnits: ["infantry", "scoutBike", "tank"],
+    rules: { loseWithNoUnits: false },
     noSurrender: true,
     ai: "default",
     done: (state) => LANDFALL_STEPS.every((step) => step.done(state)),
@@ -160,7 +184,8 @@ const MISSION_LIST = [
       "and think about building a Crystal lab.",
     setup: { units: [["lightHarvester", "scoutBike"], ["lightHarvester", "scoutBike"]],
       crystals: [60, 50] },
-    rules: { allowedUnits: SUPPORT_UNITS, allowedUpgrades: ["lab"] },
+    newUnits: ["lightHarvester", "lightMedic"],
+    newUpgrades: ["lab"],
     ai: "default",
     // Green races for crystals here; it does not send Infantry at your factory yet.
     aiGenes: { captureFactories: 0 },
@@ -177,7 +202,7 @@ const MISSION_LIST = [
     goal: "Overrun Green's home factory",
     setup: { units: [["lightHarvester", "scoutBike", "tank", "tank", "infantry", "infantry"],
       ["lightHarvester", "scoutBike", "tank", "lightMedic"]], crystals: [80, 60] },
-    rules: { allowedUnits: SUPPORT_UNITS, allowedUpgrades: ["lab"] },
+    newUnits: ["artillery"],
     ai: "default",
     done: null,
   },
@@ -193,7 +218,7 @@ const MISSION_LIST = [
     setup: { units: [["lightHarvester", "tank", "turret", "turret"],
       ["lightHarvester", "tank", "tank", "scoutBike", "scoutBike", "infantry", "infantry",
         "transporter"]], crystals: [120, 150] },
-    rules: { allowedUnits: DEFENCE_UNITS, allowedUpgrades: ["lab"] },
+    newUnits: ["turret"],
     ai: "default",
     aiMix: { tank: 0.5, scoutBike: 0.3, infantry: 0.2 },
     done: (state) => holdsHome(state) && state.round > HOLD_ROUNDS,
@@ -217,8 +242,8 @@ const MISSION_LIST = [
     crystals: [150, 100],
     upgrades: [["airfield"], ["airfield"]] },
     // Both factories start with an Airfield, so both sides can build the air units.
-    rules: { allowedUnits: [...SUPPORT_UNITS, "chinook", "attackHelicopter", "antiAircraftJeep"],
-      allowedUpgrades: ["lab"] },
+    newUnits: ["chinook", "attackHelicopter", "antiAircraftJeep"],
+    newUpgrades: ["airfield"],
     ai: "default",
     done: null,
   },
@@ -234,7 +259,7 @@ const MISSION_LIST = [
     setup: { units: [["lightHarvester", "tank", "infantry", "infantry", "transporter"],
       ["lightHarvester", "scoutBike", "tank", "infantry", "transporter"]],
     crystals: [100, 80] },
-    rules: { allowedUnits: [...DEFENCE_UNITS, "transporter"], allowedUpgrades: ["lab"] },
+    newUnits: ["transporter"],
     ai: "default",
     done: (state) => factoriesOf(state, HUMAN)
       .filter((f) => f.id !== state.players[HUMAN].factoryId).length >= FACTORIES_TO_CAPTURE,
@@ -254,7 +279,8 @@ const MISSION_LIST = [
     setup: { units: [["lightHarvester", "blastCannon", "tank"],
       ["lightHarvester", "scoutBike", "scoutBike", "scoutBike", "scoutBike", "scoutBike"]],
     crystals: [100, 150], upgrades: [["heavyWorks"], []] },
-    rules: { allowedUnits: [...SUPPORT_UNITS, "blastCannon"], allowedUpgrades: ["lab"] },
+    newUnits: ["blastCannon"],
+    newUpgrades: ["heavyWorks"],
     ai: "default",
     aiMix: { scoutBike: 1 },
     done: (state) => greenLost(state, "scoutBike") >= SCOUTS_TO_DESTROY,
@@ -272,8 +298,7 @@ const MISSION_LIST = [
       ["lightHarvester", "tank", "attackHelicopter", "attackHelicopter", "attackHelicopter",
         "spotterDrone"]],
     crystals: [120, 150], upgrades: [[], ["airfield"]] },
-    rules: { allowedUnits: [...SUPPORT_UNITS, "antiAircraftJeep", "attackHelicopter", "fighter"],
-      allowedUpgrades: ["airfield", "lab"] },
+    newUnits: ["fighter", "spotterDrone"],
     ai: "default",
     aiMix: { attackHelicopter: 0.8, tank: 0.2 },
     done: (state) => greenLost(state, "attackHelicopter") >= HELICOPTERS_TO_DESTROY,
@@ -293,7 +318,7 @@ const MISSION_LIST = [
     setup: { units: [["lightHarvester", "sonicTank", "tank"],
       ["lightHarvester", "tank", "tank", "tank"]], crystals: [120, 150],
     upgrades: [["heavyWorks"], []] },
-    rules: { allowedUnits: [...SUPPORT_UNITS, "sonicTank"], allowedUpgrades: ["lab"] },
+    newUnits: ["sonicTank"],
     ai: "default",
     aiMix: { tank: 1 },
     done: (state) => greenLost(state, "tank") >= TANKS_TO_DESTROY,
@@ -310,7 +335,6 @@ const MISSION_LIST = [
       ["lightHarvester", "tank", "tank", "scoutBike", "scoutBike", "antiAircraftJeep",
         "attackHelicopter"]],
     crystals: [0, 150], noHome: [true, false] },
-    rules: { allowedUnits: [...SUPPORT_UNITS, "antiAircraftJeep"], allowedUpgrades: ["lab"] },
     noSurrender: true,
     ai: "default",
     done: (state) => factoryAt(state, farFactory(state.map))?.owner === HUMAN,
@@ -331,7 +355,7 @@ const MISSION_LIST = [
       ["lightHarvester", "lightHarvester", "scoutBike", "tank", "tank", "infantry", "turret",
         "turret", "artillery", "chinook", "fighter"]], crystals: [200, 200],
     upgrades: [[], ["lab", "heavyWorks", "airfield"]] },
-    rules: {},
+    newUnits: ["heavyCannon"],
     ai: "evolved",
     done: null,
   },
@@ -357,7 +381,19 @@ function withBoss(mission) {
   };
 }
 
-export const MISSIONS = MISSION_LIST.map(withBoss);
+// What each mission lets both sides build: everything unlocked so far.
+function withUnlocks(missions) {
+  let units = [];
+  let upgrades = [];
+  return missions.map((mission) => {
+    units = [...units, ...(mission.newUnits || [])];
+    upgrades = [...upgrades, ...(mission.newUpgrades || [])];
+    return { ...mission, newUnits: mission.newUnits || [], newUpgrades: mission.newUpgrades || [],
+      rules: { ...mission.rules, allowedUnits: units, allowedUpgrades: upgrades } };
+  });
+}
+
+export const MISSIONS = withUnlocks(MISSION_LIST.map(withBoss));
 
 // The map for a mission: the generated map with the mission's terrain changes.
 export function missionMap(mission, map, rules) {

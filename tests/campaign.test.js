@@ -137,3 +137,19 @@ test("in The Maid's March blue has no factory, and losing the VIP fails the miss
   const after = applyAction(missionGame(m), { type: "endTurn" });
   assert.equal(after.result, null, "having no factory does not lose the game");
 });
+
+test("units once unlocked stay available, and the campaign unlocks every unit", () => {
+  assert.deepEqual(MISSIONS[0].newUnits, ["infantry", "scoutBike", "tank"]);
+  MISSIONS.forEach((m, i) => {
+    for (const type of m.newUnits) assert.ok(m.rules.allowedUnits.includes(type), m.title);
+    if (i > 0) {
+      const before = MISSIONS[i - 1].rules;
+      for (const type of before.allowedUnits) assert.ok(m.rules.allowedUnits.includes(type));
+      for (const up of before.allowedUpgrades) assert.ok(m.rules.allowedUpgrades.includes(up));
+    }
+  });
+  const last = MISSIONS[MISSIONS.length - 1].rules;
+  const buildable = Object.keys(RULES.units).filter((type) => RULES.units[type].cost !== null);
+  assert.deepEqual([...last.allowedUnits].sort(), buildable.sort());
+  assert.deepEqual([...last.allowedUpgrades].sort(), Object.keys(RULES.factoryUpgrades).sort());
+});

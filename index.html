@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.40" />
+  <link rel="stylesheet" href="styles.css?v=0.41" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -113,6 +113,7 @@
       <div class="game-over-card">
         <h2 id="game-over-title"></h2>
         <p id="game-over-text"></p>
+        <div id="game-over-unlocks" hidden></div>
         <button id="play-again" class="start-btn" type="button">Replay this map</button>
         <button id="play-new-map" class="start-btn" type="button">New game</button>
         <button id="game-over-home" class="start-btn" type="button">Main menu</button>
@@ -125,6 +126,7 @@
       aria-describedby="confirm-text">
       <h2 id="confirm-title"></h2>
       <p id="confirm-text" class="confirm-text"></p>
+      <div id="confirm-extra" hidden></div>
       <div class="map-choices">
         <button id="confirm-no" class="start-btn" type="button"></button>
         <button id="confirm-yes" class="start-btn confirm-yes" type="button"></button>
@@ -144,6 +146,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.40" type="module"></script>
+  <script src="app.js?v=0.41" type="module"></script>
 </body>
 </html>

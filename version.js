@@ -1,8 +1,18 @@
-export const VERSION = "v0.40";
+export const VERSION = "v0.41";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.41",
+    date: "2026-10-29",
+    notes: [
+      "Campaign: units unlock mission by mission and stay unlocked. Each briefing shows the " +
+        "new units, and winning a mission shows what the next one unlocks.",
+      "Factory upgrades show as badges on the factory (placeholder art), the upgrade " +
+        "buttons say what each does, and the crystal count shows Crystal lab income.",
+    ],
+  },
   {
     version: "v0.40",
     date: "2026-10-29",

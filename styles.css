@@ -661,10 +661,6 @@ h1 {
   fill: #ff8a7a;
 }
 
-.upgrade-label {
-  fill: #ffd84a;
-}
-
 .cargo-label {
   fill: #fff4c2;
 }
@@ -1118,4 +1114,95 @@ h1 {
   margin: 0 0 0.8rem;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+/* Units a campaign mission unlocks: in its briefing and on the card after winning the one
+   before. */
+.unlock-heading {
+  margin: 0.6rem 0 0.4rem;
+  font-family: var(--title-font);
+  font-size: 0.85rem;
+  color: #ffd23f;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+}
+
+.unlocks {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.unlock {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(255, 210, 63, 0.45);
+  border-radius: 10px;
+  background: rgba(255, 210, 63, 0.07);
+  animation: unlock-in 0.4s ease-out both;
+}
+
+.unlock:nth-child(2) { animation-delay: 0.1s; }
+.unlock:nth-child(3) { animation-delay: 0.2s; }
+.unlock:nth-child(4) { animation-delay: 0.3s; }
+
+.unlock img {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+.unlock b {
+  display: block;
+  font-family: var(--title-font);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.unlock span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+@keyframes unlock-in {
+  from { opacity: 0; transform: translateY(0.4rem); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unlock { animation: none; }
+}
+
+/* A factory upgrade button: badge, name, what it does in small type underneath. */
+.order[data-order="upgrade"] {
+  flex-wrap: wrap;
+}
+
+.order[data-order="upgrade"] img {
+  width: 26px;
+  height: 26px;
+}
+
+.upgrade-effect {
+  flex-basis: 100%;
+  order: 3;
+  font-family: system-ui, sans-serif;
+  font-size: 0.72rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  text-align: left;
+}
+
+/* Crystal labs' income beside the crystal count. */
+.crystal-income {
+  margin-left: 0.3rem;
+  font-size: 0.75rem;
+  color: #7dffb0;
 }
