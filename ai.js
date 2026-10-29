@@ -12,8 +12,8 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard,
-} from "./engine.js?v=0.37";
-import { neighbourKeys, distance } from "./hex.js?v=0.37";
+} from "./engine.js?v=0.38";
+import { neighbourKeys, distance } from "./hex.js?v=0.38";
 
 // Score for an attack that costs no life now but sets up a combined attack this turn.
 const SETUP_ATTACK_SCORE = 1;

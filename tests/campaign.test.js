@@ -81,6 +81,13 @@ test("in Over the Mountains blue's home is cut off from Green by ground", () => 
   assert.equal(groundRoute(s, s.map.factories[BLUE], s.map.factories[GREEN]), false);
   assert.ok(unitsOf(s, BLUE).some((u) => u.type === "chinook"));
   assert.deepEqual(s.units[s.players[BLUE].factoryId].upgrades, ["airfield"]);
+  const helicopterBuilds = (state) => legalActions(state).some((a) =>
+    a.type === "build" && a.unitType === "attackHelicopter");
+  s.players[BLUE].crystals = 500;
+  assert.ok(helicopterBuilds(s), "blue's Airfield can build Attack Helicopters");
+  const green = applyAction(s, { type: "endTurn" });
+  green.players[GREEN].crystals = 500;
+  assert.equal(helicopterBuilds(green), false, "Green has no Airfield");
 });
 
 test("in The Pass the only way through the ridge is the pass", () => {
