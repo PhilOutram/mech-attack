@@ -629,6 +629,9 @@ h1 {
   display: block;
   touch-action: none;
   user-select: none;
+  /* Phones flash a square over a tapped shape, which looks wrong on a hex; the board shows
+     its own highlights instead. */
+  -webkit-tap-highlight-color: transparent;
   /* Pan and zoom move the drawn board as one layer (see showView in game.js). */
   transform-origin: 0 0;
   will-change: transform;
@@ -1312,4 +1315,14 @@ h1 {
   text-transform: none;
   letter-spacing: 0;
   color: #ffd23f;
+}
+
+/* A unit moving across the board: a copy of its token over the board, slid by a transform so
+   the phone's graphics hardware moves it (game.js floatingToken). */
+.moving-token {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  will-change: transform;
 }

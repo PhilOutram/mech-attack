@@ -7,30 +7,30 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.54";
-import { mapById, seededRandom } from "./maps.js?v=0.54";
+import { RULES } from "./rules-config.js?v=0.55";
+import { mapById, seededRandom } from "./maps.js?v=0.55";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.54";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.54";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.54";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.54";
-import { distance } from "./hex.js?v=0.54";
+} from "./engine.js?v=0.55";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.55";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.55";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.55";
+import { distance } from "./hex.js?v=0.55";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-  upgradeImage, factoryImage, tokenImage, hexCentre,
-} from "./board.js?v=0.54";
-import { confirmDialog } from "./dialog.js?v=0.54";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.54";
-import { showTip, showNote } from "./tips.js?v=0.54";
+  upgradeImage, factoryImage, tokenSize, hexCentre,
+} from "./board.js?v=0.55";
+import { confirmDialog } from "./dialog.js?v=0.55";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.55";
+import { showTip, showNote } from "./tips.js?v=0.55";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.54";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.54";
+} from "./campaign.js?v=0.55";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.55";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -42,13 +42,12 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.54";
+const ASSET_VERSION = "0.55";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
 // movement sounds, each step taking an equal share (Phil, 29 October 2026).
 const MOVE_MS = 1500;
-const SVG_NS = "http://www.w3.org/2000/svg";
 // How long a banner such as "60 crystals unloaded" stays over the board (a tap anywhere
 // clears it sooner), the "Round 5" banner at the start of your turn, and the one naming your
 // opponent at the start of a game.
@@ -869,21 +868,45 @@ async function showMoves(events, before, after) {
     const route = [e.from, ...e.path];
     facing[unit.id] = facingAngle(route[route.length - 2], route[route.length - 1]);
     if (prefersReducedMotion()) continue;
-    // The board is drawn once without the unit; then only its token moves.
-    ui.moving = { unit, at: e.from, hidden: true };
-    render();
-    const token = document.createElementNS(SVG_NS, "g");
-    token.innerHTML = tokenImage(unit);
-    els.root.appendChild(token);
+    // The board still shows the unit where it started, with nothing redrawn since the action,
+    // so the move starts with its sound. The token there is hidden, and a copy of it floats
+    // over the board, moved by the phone's graphics hardware like pan and zoom, until the
+    // board is drawn again at the end.
+    const parked = els.root.querySelector(`[data-unit="${unit.id}"]`);
+    if (parked) parked.style.visibility = "hidden";
+    const token = floatingToken(unit);
+    token.place(...hexCentre(e.from), facingAngle(route[0], route[1]));
     // A Green unit shows only on hexes you can see.
     const shown = (k) => unit.owner === me || seen(k);
+    token.img.style.visibility = shown(e.from) ? "visible" : "hidden";
     await glide(route, MOVE_MS / e.path.length, (x, y, angle, k) => {
-      token.setAttribute("transform", `translate(${x} ${y}) rotate(${angle})`);
-      token.style.visibility = shown(k) ? "visible" : "hidden";
+      token.place(x, y, angle);
+      token.img.style.visibility = shown(k) ? "visible" : "hidden";
     });
-    token.remove();
-    ui.moving = null;
+    token.img.remove();
   }
+}
+
+// A copy of a unit's token over the board, as a plain image positioned with a CSS transform:
+// place(x, y, angle) puts its centre on board point (x, y), turned by angle.
+function floatingToken(unit) {
+  const wrap = els.svg.parentElement;
+  const box = wrap.getBoundingClientRect();
+  const toScreen = els.root.getScreenCTM();
+  const size = tokenSize() * Math.hypot(toScreen.a, toScreen.b);
+  const img = document.createElement("img");
+  img.src = unitImage(unit.type, unit.owner);
+  img.alt = "";
+  img.className = "moving-token";
+  img.style.width = `${size}px`;
+  img.style.height = `${size}px`;
+  wrap.appendChild(img);
+  const place = (x, y, angle) => {
+    const at = new DOMPoint(x, y).matrixTransform(toScreen);
+    img.style.transform = `translate(${at.x - box.left - size / 2}px, ` +
+      `${at.y - box.top - size / 2}px) rotate(${angle}deg)`;
+  };
+  return { img, place };
 }
 
 function prefersReducedMotion() {

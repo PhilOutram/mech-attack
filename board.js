@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.54";
-import { unitStats, defenceOf } from "./engine.js?v=0.54";
+import { parseKey, toPixel } from "./hex.js?v=0.55";
+import { unitStats, defenceOf } from "./engine.js?v=0.55";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -131,11 +131,10 @@ export function facingAngle(from, to) {
   return Math.atan2(bx - ax, ay - by) * DEGREES_PER_RADIAN;
 }
 
-// A unit's token on its own, centred on (0, 0), for showing a move: the game screen glides
-// and turns it with a transform instead of redrawing the board for every step.
-export function tokenImage(unit) {
-  const size = HEX_HEIGHT * UNIT_SCALE;
-  return image(unitImage(unit.type, unit.owner), 0, 0, size, size);
+// A unit token's width and height in board units, for showing a move: the game screen glides
+// a copy of the token over the board instead of redrawing the board for every step.
+export function tokenSize() {
+  return HEX_HEIGHT * UNIT_SCALE;
 }
 
 export function hexCentre(k) {
@@ -322,7 +321,8 @@ function drawUnits(view, selectedId, facing, moving) {
       // Units face the way they last moved; before that, towards the enemy.
       const angle = facing[id] ?? startFacing(view, unit.owner);
       const turn = angle ? ` transform="rotate(${angle.toFixed(1)} ${x} ${y})"` : "";
-      out += image(unitImage(unit.type, unit.owner), x, y, size, size, `${turn}${opacity}`);
+      out += image(unitImage(unit.type, unit.owner), x, y, size, size,
+        `${turn}${opacity} data-unit="${id}"`);
       if (unit.setUp) out += label("SET", x, y - HEX_HEIGHT * 0.36, "board-label setup-label");
       if (unit.carrying > 0) {
         out += label(unit.carrying, x, y + HEX_HEIGHT * 0.42, "board-label crystal-label");
