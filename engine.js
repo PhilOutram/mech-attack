@@ -627,9 +627,9 @@ export function attackTargets(view, unitId) {
 
 // Crystal piles the unit can blow up (Phil, 29 October 2026): piles in sight and in range of
 // a unit whose attack hits ground units. Crystals are unstable, so a shot destroys the whole
-// pile, and it takes the unit's attack for the turn. Provisional: only a shot aimed at the
-// pile destroys it (a cluster bomb's splash and a sonic boom passing over leave piles alone),
-// and only piles the player can see now can be aimed at.
+// pile, and it takes the unit's attack for the turn. A cluster bomb's splash also destroys
+// piles next to where it lands; a sonic boom passing over a pile leaves it alone; only piles
+// the player can see now can be aimed at.
 export function crystalTargets(view, unitId) {
   const unit = view.units[unitId];
   const reach = unit && firingReach(view, unit);
@@ -1044,16 +1044,7 @@ function applyAttack(state, { unitId, targetId, at }, actor) {
     }
   }
 
-  // Cluster bomb: enemy units next to the target take a share of the attack.
-  if (stats.splash) {
-    const amount = Math.floor(attack * stats.splash);
-    for (const k of neighbourKeys(where)) {
-      const other = unitAt(state, k);
-      if (!other || !canTarget(state, unit, other)) continue;
-      state.events.push({ type: "splash", unitId, targetId: other.id, attack: amount });
-      hit(state, other, amount);
-    }
-  }
+  if (stats.splash) clusterBomb(state, unit, where);
 
   // Return fire is simultaneous: the target hits back even if this attack destroys it, so
   // starting an even fight gives no free shot. A unit fired on blind does not know who fired.
@@ -1069,7 +1060,27 @@ function applyAttack(state, { unitId, targetId, at }, actor) {
   }
 }
 
-// A shot at a crystal pile: the whole pile is destroyed, and the shot is spent.
+// Cluster bomb: enemy units next to where it lands take a share of the attack, and crystal
+// piles next to it are destroyed (Phil, 29 October 2026).
+function clusterBomb(state, unit, where) {
+  const amount = Math.floor(unitStats(state, unit).attack * unitStats(state, unit).splash);
+  for (const k of neighbourKeys(where)) {
+    if (state.crystals[k] && state.rules.crystals.blastable) blowUp(state, unit, k);
+    const other = unitAt(state, k);
+    if (!other || !canTarget(state, unit, other)) continue;
+    state.events.push({ type: "splash", unitId: unit.id, targetId: other.id, attack: amount });
+    hit(state, other, amount);
+  }
+}
+
+function blowUp(state, unit, at) {
+  const pile = state.crystals[at];
+  delete state.crystals[at];
+  state.events.push({ type: "blast", unitId: unit.id, at, amount: pile.amount });
+}
+
+// A shot at a crystal pile: the whole pile is destroyed, and the shot is spent. A cluster
+// bomb also hits what is next to the pile.
 function applyBlast(state, { unitId, at }, actor) {
   const unit = ownUnit(state, unitId, actor);
   if (!crystalTargets(viewFor(state, actor), unitId).includes(at)) {
@@ -1078,9 +1089,8 @@ function applyBlast(state, { unitId, at }, actor) {
   const stats = unitStats(state, unit);
   finishAction(unit);
   if (stats.reload) unit.cooldown = stats.reload + 1;
-  const pile = state.crystals[at];
-  delete state.crystals[at];
-  state.events.push({ type: "blast", unitId, at, amount: pile.amount });
+  blowUp(state, unit, at);
+  if (stats.splash) clusterBomb(state, unit, at);
 }
 
 // Return fire: a target with a short range attacked from an adjacent hex hits back once,

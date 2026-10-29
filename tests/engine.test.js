@@ -573,13 +573,23 @@ describe("blowing up crystals", () => {
     assert.deepEqual(crystalTargets(viewFor(unseen, BLUE), "t"), []);
   });
 
-  test("a cluster bomb's splash leaves piles next to the target alone", () => {
+  test("a cluster bomb's splash destroys piles next to the target", () => {
     let s = scenario({
       units: [unit("b", "blastCannon", BLUE, "0,2"), unit("e", "tank", GREEN, "0,-1")],
-      crystals: { "1,-1": { amount: 40 } },
+      crystals: { "1,-1": { amount: 40 }, "0,-3": { amount: 25 } },
     });
     s = play(s, attack("b", "e"));
-    assert.equal(s.crystals["1,-1"].amount, 40);
+    assert.equal(s.crystals["1,-1"], undefined, "next to the tank");
+    assert.equal(s.crystals["0,-3"].amount, 25, "two hexes away");
+  });
+
+  test("a sonic boom passing over a pile leaves it alone", () => {
+    let s = scenario({
+      units: [unit("s", "sonicTank", BLUE, "0,2"), unit("e", "tank", GREEN, "0,-2")],
+      crystals: { "0,0": { amount: 30 } },
+    });
+    s = play(s, attack("s", "e"));
+    assert.equal(s.crystals["0,0"].amount, 30);
   });
 });
 
