@@ -7,6 +7,7 @@ import {
   chooseAction, playTurn, playout, randomPersonality, mutatePersonality, crossPersonalities,
   DEFAULT_PERSONALITY, PERSONALITY_RANGES,
 } from "../ai.js";
+import { distance } from "../hex.js";
 import { scenario } from "./helpers.js";
 
 const BLUE = 0;
@@ -113,18 +114,23 @@ describe("AI choices", () => {
 });
 
 describe("AI and factories", () => {
-  test("infantry move into an unused factory they can reach", () => {
+  test("infantry move next to an unused factory, then break in the next turn", () => {
+    const factory = unit("n", "factory", null, "0,0", { upgrades: [] });
     const s = scenario({
-      units: [unit("n", "factory", null, "0,0", { upgrades: [] }),
-        unit("i", "infantry", BLUE, "0,2")],
-      playerCrystals: [0, 100],
+      units: [factory, unit("i", "infantry", BLUE, "0,2")], playerCrystals: [0, 100],
     });
-    assert.deepEqual(choose(s), { type: "move", unitId: "i", to: "0,0" });
+    const first = choose(s);
+    assert.equal(first.type, "move");
+    assert.equal(distance(first.to, "0,0"), 1);
+    const next = scenario({
+      units: [factory, unit("i", "infantry", BLUE, "0,1")], playerCrystals: [0, 100],
+    });
+    assert.deepEqual(choose(next), { type: "move", unitId: "i", to: "0,0" });
   });
 
   test("it buys the factory upgrade its wanted unit needs", () => {
     const personality = {
-      ...DEFAULT_PERSONALITY, harvestersEarly: 1,
+      ...DEFAULT_PERSONALITY, harvestersEarly: 1, captureFactories: 0, labs: 0,
       mix: Object.fromEntries(Object.keys(DEFAULT_PERSONALITY.mix).map((type) =>
         [type, type === "heavyCannon" ? 1 : 0])),
     };

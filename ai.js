@@ -11,8 +11,9 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
-} from "./engine.js?v=0.36";
-import { neighbourKeys, distance } from "./hex.js?v=0.36";
+  canBoard,
+} from "./engine.js?v=0.37";
+import { neighbourKeys, distance } from "./hex.js?v=0.37";
 
 // Score for an attack that costs no life now but sets up a combined attack this turn.
 const SETUP_ATTACK_SCORE = 1;
@@ -37,18 +38,21 @@ const TRANSPORT_THRESHOLD = 0.5;
 const INFANTRY_WALK_DISTANCE = 4;
 const INFANTRY_TYPE = "infantry";
 const TRANSPORTER_TYPE = "transporter";
+const LAB_UPGRADE = "lab";
 
 // The army units a personality chooses between, with the hand-tuned build shares.
 export const DEFAULT_PERSONALITY = {
   mix: {
     tank: 0.25, heavyCannon: 0.1, artillery: 0.1, blastCannon: 0.1, sonicTank: 0.1,
     scoutBike: 0.1, spotterDrone: 0.05, attackHelicopter: 0.15, fighter: 0,
-    antiAircraftJeep: 0, lightMedic: 0.05,
+    antiAircraftJeep: 0, lightMedic: 0.05, turret: 0.05,
   },
   harvestersEarly: 2,
   harvestersMax: 3,
   antiAirPerEnemyAir: 1, // anti-air units wanted for each enemy air unit seen
-  factoryLifeValue: 200, // worth of one life of the enemy factory, in crystals
+  // Worth of one life of the enemy factory, in crystals (when factories take fire), and of
+  // killing infantry about to overrun one of its own factories.
+  factoryLifeValue: 200,
   killBonusShare: 0.5, // extra worth of destroying a unit outright, as a share of its cost
   returnFireCaution: 1, // how much expected return-fire losses count against an attack
   homeDefenceRadius: 5, // enemy units this close to the factory are dealt with first
@@ -60,6 +64,7 @@ export const DEFAULT_PERSONALITY = {
   patience: 1, // 1 = save up for the wanted unit; 0 = buy something affordable now
   captureFactories: 1, // infantry kept while there are factories to capture
   transportInfantry: 0.3, // above TRANSPORT_THRESHOLD, infantry ride in a transporter
+  labs: 1, // factories it fits with a Crystal lab, once its first harvesters are out
 };
 
 // Allowed range of each gene: [lowest, highest, whole number?]. Every mix share is 0 to 1.
@@ -79,6 +84,7 @@ export const PERSONALITY_RANGES = {
   patience: [0, 1, false],
   captureFactories: [0, 3, true],
   transportInfantry: [0, 1, false],
+  labs: [0, 2, true],
 };
 const MIX_RANGE = [0, 1, false];
 
@@ -90,6 +96,9 @@ function clampGene([low, high, whole], value) {
 function randomGene([low, high, whole], random) {
   return clampGene([low, high, whole], low + random() * (high - low));
 }
+
+// A personality may also name transportType: the unit it carries infantry in (the
+// Transporter if not given; the simulator's unit trials set the Chinook).
 
 // A personality with every gene drawn at random within its range.
 export function randomPersonality(random) {
@@ -109,9 +118,10 @@ export function mutatePersonality(parent, random, rate) {
   const p = { mix: {} };
   for (const type in parent.mix) p.mix[type] = nudge(MIX_RANGE, parent.mix[type]);
   for (const gene in PERSONALITY_RANGES) {
-    p[gene] = nudge(PERSONALITY_RANGES[gene], parent[gene]);
+    p[gene] = nudge(PERSONALITY_RANGES[gene], parent[gene] ?? DEFAULT_PERSONALITY[gene]);
   }
   p.harvestersMax = Math.max(p.harvestersMax, p.harvestersEarly);
+  if (parent.transportType) p.transportType = parent.transportType;
   return p;
 }
 
@@ -142,6 +152,7 @@ export function chooseAction(view, personality = DEFAULT_PERSONALITY) {
     firstUnload(ctx) ||
     captureDrop(ctx) ||
     bestHarvest(ctx) ||
+    labUpgrade(ctx) ||
     bestBuild(ctx) ||
     artilleryDrill(ctx) ||
     bestMove(ctx) ||
@@ -235,7 +246,11 @@ function captureSites(ctx) {
 // Infantry on the board and inside transporters.
 function infantryCount(ctx) {
   return ctx.army.reduce((n, u) => n + (u.type === INFANTRY_TYPE ? 1 : 0) +
-    (u.cargo || []).length, 0);
+    (u.cargo || []).filter((c) => c.type === INFANTRY_TYPE).length, 0);
+}
+
+function isCarrier(view, unit) {
+  return Boolean(unitStats(view, unit).carries);
 }
 
 function isCombatUnit(p, unit) {
@@ -248,6 +263,11 @@ function isCombatUnit(p, unit) {
 function lifeValue(ctx, unit) {
   const stats = unitStats(ctx.view, unit);
   return stats.isFactory ? ctx.p.factoryLifeValue : stats.cost / ctx.view.rules.lives;
+}
+
+function threatensFactory(ctx, unit) {
+  return Boolean(unitStats(ctx.view, unit).captures) &&
+    ctx.myFactories.some((f) => distance(f.at, unit.at) === 1);
 }
 
 function returnFireLoss(ctx, attacker, target) {
@@ -275,6 +295,8 @@ function bestAttack(ctx) {
     let score = livesLost * lifeValue(ctx, target);
     if (after.lives === 0 && !unitStats(view, target).isFactory) {
       score += p.killBonusShare * unitStats(view, target).cost;
+      // Infantry next to one of its factories could overrun it next turn.
+      if (threatensFactory(ctx, target)) score += p.factoryLifeValue;
     }
     if (livesLost === 0) {
       // Worth starting only if everything ready to fire at it this turn can take a life.
@@ -380,10 +402,11 @@ function wantedUnitType(ctx, maxCost = Infinity) {
 
   // Infantry to capture factories, carried in a transporter if the personality likes that.
   if (captureSites(ctx).length) {
-    const transporters = army.filter((u) => u.type === TRANSPORTER_TYPE).length;
+    const carrierType = p.transportType || TRANSPORTER_TYPE;
+    const carriers = army.filter((u) => isCarrier(view, u)).length;
     const infantry = infantryCount(ctx);
-    if (p.transportInfantry > TRANSPORT_THRESHOLD && infantry > 0 && !transporters &&
-      fits(TRANSPORTER_TYPE)) return TRANSPORTER_TYPE;
+    if (p.transportInfantry > TRANSPORT_THRESHOLD && infantry > 0 && !carriers &&
+      fits(carrierType)) return carrierType;
     if (infantry < p.captureFactories && fits(INFANTRY_TYPE)) return INFANTRY_TYPE;
   }
 
@@ -436,6 +459,19 @@ function bestBuild(ctx) {
     ? sites.reduce((a, b) => (distance(b, towards) < distance(a, towards) ? b : a))
     : sites[0];
   return { type: "build", unitType: type, at };
+}
+
+// A Crystal lab for one more factory, while it has fewer than the personality wants and its
+// first harvesters are out.
+function labUpgrade(ctx) {
+  const { view, me, myFactories, army, p } = ctx;
+  const lab = view.rules.factoryUpgrades[LAB_UPGRADE];
+  if (!lab || !p.labs || view.players[me].crystals < lab.cost) return null;
+  if (army.filter(isHarvester).length < p.harvestersEarly) return null;
+  const fitted = myFactories.filter((f) => f.upgrades.includes(LAB_UPGRADE)).length;
+  if (fitted >= p.labs) return null;
+  const factory = myFactories.find((f) => upgradeOptions(view, f.id).includes(LAB_UPGRADE));
+  return factory ? { type: "upgrade", factoryId: factory.id, upgrade: LAB_UPGRADE } : null;
 }
 
 // The upgrade to buy before a unit type can be built: none (cost 0) if one of the AI's
@@ -579,15 +615,14 @@ function infantryGoals(ctx, unit) {
   if (!sites.length) return null;
   const nearest = (from) =>
     sites.reduce((a, b) => (distance(from, b) < distance(from, a) ? b : a));
-  const transporters = ctx.army.filter((u) => u.type === TRANSPORTER_TYPE &&
-    u.cargo.length < unitStats(ctx.view, u).carries);
+  const transporters = ctx.army.filter((u) => canBoard(ctx.view, unit, u));
   if (unit.type === INFANTRY_TYPE) {
     const target = nearest(unit.at);
     const ride = ctx.p.transportInfantry > TRANSPORT_THRESHOLD && transporters.length &&
       distance(unit.at, target) > INFANTRY_WALK_DISTANCE;
     return ride ? transporters.map((u) => u.at) : [target];
   }
-  if (unit.type === TRANSPORTER_TYPE) {
+  if (isCarrier(ctx.view, unit)) {
     if (unit.cargo.length) return neighbourKeys(nearest(unit.at));
     const walking = ctx.army.filter((u) => u.type === INFANTRY_TYPE);
     return walking.length ? walking.flatMap((u) => neighbourKeys(u.at)) : null;

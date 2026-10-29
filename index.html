@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.36" />
+  <link rel="stylesheet" href="styles.css?v=0.37" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -31,8 +31,7 @@
   <div id="campaign-picker" class="map-picker" hidden>
     <div class="map-picker-card" role="dialog" aria-labelledby="campaign-title">
       <h2 id="campaign-title">Campaign: Red Dust</h2>
-      <p class="campaign-intro">Five missions on Kharon, the red crystal world. Each one is
-        bigger than the last and teaches a new part of the game.</p>
+      <p id="campaign-intro" class="campaign-intro"></p>
       <ul id="campaign-list" class="map-recent"></ul>
       <button id="campaign-cancel" class="start-btn" type="button">Back</button>
     </div>
@@ -41,6 +40,10 @@
   <div id="map-picker" class="map-picker" hidden>
     <div class="map-picker-card" role="dialog" aria-labelledby="map-picker-title">
       <h2 id="map-picker-title">Choose a map</h2>
+      <label class="map-shape level-pick">Your rank
+        <select id="level"></select>
+      </label>
+      <p id="level-persona" class="level-persona"></p>
       <div class="map-options">
         <label class="map-shape">Size
           <select id="map-size"></select>
@@ -91,6 +94,8 @@
         <img src="units/crystals.svg" alt="Crystals" /><span id="game-crystals"></span>
       </div>
       <button id="sound-toggle" class="sound-toggle" type="button" aria-label="Sound"></button>
+      <button id="objective-btn" class="end-turn objective-btn" type="button"
+        hidden>Objective</button>
       <button id="quit-game" class="end-turn quit-game" type="button">Quit</button>
       <button id="end-turn" class="end-turn" type="button">End turn</button>
     </header>
@@ -98,6 +103,7 @@
       <svg id="board" class="board" xmlns="http://www.w3.org/2000/svg"
         aria-label="Game board"><g id="board-root"></g></svg>
       <div id="game-banner" class="game-banner" role="status" hidden></div>
+      <div id="build-info" class="build-info" hidden></div>
     </div>
     <section class="panel" aria-live="polite">
       <p id="game-message" class="game-message"></p>
@@ -138,6 +144,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.36" type="module"></script>
+  <script src="app.js?v=0.37" type="module"></script>
 </body>
 </html>

@@ -47,15 +47,37 @@ export const RULES = {
     infantry: {
       name: "Infantry", cost: 20, move: 3, defence: 5, attack: 10,
       range: [1, 1], storage: 0, healing: 0, sight: 2,
-      captures: true, rides: true, hits: "both",
+      captures: true, rides: true, hits: "both", size: 1,
     },
-    // Transporter: carries up to "carries" infantry, which board by moving onto it and are
-    // dropped off next to it (or straight into a factory). Infantry inside are lost with it.
-    // Stats provisional.
+    // Transporter: carries "carries" places of passengers, which board by moving onto it and
+    // are dropped off next to it. "loads": "infantry" carries only units that ride (Infantry,
+    // 1 place each); "ground" carries any ground unit (Infantry 1 place, vehicles 2).
+    // Passengers are lost with it. Stats provisional.
     transporter: {
       name: "Transporter", cost: 35, move: 6, defence: 25, attack: 0,
       range: null, storage: 0, healing: 0, sight: 3,
-      carries: 2,
+      carries: 2, loads: "infantry",
+    },
+    // Chinook (Phil, 29 October 2026): a flying transporter. It lifts one vehicle or two
+    // Infantry over mountains and chasms. Stats provisional, from the "Transport" row of the
+    // full unit table.
+    chinook: {
+      name: "Chinook", cost: 55, move: 5, defence: 15, attack: 0,
+      range: null, storage: 0, healing: 0, sight: 3,
+      air: true, carries: 2, loads: "ground", needs: "airfield",
+    },
+    // Turret (Phil, 29 October 2026): a gun emplacement built next to a factory. It never
+    // moves. Stats provisional, scaled down from the "Turret (constructed)" row.
+    turret: {
+      name: "Turret", cost: 50, move: 0, defence: 35, attack: 25,
+      range: [1, 3], storage: 0, healing: 0, sight: 3,
+    },
+    // The VIP of the campaign mission "The Maid's March": tougher Infantry who can never be
+    // built.
+    vip: {
+      name: "Commander Jeanne", cost: null, move: 3, defence: 10, attack: 10,
+      range: [1, 1], storage: 0, healing: 0, sight: 3,
+      captures: true, rides: true, hits: "both", size: 1,
     },
     // New units, 28 October 2026. Stats start from the full unit table, costs scaled to the
     // Game 2 prices; all provisional. "hits": what the attack can hit (ground if not given).
@@ -104,18 +126,23 @@ export const RULES = {
 
   // A factory starts out building light ground units only. Each upgrade, bought for one
   // factory, unlocks the units that need it (Phil, 28 October 2026; costs provisional).
+  // Crystal lab (Phil, 29 October 2026): the factory makes "income" crystals at the end of
+  // each of its owner's turns (cost and income provisional).
   factoryUpgrades: {
     heavyWorks: { name: "Heavy works", cost: 100 },
     airfield: { name: "Airfield", cost: 100 },
+    lab: { name: "Crystal lab", cost: 60, income: 10 },
   },
 
-  // Provisional: whether infantry can capture a player's home factory, or only unused and
-  // captured ones. Options for testing: guarded, a player's factory cannot be captured while
-  // one of that player's units stands next to it; mustStartNextTo, infantry can only move into
-  // a factory they started their turn next to (so a transporter cannot drop them straight in).
-  // incomePerTurn: crystals each captured factory pays its owner at the end of their turn
-  // (Phil, 29 October 2026: 10, so capturing is worth fighting over).
-  capture: { homeFactories: false, guarded: false, mustStartNextTo: false, incomePerTurn: 10 },
+  // Capturing ("overrunning") factories with infantry (Phil, 29 October 2026):
+  // - homeFactories: a player's home factory can be overrun too, which wins the game.
+  // - mustStartNextTo: infantry must start their turn next to a factory to break into it, so
+  //   the defender gets a turn to deal with them (and a transporter cannot drop them in).
+  // - guarded (option for testing): not while one of the owner's units stands next to it.
+  // - unusedFactoryCrystals: crystals in an unused factory's store, paid to the first player
+  //   to capture it (replaces income from captured factories; provisional).
+  capture: { homeFactories: true, guarded: false, mustStartNextTo: true,
+    unusedFactoryCrystals: 25 },
 
   // How a player loses besides running out of units: "homeFactory" when their home factory
   // is destroyed (or captured), "allFactories" only when they have no factory left. Phil:
@@ -140,6 +167,9 @@ export const RULES = {
     // Which attackers are fired back at: "adjacent" (only one on a neighbouring hex), or
     // "inRange" (any attacker within the target's own firing range). Option for testing.
     returnFire: "adjacent",
+    // Factories cannot be fired on: they are only overrun by infantry (Phil, 29 October
+    // 2026).
+    factoriesTakeFire: false,
   },
 
   // moveCost null = cannot be entered. defenceBonus is added to a unit's defence on that hex.
@@ -160,7 +190,10 @@ export const RULES = {
     // round, so the same number appears before both players' turns (provisional).
     spawnChoices: [0, 1],
     spawnAmount: 10,
-    explodeAt: 80, // a pile that grows to this explodes and its crystals are lost
+    // A pile that grows to explodeAt stops growing and stays for holdTurns more turns (one
+    // for each player, Phil 29 October 2026), then explodes and its crystals are lost.
+    explodeAt: 80,
+    holdTurns: 2,
     spawnMinDistanceFromFactory: 3, // provisional
   },
 
@@ -183,7 +216,10 @@ export const RULES = {
   // revealRange (tiles mode only): how close a unit must be to a block to turn it over.
   // null = within the unit's sight range; 1 = only blocks it is on or next to (Phil's choice,
   // 28 October 2026).
-  fog: { mode: "tiles", revealRange: 1 },
+  // stopOnReveal: a move that turns over new blocks stops there, before going on into ground
+  // that was face down when it was planned; the unit keeps its unused move points (Phil, 29
+  // October 2026).
+  fog: { mode: "tiles", revealRange: 1, stopOnReveal: true },
 
   // Undos per game for the player on the game screen (the engine does not use this).
   undosPerGame: 5,

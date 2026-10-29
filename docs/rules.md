@@ -19,15 +19,15 @@ A unit with storage (Light Harvester, Scout Bike) stops next to crystals and har
 In the physical game, two or more harvesters next to the same pile would split it evenly, rounded down to the nearest 5. The app takes turns, so the first player to harvest takes their share and the split never comes up. Phil also suggested harvesting by landing on the crystals instead; `crystals.harvestFrom` is set to `"adjacent"` for now.
 
 ### Driving over crystals
-Units can drive onto or over crystals, and doing so destroys them (`crystals.crushedByMovement`). A unit takes a route that keeps off crystals whenever one fits within its move, even a longer one (Phil, 28 October 2026). Hexes it can only reach by driving over crystals show with a yellow dashed outline. Crystals you cannot see are destroyed without warning. Before this rule, crystal piles blocked movement and the simulator showed spawned piles walling off the middle of the map by round 30–40.
+Units can drive onto or over crystals, and doing so destroys them (`crystals.crushedByMovement`). A unit takes a route that keeps off crystals whenever one fits within its move, even a longer one (Phil, 28 October 2026). Hexes it can only reach by driving over crystals show with a yellow dashed outline, and the game asks before such a move. Only crystals you can see count: a face-down hex shows yellow only when the route to it crosses a pile you can see (Phil, 29 October 2026). Crystals you cannot see are destroyed without warning. Before this rule, crystal piles blocked movement and the simulator showed spawned piles walling off the middle of the map by round 30–40.
 
 ### Crystal piles grow and explode
 - Each map starts with crystal piles of 50 (`crystals.startAmount`): 4 fair pairs, one pile of each pair per side, plus one pile equally far from both factories. The old Crystals / Crystal Base / Crystal Cave deposits (180, 500, 560) are gone.
 - Crystals change between goes, never during them, so neither player gets an advantage (Phil, 28 October 2026). After every turn, yours and the AI's:
   - every pile not harvested during that turn grows by 5 (`crystals.growthPerTurn`), so 10 a round;
-  - a pile that reaches 80 (`crystals.explodeAt`) explodes and its crystals are lost;
+  - a pile stops growing at 80 (`crystals.explodeAt`) and stays there for one more turn by each player (`crystals.holdTurns` 2; Phil, 29 October 2026), then explodes and its crystals are lost;
   - new piles of 10 spawn on random empty hexes. How many is drawn once at the start of each round from `crystals.spawnChoices` (provisional: 0 or 1), and that same number appears after both players' turns, so each player gets the same number of new piles before their turn.
-- A starting pile left alone explodes after three rounds (50, 55, ... 80). A pile's number turns red when it will explode at the end of the current turn.
+- A starting pile left alone reaches 80 after three rounds (50, 55, ... 80) and explodes a round later. A pile's number turns amber at 80 and red when it will explode at the end of the current turn.
 - A harvest takes as much as the unit can carry.
 
 Options for later, not built yet:
@@ -66,34 +66,60 @@ Settled with Phil, 28 October 2026: a factory starts out building light ground u
 | Upgrade | Cost (provisional) | Unlocks |
 |---|---|---|
 | Heavy works | 100 | Heavy Cannon, Blast Cannon, Sonic Tank |
-| Airfield | 100 | Attack Helicopter, Fighter, Spotter Drone (provisional) |
+| Airfield | 100 | Attack Helicopter, Fighter, Spotter Drone, Chinook (provisional) |
+| Crystal lab | 60 | Makes 10 crystals at the end of each of its owner's turns (Phil, 29 October 2026; cost and income provisional) |
 
-A unit's `needs` stat names the upgrade it needs (`factoryUpgrades` in the config). Buying an upgrade is not a unit's action and can happen any time in your turn. The factory shows H and A for its upgrades.
+A unit's `needs` stat names the upgrade it needs (`factoryUpgrades` in the config). Buying an upgrade is not a unit's action and can happen any time in your turn. The factory shows H, A and L for its upgrades.
 
-### Unused factories, Infantry and the Transporter
-Settled with Phil, 28 October 2026: bigger maps have unused factories, and only Infantry can capture them. Troops are weak and vulnerable and need looking after; a Transporter can carry them, for more money.
+### Factories are overrun, not destroyed
+Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, and only Infantry can capture ("overrun") a factory. Troops are weak and vulnerable and need looking after; a Transporter or Chinook can carry them, for more money.
 
-- An unused factory belongs to nobody. It cannot be attacked.
-- Infantry capture a factory by moving into it. The troops are used up, and the factory becomes theirs, with its damage and upgrades. It builds and takes unloaded crystals like a home factory.
+- Factories cannot be fired on (`combat.factoriesTakeFire` false; Phil, 29 October 2026: "you can't destroy a base, you can only overrun it").
+- Infantry overrun a factory by moving into it. The troops are used up, and the factory becomes theirs, with its upgrades. It builds and takes unloaded crystals like a home factory.
+- Infantry must start their turn next to a factory to break in (`capture.mustStartNextTo`; Phil, 29 October 2026). The turn they spend outside is the defender's chance to pick them off, and a Transporter cannot drop them straight in.
+- A player's home factory can be overrun too (`capture.homeFactories`), and that wins the game.
+- An unused factory holds 25 crystals in its store (`capture.unusedFactoryCrystals`, provisional), paid to whoever captures it first. Captured factories no longer pay crystals every turn (Phil, 29 October 2026): a Crystal lab does that instead.
 - A captured factory can be captured back the same way.
-- Each captured factory pays its owner 10 crystals at the end of their turn (`capture.incomePerTurn`; Phil, 29 October 2026). Home factories do not. The balance experiments showed this is what makes capturing worth fighting over.
-- Infantry board their own Transporter by moving onto it. The Transporter drops its passengers one at a time onto a free hex next to it, or straight into a factory next to it to capture it. A dropped unit has finished for the turn; the Transporter can still move if it has not. Passengers are lost if the Transporter is destroyed.
+- Infantry board their own Transporter by moving onto it. The Transporter drops its passengers one at a time onto a free hex next to it. A dropped unit has finished for the turn; the Transporter can still move if it has not. Passengers are lost if the Transporter is destroyed.
+
+### Chinook and Turret (Phil, 29 October 2026)
+- The Chinook is a flying transporter. It carries 2 places of passengers: Infantry take 1, any ground vehicle 2 (unit stat `size`), so one vehicle or two Infantry. The Transporter carries Infantry only (`loads`). Like the other air units it needs an Airfield.
+- The Turret is a gun emplacement, built next to a factory like any unit, that never moves.
 
 | Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
 |---|---|---|---|---|---|---|---|
-| Infantry | 20 | 3 | 5 | 10 | 1 | 2 | Captures factories; rides in a Transporter; hits ground and air |
+| Infantry | 20 | 3 | 5 | 10 | 1 | 2 | Overruns factories; rides in a Transporter or Chinook; hits ground and air |
 | Transporter | 35 | 6 | 25 | – | – | 3 | Carries 2 Infantry |
+| Chinook | 55 | 5 | 15 | – | – | 3 | Flies; carries 1 vehicle or 2 Infantry |
+| Turret | 50 | 0 | 35 | 25 | 1–3 | 3 | Never moves |
+
+All the numbers are provisional, as is everything not listed as Phil's. The Turret's stats are scaled down from the "Turret (constructed)" row of the full unit table, and the Chinook's come from its "Transport" row.
+
+### Moving into face-down ground
+A move that turns over new blocks stops there if the rest of its route runs onto ground that was face down when you planned it (`fog.stopOnReveal`; Phil, 29 October 2026). The unit keeps the move points it has not used, so you can see what is there and then carry on, fire, or stop. So you can tap a face-down hex far away and the unit goes as far as the edge first.
+
+### Firing blind
+A unit can fire into any hex in range that its player cannot see (Phil, 29 October 2026). An enemy there is hit as normal; an empty hex wastes the shot. You are told whether you hit something, not what. A unit fired on blind does not fire back. The AI does not fire blind.
+
+### Difficulty levels
+Games against the AI are played at a rank (Phil, 29 October 2026), each with its own opponent (`difficulty.js`). Provisional:
+
+| Rank | Level | Opponent | AI | Start |
+|---|---|---|---|---|
+| Cadet | Beginner | Sergeant Brack | hand-tuned | You get 30 extra crystals; Green does not get the second player's 40 |
+| Major | Intermediate | Colonel Rane | an evolved personality | The usual start |
+| Field Marshal | Master | General Kaldra | the strongest evolved personality | Green gets 60 extra crystals and an extra Tank |
 
 All the numbers are provisional, as is everything not listed as Phil's.
 
 ### Winning
-You win by destroying the enemy's home factory. A player with no units who cannot afford the cheapest unit also loses. Phil: whether losing your home factory loses the game while you still hold a captured one depends on the win condition or the scenario, so it is a setting (`winCondition`):
-- `"homeFactory"` (default): you lose when your home factory is destroyed or captured.
+You win by overrunning the enemy's home factory with Infantry. A player with no units who cannot afford the cheapest unit also loses. Phil: whether losing your home factory loses the game while you still hold a captured one depends on the win condition or the scenario, so it is a setting (`winCondition`):
+- `"homeFactory"` (default): you lose when your home factory is overrun (or destroyed, if factories take fire).
 - `"allFactories"`: you lose only when you have no factory left.
 
-Home factories cannot be captured for now (`capture.homeFactories`, provisional).
+A player who starts with no factory at all (a campaign mission) does not lose for having none.
 
-Options for testing, both off: `capture.guarded` (a factory with one of its owner's units next to it cannot be captured) and `capture.mustStartNextTo` (infantry capture only from a hex they started their turn on). See the balance experiments in `docs/simulation.md`.
+Option for testing, off: `capture.guarded` (a factory with one of its owner's units next to it cannot be captured).
 
 ### Map
 Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and pile distances but different layouts, so exploring one side tells you nothing exact about the other. Generated maps follow the same pattern (see Maps).
@@ -124,24 +150,25 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 
 ## Campaign: Red Dust
 
-Five missions that introduce the game (Phil, 29 October 2026), defined in `campaign.js`. Each sets its map, both sides' starting units and crystals (`setup` in `newGame`), any rule changes, how strong the AI is, and its objective. Finishing a mission unlocks the next; progress is saved on the device.
+Eleven missions (Phil, 29 October 2026), defined in `campaign.js`. Each is built round a unit or tactic the player has to use. Each sets its map (and may reshape its terrain), both sides' starting units, crystals and factory upgrades (`setup` in `newGame`), any rule changes, how the AI plays, and its objective. Finishing a mission unlocks the next; progress is saved on the device.
 
-| # | Mission | Map | Blue starts with | Green starts with | Objective |
+Most missions give Green a boss: a heavy unit leading its army that the player must destroy as well as meet the objective (Phil, 29 October 2026). Across the campaign Green starts with every kind of unit, so the player meets them all. In a mission won by overrunning Green's home factory, the overrun still ends the game whether or not the boss is down.
+
+| # | Mission | Map | Teaches | Green's boss | Objective |
 |---|---|---|---|---|---|
-| 1 | Landfall | Map 3 (classic) | 1 Infantry beside an unclaimed home factory (`unclaimedHome`), 75 crystals | nothing, 0 (`loseWithNoUnits` off) | Capture the factory, build a Scout Bike, then harvest and build a Tank (steps ticked off in the panel) |
-| 2 | Supply Lines | Map 8 (classic) | Light Harvester, Scout Bike, 60 | Light Harvester, Scout Bike, 50 | Bank 200 crystals |
-| 3 | First Contact | Map 5 (3-4-4-3) | Light Harvester, Scout Bike, 2 Tanks, 80 | Light Harvester, Scout Bike, Tank, 60 | Destroy Green's home factory |
-| 4 | Storm the Works | Map 12 (4-5-5-4) | Light Harvester, Tank, 2 Infantry, Transporter, 100 | Light Harvester, Scout Bike, Tank, Infantry, 80 | Hold 3 captured factories |
-| 5 | The Crystal War | Map 21 (4-5-6-5-4) | Light Harvester, Scout Bike, Tank, Infantry, 150 | 2 Light Harvesters, Scout Bike, 2 Tanks, Infantry, 200 | Destroy Green's home factory |
+| 1 | Landfall | Map 3 (classic) | Infantry, Scout Bike, harvesting | – | Capture the factory, build a Scout Bike, harvest and build a Tank |
+| 2 | Supply Lines | Map 8 (classic) | Harvesting, the Crystal lab | – | Bank 200 crystals |
+| 3 | First Contact | Map 5 (3-4-4-3) | Overrunning a factory | Artillery | Overrun Green's home factory |
+| 4 | Hold the Line | Map 14 (3-5-5-3) | Turrets | Heavy Cannon | Hold your home factory for 12 rounds |
+| 5 | Over the Mountains | Map 11 (3-5-5-3), home ringed by mountains | Chinook airlift | Blast Cannon | Overrun Green's home factory |
+| 6 | Storm the Works | Map 12 (4-5-5-4) | Transporter, capturing factories | Sonic Tank | Capture 3 factories |
+| 7 | Swarm | Map 6 (3-4-4-3) | Blast Cannon against a Scout Bike swarm | Heavy Cannon | Destroy 8 Scout Bikes |
+| 8 | Sky Hunters | Map 9 (4-5-5-4), Green starts with an Airfield and helicopters | Anti-aircraft | Fighter | Shoot down 5 Attack Helicopters |
+| 9 | The Pass | Map 7 (4-5-5-4), a ridge with one pass | Sonic Tank at a choke point | Blast Cannon | Destroy 5 Tanks |
+| 10 | The Maid's March | Map 10 (5-6-6-5) | Escort: no factory, a VIP (Commander Jeanne) | – | Bring the VIP into the far factory; the mission fails if she falls |
+| 11 | The Crystal War | Map 21 (4-5-6-5-4) | Everything; Artillery against Turrets | Heavy Cannon | Overrun Green's home factory, ringed by Turrets |
 
-Units and upgrades come in a few at a time (`allowedUnits`, `allowedUpgrades` in the mission's rules; both sides alike):
-- Mission 1: Infantry, Scout Bike, Light Harvester, Tank; no upgrades.
-- Mission 2: adds Light Medic and Anti-Aircraft Jeep.
-- Mission 3: adds Artillery and Heavy Cannon; Heavy works allowed.
-- Mission 4: adds Transporter, Blast Cannon and Sonic Tank.
-- Mission 5: everything, including the Airfield and air units.
-
-Missions 1 to 4 play the hand-tuned AI; mission 5 plays an evolved personality. A home factory that starts unclaimed belongs to nobody until its player's infantry capture it; it is not lost while unclaimed. All figures are provisional. Played AI against AI, mission 1 is won by round 8, mission 3 by round 8 and mission 4 by round 5.
+Units and upgrades come in a few at a time (`allowedUnits`, `allowedUpgrades` in the mission's rules; both sides alike), and a mission can fit factory upgrades at the start (`setup.upgrades`). A mission can also change what the AI builds (`aiMix`), for the Scout Bike swarm, the helicopters and the tank column. Missions 1 to 10 play the hand-tuned AI; mission 11 plays an evolved personality. A home factory that starts unclaimed belongs to nobody until its player's infantry capture it. All figures are provisional.
 
 ## Fog of war
 
@@ -151,7 +178,7 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 - All blocks start face down.
 - When any unit (or a factory) is on a hex of a block or right next to one, the whole block is turned over (`fog.revealRange` 1, Phil's choice). Each side starts with about 3 blocks face up: its home block and the blocks its starting units stand next to.
 - Turned-over blocks are private: a block your units turn over is face up for you only, and everything on it (units, crystals) stays visible to you from then on. You never see the blocks the opponent has turned over, or anything on them, until your own units turn them over (Phil, 28 October 2026).
-- A moving unit turns over the blocks it passes next to along its route, not just where it stops.
+- A moving unit turns over the blocks it passes next to along its route, not just where it stops, and stops where new ground turns over (see Moving into face-down ground).
 - `fog.revealRange` `null` turns blocks over anywhere within a unit's sight range instead; that leaves 11 of the 12 blocks face up after round 1.
 
 ### Line of sight (`fog.mode` = `"sight"`, kept for comparison)
@@ -182,7 +209,6 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 
 ## Open questions
 
-- The unit table's Transport (A3) is an air unit. Should the Transporter fly? It is a ground unit for now; flying would be one stat (`air: true`), and it would then need an Airfield.
-- Capturing is instant and cheap, so in the simulator factories change hands a lot (about 4 captures a game on 3-4-4-3). Should capturing take longer, for example infantry must start their turn next to the factory, or a factory with a unit next to it cannot be captured?
+- With home factories open to Infantry, most simulated games now end with an overrun. Is that the game Phil wants, or should the home factory be harder to break into (for example `capture.guarded`)?
 - Should the damaged side of a tile change a unit's stats? Currently it does not.
 - Is the "firing" token art with the muzzle flash the same as the damaged side of the physical tile?

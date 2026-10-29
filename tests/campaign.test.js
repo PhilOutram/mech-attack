@@ -7,7 +7,8 @@ import { mapById } from "../maps.js";
 import {
   newGame, applyAction, unitsOf, legalActions, reachableHexes, viewFor,
 } from "../engine.js";
-import { MISSIONS, missionRules, missionsDone } from "../campaign.js";
+import { MISSIONS, missionRules, missionsDone, missionMap } from "../campaign.js";
+import { cheapestPaths } from "../hex.js";
 import { scenario } from "./helpers.js";
 
 const BLUE = 0;
@@ -15,7 +16,17 @@ const GREEN = 1;
 
 function missionGame(m) {
   const rules = missionRules(m, RULES);
-  return newGame({ rules, map: mapById(m.mapId, rules), seed: 1, setup: m.setup });
+  const map = missionMap(m, mapById(m.mapId, rules), rules);
+  return newGame({ rules, map, seed: 1, setup: m.setup });
+}
+
+const missionNamed = (title) => MISSIONS.find((m) => m.title === title);
+
+// Whether ground units can drive from one hex to another over the map's terrain.
+function groundRoute(s, from, to) {
+  const costOf = (k) => (s.map.hexes[k] ? s.rules.terrain[s.map.hexes[k].terrain].moveCost
+    : null);
+  return Boolean(cheapestPaths(from, costOf)[to]);
 }
 
 test("every mission starts with its own units and crystals, on distinct open hexes", () => {
@@ -63,4 +74,58 @@ test("the first mission is won once the factory is held and a Scout Bike and Tan
 
 test("with no saved progress only the first mission is open", () => {
   assert.equal(missionsDone(), 0);
+});
+
+test("in Over the Mountains blue's home is cut off from Green by ground", () => {
+  const s = missionGame(missionNamed("Over the Mountains"));
+  assert.equal(groundRoute(s, s.map.factories[BLUE], s.map.factories[GREEN]), false);
+  assert.ok(unitsOf(s, BLUE).some((u) => u.type === "chinook"));
+  assert.deepEqual(s.units[s.players[BLUE].factoryId].upgrades, ["airfield"]);
+});
+
+test("in The Pass the only way through the ridge is the pass", () => {
+  const s = missionGame(missionNamed("The Pass"));
+  assert.ok(groundRoute(s, s.map.factories[BLUE], s.map.factories[GREEN]));
+});
+
+test("mission objectives that count Green's losses", () => {
+  for (const [title, type, count] of [["Swarm", "scoutBike", 8],
+    ["Sky Hunters", "attackHelicopter", 5], ["The Pass", "tank", 5]]) {
+    const m = missionNamed(title);
+    const s = missionGame(m);
+    assert.equal(m.done(s), false, title);
+    s.players[GREEN].lost[type] = count;
+    assert.equal(m.done(s), false, `${title}: the boss is still there`);
+    s.players[GREEN].lost[m.boss] = (s.players[GREEN].lost[m.boss] || 0) + 1;
+    assert.ok(m.done(s), title);
+  }
+});
+
+test("a mission's boss starts in Green's army and is the first step", () => {
+  for (const m of MISSIONS.filter((mission) => mission.boss)) {
+    const s = missionGame(m);
+    assert.ok(unitsOf(s, GREEN).some((u) => u.type === m.boss), m.title);
+    assert.equal(m.steps[0].done(s), false, m.title);
+    s.players[GREEN].lost[m.boss] = 1;
+    assert.ok(m.steps[0].done(s), m.title);
+  }
+});
+
+test("across the campaign Green starts with every kind of unit that can be built", () => {
+  const started = new Set(MISSIONS.flatMap((m) => m.setup.units[GREEN]));
+  const buildable = Object.keys(RULES.units).filter((type) => RULES.units[type].cost !== null);
+  assert.deepEqual(buildable.filter((type) => !started.has(type)), []);
+});
+
+test("in The Maid's March blue has no factory, and losing the VIP fails the mission", () => {
+  const m = missionNamed("The Maid's March");
+  const s = missionGame(m);
+  assert.equal(s.players[BLUE].factoryId, null);
+  assert.equal(m.failed(s), false);
+  assert.ok(m.target(s.map));
+  const vip = unitsOf(s, BLUE).find((u) => u.type === "vip");
+  delete s.units[vip.id];
+  assert.ok(m.failed(s));
+  const after = applyAction(missionGame(m), { type: "endTurn" });
+  assert.equal(after.result, null, "having no factory does not lose the game");
 });

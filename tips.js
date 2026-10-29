@@ -10,9 +10,10 @@ const OFF_KEY = "mech-attack.tips-off";
 const TIPS = {
   welcome: () => ({
     title: "Welcome to Mech Attack",
-    text: "You are blue. Win by destroying Green's home factory. Tap one of your units to " +
-      "see what it can do, tap a highlighted hex to act, then press End turn. The map is " +
-      "face down: blocks turn over as your units move next to them.",
+    text: "You are blue. Win by overrunning Green's home factory with Infantry, or by wiping " +
+      "out Green's army. Tap one of your units to see what it can do, tap a highlighted hex " +
+      "to act, then press End turn. The map is face down: blocks turn over as your units " +
+      "move next to them.",
   }),
   harvester: () => ({
     title: "Harvesting crystals",
@@ -25,7 +26,9 @@ const TIPS = {
     text: "Tap a unit to build it on a free hex next to the factory; it can act from your " +
       "next turn. A factory builds light units only until you add Heavy works " +
       `(${rules.factoryUpgrades.heavyWorks.cost}) for heavy units or an Airfield ` +
-      `(${rules.factoryUpgrades.airfield.cost}) for air units.`,
+      `(${rules.factoryUpgrades.airfield.cost}) for air units. A Crystal lab ` +
+      `(${rules.factoryUpgrades.lab.cost}) makes ${rules.factoryUpgrades.lab.income} crystals ` +
+      "every turn. Factories cannot be fired on: they can only be overrun by Infantry.",
   }),
   combat: (rules) => ({
     title: "Firing",
@@ -34,34 +37,66 @@ const TIPS = {
       "several units in the same turn add up. A unit attacked from next door fires back if " +
       `its range is ${rules.combat.returnFireMaxRange} or less.`,
   }),
+  blindFire: () => ({
+    title: "Firing blind",
+    text: "The faint red hexes are in range but out of sight. You can fire into them blind: " +
+      "if an enemy is there it is hit, and you will hear whether you hit something. Empty " +
+      "hexes waste the shot.",
+  }),
   crystals: (rules) => ({
     title: "Driving over crystals",
     text: "Driving onto or over crystals destroys them. Units go round piles when they can; " +
       "moves shown in yellow can only be made by crushing crystals. Piles grow every turn " +
-      `and explode at ${rules.crystals.explodeAt}, so harvest them in time.`,
+      `up to ${rules.crystals.explodeAt}, wait there a turn for each player, then explode, ` +
+      "so harvest them in time.",
   }),
   rough: (rules) => ({
     title: "Rough ground",
-    text: `Rough ground (rocky hexes) costs ${rules.terrain.rocky.moveCost} move points to ` +
-      `cross, but a ground unit standing on it gets +${rules.terrain.rocky.defenceBonus} ` +
-      "defence.",
+    text: "Rocky hexes are rough ground. Crossing one costs " +
+      `${rules.terrain.rocky.moveCost} move points instead of 1, but a ground unit standing ` +
+      `on it gets +${rules.terrain.rocky.defenceBonus} defence: a good place to hold.`,
   }),
-  infantry: (rules) => ({
+  mountain: () => ({
+    title: "Mountains and chasms",
+    text: "Ground units cannot enter mountains or chasms. Mountains also block line of sight, " +
+      "so nobody can fire through them (a sonic boom stops at them too). Air units fly over " +
+      "both.",
+  }),
+  newGround: () => ({
+    title: "New ground",
+    text: "A move stops when it turns over face-down blocks, so you can see what is there " +
+      "before going on. The unit keeps the rest of its move: tap where to go next, or " +
+      "give it another order.",
+  }),
+  infantry: () => ({
     title: "Infantry",
-    text: "Infantry are weak, but they are the only unit that can capture a factory: move " +
-      `them into it. A captured factory builds for you and pays ${rules.capture.incomePerTurn} ` +
-      "crystals every turn. Infantry can also shoot at air units and ride in a Transporter.",
+    text: "Infantry are weak, but they are the only unit that can overrun a factory. They " +
+      "must start a turn next to it to break in, then move into it. That is a turn in which " +
+      "the enemy can pick them off, so keep them covered. Infantry can also shoot at air " +
+      "units and ride in a Transporter.",
+  }),
+  siege: () => ({
+    title: "Breaking in",
+    text: "Your Infantry are next to a factory. Next turn, if they are still there, tap " +
+      "them, then tap the factory to overrun it.",
+  }),
+  defend: () => ({
+    title: "Your factory is in danger",
+    text: "Enemy Infantry are next to your factory. If they are still there at the start of " +
+      "Green's next turn, they can overrun it. Destroy them now: Infantry have very little " +
+      "defence.",
   }),
   transporter: () => ({
     title: "Transporter",
     text: "Move infantry onto the Transporter to board it. Drive it where you want, then " +
-      "choose Drop off to put them on a hex next to it, or straight into a factory to " +
-      "capture it. Infantry inside are lost if the Transporter is destroyed.",
+      "choose Drop off to put them on a hex next to it. Passengers are lost if their " +
+      "Transporter is destroyed.",
   }),
   unusedFactory: (rules) => ({
     title: "Unused factory",
-    text: "Nobody owns this factory yet. Move infantry into it to capture it: it will build " +
-      `units for you and pay ${rules.capture.incomePerTurn} crystals every turn.`,
+    text: "Nobody owns this factory yet. Infantry that start a turn next to it can move in " +
+      `and capture it, with the ${rules.capture.unusedFactoryCrystals} crystals in its store. ` +
+      "It will then build units for you.",
   }),
   air: () => ({
     title: "Air units",
@@ -80,8 +115,9 @@ const TIPS = {
   }),
   explosion: (rules) => ({
     title: "Crystal explosion",
-    text: `A crystal pile reached ${rules.crystals.explodeAt} and exploded: its crystals are ` +
-      "lost. A pile's number turns red when it will explode at the end of the turn.",
+    text: `A crystal pile sat at ${rules.crystals.explodeAt} too long and exploded: its ` +
+      "crystals are lost. A pile's number turns amber when it reaches the explode level and " +
+      "red when it will explode at the end of the turn.",
   }),
 };
 
@@ -107,9 +143,15 @@ function builtTip(type, rules) {
   if (s.healing) {
     parts.push("Move it next to a damaged unit and tap Repair to restore a life.");
   }
-  if (s.captures) parts.push("Move it into a factory to capture it.");
+  if (s.move === 0) parts.push("It never moves, so place it where it can guard.");
+  if (s.captures) {
+    parts.push("Start a turn next to a factory, then move into it to overrun it.");
+  }
   if (s.carries) {
-    parts.push(`It carries up to ${s.carries} Infantry: move them onto it to board.`);
+    parts.push(s.loads === "ground"
+      ? "It carries one vehicle or two Infantry: move them onto it to board, then fly and " +
+        "tap Drop off."
+      : `It carries up to ${s.carries} Infantry: move them onto it to board.`);
   }
   if (s.needsSetup) parts.push("It must Set up before it can fire.");
   if (s.splash) parts.push("Its blast also hits enemies next to the target.");

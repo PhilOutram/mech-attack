@@ -1,14 +1,14 @@
 // Minimal offline-first service worker.
 // Bump the version in CACHE whenever you change the cached files, and keep ASSETS
 // in sync with the files the app needs to work offline.
-const CACHE = "mech-attack-v0.36";
+const CACHE = "mech-attack-v0.37";
 const UNIT_TYPES = [
   "scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester", "light-medic",
 ];
 // Unit tokens in each player's colour (the Spotter Drone has no older PNG).
 const TOKEN_TYPES = [
   ...UNIT_TYPES, "spotter-drone", "blast-cannon", "sonic-tank", "anti-aircraft-jeep",
-  "attack-helicopter", "fighter", "infantry", "transporter",
+  "attack-helicopter", "fighter", "infantry", "transporter", "chinook", "turret", "vip",
 ];
 const TILES = [
   "plain-1", "plain-2", "plain-3", "plain-4", "plain-5", "rocky-1", "rocky-2", "mountain-1",
@@ -20,29 +20,30 @@ const SOUND_FILES = [
 const ASSETS = [
   ".",
   "index.html",
-  "styles.css?v=0.36",
-  "app.js?v=0.36",
-  "version.js?v=0.36",
-  "units.js?v=0.36",
-  "game.js?v=0.36",
-  "dialog.js?v=0.36",
-  "board.js?v=0.36",
-  "engine.js?v=0.36",
-  "ai.js?v=0.36",
-  "hex.js?v=0.36",
-  "maps.js?v=0.36",
-  "ai-personalities.js?v=0.36",
-  "rules-config.js?v=0.36",
-  "sound.js?v=0.36",
-  "tips.js?v=0.36",
-  "campaign.js?v=0.36",
+  "styles.css?v=0.37",
+  "app.js?v=0.37",
+  "version.js?v=0.37",
+  "units.js?v=0.37",
+  "game.js?v=0.37",
+  "dialog.js?v=0.37",
+  "board.js?v=0.37",
+  "engine.js?v=0.37",
+  "ai.js?v=0.37",
+  "hex.js?v=0.37",
+  "maps.js?v=0.37",
+  "ai-personalities.js?v=0.37",
+  "rules-config.js?v=0.37",
+  "sound.js?v=0.37",
+  "tips.js?v=0.37",
+  "campaign.js?v=0.37",
+  "difficulty.js?v=0.37",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
   "icon-maskable.png",
   "apple-touch-icon.png",
   "splash.jpg",
-  "tiles/tiles.json?v=0.36",
+  "tiles/tiles.json?v=0.37",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
   ...TOKEN_TYPES.flatMap((u) => [`units/${u}-blue.svg`, `units/${u}-green.svg`]),

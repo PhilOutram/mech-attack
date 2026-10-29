@@ -1,24 +1,25 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.36";
-import { mapById, seededRandom } from "./maps.js?v=0.36";
+import { RULES } from "./rules-config.js?v=0.37";
+import { mapById, seededRandom } from "./maps.js?v=0.37";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
-  defenceOf,
+  defenceOf, darkTargets, canCapture,
   STATE_FORMAT,
-} from "./engine.js?v=0.36";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.36";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.36";
-import { distance } from "./hex.js?v=0.36";
+} from "./engine.js?v=0.37";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.37";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.37";
+import { distance } from "./hex.js?v=0.37";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.36";
-import { confirmDialog } from "./dialog.js?v=0.36";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.36";
-import { showTip, showNote } from "./tips.js?v=0.36";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.36";
+} from "./board.js?v=0.37";
+import { confirmDialog } from "./dialog.js?v=0.37";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.37";
+import { showTip, showNote } from "./tips.js?v=0.37";
+import { MISSIONS, missionRules, missionMap, markMissionDone } from "./campaign.js?v=0.37";
+import { levelById, levelSetup } from "./difficulty.js?v=0.37";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -29,17 +30,20 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.36";
+const ASSET_VERSION = "0.37";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
 const HOP_MS = 90;
-// How long a banner such as "60 crystals unloaded" stays over the board, and the longer
-// "Round 5" banner at the start of your turn.
-const BANNER_MS = 1000;
+// How long a banner such as "60 crystals unloaded" stays over the board (a tap anywhere
+// clears it sooner), the "Round 5" banner at the start of your turn, and the one naming your
+// opponent at the start of a game.
+const BANNER_MS = 3500;
 const ROUND_BANNER_MS = 2000;
-// How long End turn flashes once every unit has done all it can this turn.
-const END_TURN_FLASH_MS = 3000;
+const OPPONENT_BANNER_MS = 3500;
+// How long End turn flashes once every unit has done all it can this turn (styles.css flashes
+// it for the same time).
+const END_TURN_FLASH_MS = 6000;
 const EFFECT_MS = 500;
 // A pointer that moves further than this is panning the board, not tapping it.
 const DRAG_THRESHOLD_PX = 8;
@@ -67,12 +71,13 @@ function fireSound(type) {
 
 const REASONS = {
   factoryDestroyed: "the home factory was destroyed",
-  factoryCaptured: "the home factory was captured",
+  factoryCaptured: "the home factory was overrun",
   noFactories: "no factories left",
   noUnits: "no units left and not enough crystals to build one",
   roundCap: "the round limit was reached",
   resigned: "quit the game",
   objective: "the mission objective was met",
+  missionFailed: "the mission failed",
 };
 
 let state = null;
@@ -186,6 +191,26 @@ function personalityFor(seed) {
   return { ...DEFAULT_PERSONALITY, ...list[seed % list.length].personality };
 }
 
+// The AI's personality for a game: set by the campaign mission, or by the difficulty level.
+// A mission's aiMix replaces the units it builds and its aiGenes change other genes.
+function opponentPersonality(s) {
+  const m = missionOf(s);
+  const kind = m ? m.ai : levelById(s.level).ai;
+  let personality = DEFAULT_PERSONALITY;
+  if (kind === "best" && EVOLVED_PERSONALITIES.length) {
+    personality = { ...DEFAULT_PERSONALITY, ...EVOLVED_PERSONALITIES[0].personality };
+  } else if (kind !== "default") {
+    personality = personalityFor(s.seed);
+  }
+  if (!m) return personality;
+  return { ...personality, ...(m.aiGenes || {}), mix: { ...(m.aiMix || personality.mix) } };
+}
+
+// Who you are playing: Green in the campaign, otherwise the level's commander.
+function opponentName() {
+  return missionOf(state) ? "Green" : levelById(state.level).opponent;
+}
+
 // A new random map id of the given shape ("classic" or e.g. "3-4-4-3").
 export function newMapId(shape = "classic") {
   const number = 1 + Math.floor(Math.random() * NEW_MAP_RANGE);
@@ -204,7 +229,10 @@ function shapeOf(mapId) {
 // Opens the game screen: the saved game when resume is set, otherwise a new game on mapId.
 // Opens the game screen: the saved game when resume is set, otherwise a new game on mapId, or
 // campaign mission number mission (0-based).
-export async function openGame({ resume = false, mapId = "fixed-1", mission = null, onLeave }) {
+// level: the difficulty level's id (see difficulty.js), for a game that is not a mission.
+export async function openGame({
+  resume = false, mapId = "fixed-1", mission = null, level = null, onLeave,
+}) {
   els = els || findElements();
   if (!wired) wire(onLeave);
   state = resume ? loadSave() : null;
@@ -214,19 +242,23 @@ export async function openGame({ resume = false, mapId = "fixed-1", mission = nu
     if (mission !== null) {
       const m = MISSIONS[mission];
       const rules = missionRules(m, RULES);
-      const game = newGame({ rules, map: mapById(m.mapId, rules), seed, firstPlayer: HUMAN,
-        setup: m.setup });
+      const map = missionMap(m, mapById(m.mapId, rules), rules);
+      const game = newGame({ rules, map, seed, firstPlayer: HUMAN, setup: m.setup });
       state = { ...game, campaign: { mission } };
       briefing = true;
     } else {
       const map = mapById(mapId, RULES);
-      state = newGame({ rules: RULES, map, seed, firstPlayer: HUMAN });
+      const chosen = levelById(level);
+      const game = newGame({ rules: RULES, map, seed, firstPlayer: HUMAN,
+        setup: levelSetup(chosen, RULES) });
+      state = { ...game, level: chosen.id };
       noteMap(map);
     }
     save();
   }
   const m = missionOf(state);
-  aiPersonality = m && m.ai === "default" ? DEFAULT_PERSONALITY : personalityFor(state.seed);
+  aiPersonality = opponentPersonality(state);
+  els.objective.hidden = !m;
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
   facing = {};
@@ -245,8 +277,10 @@ export async function openGame({ resume = false, mapId = "fixed-1", mission = nu
   preloadArt();
   await loadTiles(ASSET_VERSION);
   fitBoard();
-  // Tips wait until the mission briefing has been read; the mission's top tip comes first.
+  // Tips wait until the mission briefing has been read; the mission's top tip comes first,
+  // then the welcome, then tips for what is on the board.
   ui.briefing = briefing;
+  tip("welcome");
   render();
   if (briefing && !(await showBriefing(m, state.campaign.mission))) {
     ui.briefing = false;
@@ -255,7 +289,10 @@ export async function openGame({ resume = false, mapId = "fixed-1", mission = nu
   }
   ui.briefing = false;
   if (briefing && m.tip) showNote(m.tip, RULES);
-  tip("welcome");
+  if (!m && !resume) {
+    const chosen = levelById(state.level);
+    showBanner(`${chosen.rank}: you face ${chosen.opponent}`, OPPONENT_BANNER_MS);
+  }
   render();
   if (state.current === AI_PLAYER) runAiTurn();
 }
@@ -277,11 +314,30 @@ function showBriefing(m, index) {
   });
 }
 
-// A mission whose objective is met is won at once.
+// A mission whose objective is met is won at once; one that can fail is lost at once.
 function checkObjective() {
   const m = missionOf(state);
-  if (!m || !m.done || state.result || !m.done(state)) return;
-  state = { ...state, result: { winner: HUMAN, reason: "objective", round: state.round } };
+  if (!m || state.result) return;
+  if (m.failed && m.failed(state)) {
+    state = { ...state, result: { winner: AI_PLAYER, reason: "missionFailed",
+      round: state.round } };
+  } else if (m.done && m.done(state)) {
+    state = { ...state, result: { winner: HUMAN, reason: "objective", round: state.round } };
+  }
+}
+
+// The Objective button: the mission's story and objective, with its steps ticked off.
+function showObjective() {
+  const m = missionOf(state);
+  if (!m) return;
+  const steps = m.steps ? `\n\n${m.steps.map((step) =>
+    `${step.done(state) ? "\u2714" : "\u2022"} ${step.text}`).join("\n")}` : "";
+  confirmDialog({
+    title: `Mission ${state.campaign.mission + 1}: ${m.title}`,
+    text: `Objective: ${m.objective}${steps}\n\n${m.story}`,
+    confirm: "OK",
+    cancel: null,
+  });
 }
 
 function findElements() {
@@ -293,7 +349,8 @@ function findElements() {
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
     again: $("play-again"), newMap: $("play-new-map"), toTitle: $("game-over-home"),
-    quit: $("quit-game"), sound: $("sound-toggle"),
+    quit: $("quit-game"), sound: $("sound-toggle"), objective: $("objective-btn"),
+    buildInfo: $("build-info"),
   };
 }
 
@@ -308,18 +365,22 @@ function wire(onLeave) {
   els.toTitle.addEventListener("click", leave);
   // In the campaign: retry the mission, or go on to the next one.
   els.again.addEventListener("click", () => openGame(state.campaign
-    ? { mission: state.campaign.mission, onLeave } : { mapId: state.map.id, onLeave }));
+    ? { mission: state.campaign.mission, onLeave }
+    : { mapId: state.map.id, level: state.level, onLeave }));
   els.newMap.addEventListener("click", () => openGame(state.campaign
     ? { mission: state.campaign.mission + 1, onLeave }
-    : { mapId: newMapId(shapeOf(state.map.id)), onLeave }));
+    : { mapId: newMapId(shapeOf(state.map.id)), level: state.level, onLeave }));
+  els.objective.addEventListener("click", showObjective);
   els.endTurn.addEventListener("click", async () => {
     if (!myTurn()) return;
     await act({ type: "endTurn" });
     runAiTurn();
   });
   els.quit.addEventListener("click", quitGame);
-  // Phones play sound only after a tap, so the first tap anywhere starts it.
+  // Phones play sound only after a tap, so the first tap anywhere starts it. A tap anywhere
+  // also clears a banner.
   document.addEventListener("pointerdown", unlockSound, { passive: true });
+  document.addEventListener("pointerdown", hideBanner, { passive: true });
   els.sound.addEventListener("click", () => {
     setSoundOn(!soundOn());
     renderSoundButton();
@@ -427,7 +488,7 @@ async function demandSurrender() {
   surrenderUsed = true;
   saveExtras();
   ui.busy = true;
-  say("Green is considering your demand…");
+  say(`${opponentName()} is considering your demand…`);
   render();
   const random = seededRandom(state.seed + state.round);
   const personalities = [];
@@ -448,7 +509,7 @@ async function demandSurrender() {
     showGameOver();
     return;
   }
-  say(`Green refuses: it rates its chances at ${Math.round(chance * PERCENT)}%.`);
+  say(`${opponentName()} refuses: rates their chances at ${Math.round(chance * PERCENT)}%.`);
   render();
 }
 
@@ -474,7 +535,7 @@ async function runAiTurn() {
   ui.busy = true;
   ui.selectedId = null;
   ui.mode = null;
-  say("Green is moving…");
+  say(`${opponentName()} is moving…`);
   render();
   // A fault in the AI or in showing its moves must never leave Green's turn stuck: an AI
   // action that fails ends its turn, and a display fault is logged and skipped.
@@ -502,8 +563,22 @@ async function runAiTurn() {
   save();
   if (!state.result) say(`Round ${state.round}: your turn.`);
   render();
-  if (state.result) showGameOver();
-  else showBanner(`Round ${state.round}`, ROUND_BANNER_MS);
+  if (state.result) {
+    showGameOver();
+  } else if (factoryUnderThreat()) {
+    showBanner(`Round ${state.round}: enemy Infantry at your factory!`);
+  } else {
+    showBanner(`Round ${state.round}`, ROUND_BANNER_MS);
+  }
+}
+
+// Whether enemy infantry stand next to one of your factories, able to overrun it next turn.
+function factoryUnderThreat() {
+  const view = viewFor(state, HUMAN);
+  const factories = Object.values(view.units).filter((u) =>
+    u.owner === HUMAN && unitStats(view, u).isFactory);
+  return Object.values(view.units).some((u) => u.owner === AI_PLAYER &&
+    factories.some((f) => distance(u.at, f.at) === 1 && canCapture(view, u, f)));
 }
 
 // Shows each move hex by hex along its route, turning the unit to face the way it goes. A
@@ -550,6 +625,8 @@ function showEvents(events, before, after) {
   const lines = [];
   const sounds = new Map();
   let unloaded = 0;
+  // Hexes your units fired into blind, so what is destroyed there can be reported.
+  const blindShots = new Set();
   const sound = (clip) => {
     if (clip) sounds.set(clip[0], Math.max(clip[1], sounds.get(clip[0]) || 0));
   };
@@ -576,6 +653,18 @@ function showEvents(events, before, after) {
         ? `${unitName(before, e.unitId)} lost a life.`
         : `${unitName(before, e.unitId)}: ${e.total} of ${e.defence} this turn, ` +
           "more fire this turn adds to it.");
+    } else if (e.type === "fireBlind") {
+      if (after.units[e.unitId]?.owner !== HUMAN && before.units[e.unitId]?.owner !== HUMAN) {
+        continue;
+      }
+      any = true;
+      blindShots.add(e.at);
+      sound(fireSound(typeOf(e.unitId)));
+      effects.push({ at: e.at, size: e.hit ? 0.75 : 0.4 });
+      lines.push(`${unitName(before, e.unitId)} fired blind: ` +
+        `${e.hit ? "hit something!" : "nothing there."}`);
+    } else if (e.type === "destroyed" && !seen(e.at) && blindShots.has(e.at)) {
+      lines.push("Something out there was destroyed.");
     } else if (e.type === "destroyed" && seen(e.at)) {
       any = true;
       effects.push({ at: e.at, size: 1 });
@@ -591,6 +680,11 @@ function showEvents(events, before, after) {
       // Only your own units say so; a Green unit stopped out of sight is not in your view.
       if (e.stoppedBy === "unit" && after.units[e.unitId]?.owner === HUMAN) {
         lines.push("Something hidden blocked the way.");
+      }
+      if (e.stoppedBy === "revealed" && after.units[e.unitId]?.owner === HUMAN) {
+        lines.push(`New ground turned over. ${e.moveLeft} move point` +
+          `${e.moveLeft === 1 ? "" : "s"} left: tap where to go next.`);
+        tip("newGround");
       }
     } else if (e.type === "crushed" && seen(e.at)) {
       lines.push(`${e.amount} crystals crushed.`);
@@ -614,16 +708,19 @@ function showEvents(events, before, after) {
       any = true;
       sound(["capture", 1]);
       const whose = e.from === null ? "an unused" : e.from === HUMAN ? "your" : "Green's";
-      lines.push(`${e.owner === HUMAN ? "Your infantry" : "Green's infantry"} captured ` +
-        `${whose} factory.`);
+      lines.push(`${e.owner === HUMAN ? "Your infantry" : "Green's infantry"} overran ` +
+        `${whose} factory${e.owner === HUMAN && e.crystals ? `: ${e.crystals} crystals ` +
+          "in its store" : ""}.`);
     } else if (e.type === "board" && seen(e.at)) {
       any = true;
-      lines.push(`Infantry boarded ${unitName(after, e.transporterId).toLowerCase()}.`);
+      lines.push(`${unitName(before, e.unitId)} boarded ` +
+        `${unitName(after, e.transporterId).toLowerCase()}.`);
     } else if (e.type === "drop" && seen(e.at)) {
       any = true;
-      lines.push(`${unitName(after, e.transporterId)} dropped off infantry.`);
-    } else if (e.type === "factoryIncome" && e.player === HUMAN) {
-      lines.push(`Captured factories paid ${e.amount} crystals.`);
+      lines.push(`${unitName(after, e.transporterId)} dropped off ` +
+        `${RULES.units[after.units[e.unitId]?.type || "infantry"].name}.`);
+    } else if (e.type === "labIncome" && e.player === HUMAN) {
+      lines.push(`Crystal labs made ${e.amount} crystals.`);
     } else if (e.type === "upgrade" && seen(e.at)) {
       any = true;
       const upgrade = RULES.factoryUpgrades[e.upgrade].name;
@@ -655,10 +752,20 @@ function nudgeEndTurn() {
   setTimeout(() => els.endTurn.classList.remove("flash"), END_TURN_FLASH_MS);
 }
 
-// A short message over the board, gone after BANNER_MS.
+// A short message over the board, gone after BANNER_MS or at the next tap.
 let bannerTimer = null;
+// A tap that comes in this soon after a banner appears is the one that caused it.
+const BANNER_TAP_GRACE_MS = 300;
+let bannerShownAt = 0;
+
+function hideBanner() {
+  if (!els || performance.now() - bannerShownAt < BANNER_TAP_GRACE_MS) return;
+  clearTimeout(bannerTimer);
+  els.banner.hidden = true;
+}
 
 function showBanner(text, ms = BANNER_MS) {
+  bannerShownAt = performance.now();
   els.banner.textContent = text;
   els.banner.hidden = false;
   // Restart the fade-in when banners come one after another.
@@ -696,7 +803,10 @@ const MODES = {
 
 function targetsFor(view, mode, unitId) {
   if (mode === "move") return Object.keys(reachableHexes(view, unitId));
-  if (mode === "fire") return attackTargets(view, unitId).map((id) => view.units[id].at);
+  if (mode === "fire") {
+    return [...attackTargets(view, unitId).map((id) => view.units[id].at),
+      ...darkTargets(view, unitId)];
+  }
   if (mode === "harvest") return harvestTargets(view, unitId);
   if (mode === "heal") return healTargets(view, unitId).map((id) => view.units[id].at);
   if (mode === "drop") return dropSites(view, unitId);
@@ -708,15 +818,20 @@ function targetsFor(view, mode, unitId) {
   return [];
 }
 
+// The order a unit is ready for. Firing blind into the dark is never the default.
 function defaultMode(view, unit) {
   if (!unit || unit.owner !== HUMAN || state.current !== HUMAN) return null;
-  return Object.keys(MODES).find((m) => targetsFor(view, m, unit.id).length) || null;
+  return Object.keys(MODES).find((m) => (m === "fire" ? attackTargets(view, unit.id)
+    : targetsFor(view, m, unit.id)).length) || null;
 }
 
 function actionFor(view, mode, unitId, k) {
   const unitOn = Object.values(view.units).find((u) => u.at === k);
   if (mode === "move") return { type: "move", unitId, to: k };
-  if (mode === "fire") return { type: "attack", unitId, targetId: unitOn.id };
+  if (mode === "fire") {
+    const targetId = attackTargets(view, unitId).find((id) => view.units[id].at === k);
+    return targetId ? { type: "attack", unitId, targetId } : { type: "attack", unitId, at: k };
+  }
   if (mode === "harvest") return { type: "harvest", unitId, at: k };
   if (mode === "heal") return { type: "heal", unitId, targetId: unitOn.id };
   if (mode === "drop") return { type: "drop", unitId, at: k };
@@ -728,6 +843,7 @@ async function onHexTap(k) {
   if (!state || ui.busy) return;
   const view = viewFor(state, HUMAN);
   if (myTurn() && ui.mode && targetsFor(view, ui.mode, ui.selectedId).includes(k)) {
+    if (ui.mode === "fire" && !view.visible[k]) tip("blindFire");
     const unitId = ui.selectedId;
     if (ui.mode === "move" && crushingMoves(view, unitId).includes(k) &&
       !(await confirmCrush(view, unitId))) return;
@@ -783,10 +899,32 @@ function offerTips(view) {
     }
   }
   if (ui.mode === "fire") tip("combat");
+  if (ui.mode === "fire" && darkTargets(view, ui.selectedId).length) tip("blindFire");
   if (ui.mode === "move" && crushingMoves(view, ui.selectedId).length) tip("crystals");
+  terrainTips(view);
+  siegeTips(view);
   const ids = pendingTips;
   pendingTips = [];
   for (const id of ids) showTip(id, RULES);
+}
+
+// Tips for mountains and rough ground, the first time you see them.
+function terrainTips(view) {
+  const seen = new Set(Object.keys(view.visible).map((k) => view.map.hexes[k].terrain));
+  if (seen.has("mountain") || seen.has("chasm")) tip("mountain");
+  if (seen.has("rocky")) tip("rough");
+}
+
+// Tips for infantry next to a factory: yours, able to break in next turn, or the enemy's,
+// about to overrun yours.
+function siegeTips(view) {
+  const factories = Object.values(view.units).filter((u) => unitStats(view, u).isFactory);
+  const besieging = (owner, mine) => Object.values(view.units).some((u) =>
+    u.owner === owner && unitStats(view, u).captures &&
+    factories.some((f) => (f.owner === HUMAN) === mine && distance(u.at, f.at) === 1 &&
+      canCapture(view, u, f)));
+  if (besieging(HUMAN, false)) tip("siege");
+  if (besieging(AI_PLAYER, true)) tip("defend");
 }
 
 function onPanelClick(event) {
@@ -832,6 +970,12 @@ function render() {
     }
     const style = ui.mode === "build" ? "build" : MODES[ui.mode].style;
     let targets = targetsFor(view, ui.mode, ui.selectedId);
+    if (ui.mode === "fire") {
+      // Hexes out of sight can be fired into blind; they show fainter.
+      const blind = darkTargets(view, ui.selectedId);
+      overlays.push({ hexes: blind, style: "fireBlind" });
+      targets = targets.filter((k) => !blind.includes(k));
+    }
     if (ui.mode === "move") {
       // Moves that can only be made by driving over crystals (destroying them) show yellow.
       const crushing = crushingMoves(view, ui.selectedId);
@@ -840,12 +984,16 @@ function render() {
     }
     overlays.push({ hexes: targets, style });
   }
+  // A mission's destination (The Maid's March) is always marked.
+  const m = missionOf(state);
+  if (m && m.target) overlays.unshift({ hexes: [m.target(state.map)], style: "objective" });
   renderBoard(els.root, {
     view, selectedId: ui.selectedId, overlays, effects: ui.effects, notes, facing,
     moving: ui.moving,
   });
   renderBar(view);
   renderPanel(view);
+  renderBuildInfo(view);
   els.message.innerHTML = ui.messages.map((m) => `<span>${m}</span>`).join("");
   offerTips(view);
 }
@@ -899,7 +1047,7 @@ function renderBar(view) {
   const m = missionOf(state);
   const name = m ? `Mission ${state.campaign.mission + 1}: ${m.title}` : view.map.name;
   els.round.innerHTML = `<span class="map-name">${name} · </span>Round ${view.round}`;
-  els.turn.textContent = view.current === HUMAN ? "Your turn" : "Green's turn";
+  els.turn.textContent = view.current === HUMAN ? "Your turn" : `${opponentName()}'s turn`;
   els.turn.className = view.current === HUMAN ? "turn-blue" : "turn-green";
   els.crystals.textContent = view.players[HUMAN].crystals;
   els.endTurn.disabled = !myTurn();
@@ -911,40 +1059,64 @@ const HITS = { ground: "ground", air: "air only", both: "ground and air" };
 // Defence shows any bonus from the ground the unit stands on.
 function keyStats(view, unit) {
   const stats = unitStats(view, unit);
-  const bonus = defenceOf(view, unit) - stats.defence;
+  return keyStatsOf(stats, defenceOf(view, unit) - stats.defence);
+}
+
+function keyStatsOf(stats, bonus = 0) {
   const attack = stats.attack ? `<span>Attack ${stats.attack}</span>` : "";
   const extra = bonus ? ` <small>+${bonus} rough ground</small>` : "";
   return `<p class="key-stats">${attack}<span>Defence ${stats.defence}${extra}</span></p>`;
+}
+
+// While choosing where to build, what the chosen unit is, over the foot of the board, so the
+// build buttons stay where they are.
+function renderBuildInfo(view) {
+  const type = ui.mode === "build" ? ui.buildType : null;
+  els.buildInfo.hidden = !type;
+  if (!type) return;
+  const stats = view.rules.units[type];
+  els.buildInfo.innerHTML = `<img src="${unitImage(type, HUMAN)}" alt="">` +
+    `<div><h3>${stats.name}<span class="cost">${stats.cost}</span></h3>` +
+    `${keyStatsOf(stats)}<p class="unit-stats">${statLine(stats)}</p>` +
+    `<p class="panel-hint">Tap a yellow hex next to the factory to build it.</p></div>`;
 }
 
 function statLine(stats) {
   const range = stats.range ? stats.range.join("–").replace(/^(\d)–\1$/, "$1") : "-";
   const parts = [];
   if (stats.air) parts.push("Flies");
-  parts.push(`Move ${stats.move}`);
+  if (!stats.isFactory) parts.push(stats.move ? `Move ${stats.move}` : "Never moves");
   if (stats.attack) parts.push(`Range ${range}`, `Hits ${HITS[stats.hits || "ground"]}`);
   if (stats.splash) parts.push("Cluster bomb");
   if (stats.line) parts.push("Sonic boom");
   if (stats.reload) parts.push("Fires every other turn");
   if (stats.storage) parts.push(`Storage ${stats.storage}`);
   if (stats.healing) parts.push(`Repair ${stats.healing}`);
-  if (stats.captures) parts.push("Captures factories");
-  if (stats.carries) parts.push(`Carries ${stats.carries} infantry`);
+  if (stats.captures) parts.push("Overruns factories");
+  if (stats.carries) {
+    parts.push(stats.loads === "ground" ? "Carries 2 Infantry or 1 vehicle"
+      : `Carries ${stats.carries} Infantry`);
+  }
   parts.push(`Sight ${stats.sight}`);
   return parts.join(" · ");
 }
 
-// What a factory upgrade unlocks, e.g. "Heavy Cannon, Blast Cannon, Sonic Tank".
-function unlocks(upgrade) {
-  return Object.values(RULES.units).filter((s) => s.needs === upgrade).map((s) => s.name)
-    .join(", ");
+// What a factory upgrade does, e.g. "Unlocks Heavy Cannon, Blast Cannon, Sonic Tank".
+function upgradeEffect(upgrade) {
+  const { income } = RULES.factoryUpgrades[upgrade];
+  if (income) return `Makes ${income} crystals every turn`;
+  return `Unlocks ${Object.values(RULES.units).filter((s) => s.needs === upgrade)
+    .map((s) => s.name).join(", ")}`;
 }
 
 // A factory's panel: its upgrades, then the units it can build. Unused and enemy factories
 // show only what they are.
 function factoryPanel(view, unit, head) {
   if (unit.owner !== HUMAN) {
-    const hint = unit.owner === null ? "Move infantry into it to capture it." : "";
+    const store = unit.store ? ` Its store holds ${unit.store} crystals.` : "";
+    const hint = unit.owner === null
+      ? `Infantry next to it at the start of your turn can move in and capture it.${store}`
+      : "";
     els.panel.innerHTML = `${head}<p class="panel-hint">${hint}</p>`;
     return;
   }
@@ -953,7 +1125,7 @@ function factoryPanel(view, unit, head) {
     const { name: upgradeName, cost } = RULES.factoryUpgrades[upgrade];
     const label = `Add ${upgradeName}<span class="cost">${cost}</span>`;
     return orderButton("upgrade", label, myTurn() && cost <= crystals, false,
-      ` data-type="${upgrade}" title="Unlocks ${unlocks(upgrade)}"`);
+      ` data-type="${upgrade}" title="${upgradeEffect(upgrade)}"`);
   }).join("");
   const buildOrders = buildableTypes(view).filter((type) => factoryBuilds(view, unit, type))
     .map((type) => {
@@ -990,10 +1162,10 @@ function renderPanel(view) {
       objective += `<ol class="mission-steps">${m.steps.map((step) =>
         `<li${step.done(state) ? ' class="done"' : ""}>${step.text}</li>`).join("")}</ol>`;
     }
+    const factory = view.players[HUMAN].factoryId !== null ? ", or your factory to build" : "";
     const hint = myTurn()
-      ? "Tap a unit to see its orders, or your factory to build. Drag to pan, pinch or " +
-        "scroll to zoom."
-      : "Green is taking its turn.";
+      ? `Tap a unit to see its orders${factory}. Drag to pan, pinch or scroll to zoom.`
+      : `${opponentName()} is taking their turn.`;
     const undo = history.length ? undoButton() : "";
     // Some campaign missions (Green has nothing to surrender) leave the button out.
     const surrender = m && m.noSurrender ? "" : orderButton("surrender",
@@ -1011,11 +1183,15 @@ function renderPanel(view) {
     name = `${OWNER_WORDS[unit.owner]} ${home ? "home factory" : "factory"}`;
     const upgrades = unit.upgrades.map((u) => RULES.factoryUpgrades[u].name);
     status.push(upgrades.length ? upgrades.join(" · ") : "Light units only");
-    const income = view.rules.capture.incomePerTurn;
-    if (!home && unit.owner !== null && income) status.push(`Pays ${income} a turn`);
+    const lab = view.rules.factoryUpgrades.lab;
+    if (unit.upgrades.includes("lab")) status.push(`Makes ${lab.income} a turn`);
   }
   if (stats.storage) status.push(`Carrying ${unit.carrying}/${stats.storage}`);
-  if (stats.carries) status.push(`Infantry on board ${unit.cargo.length}/${stats.carries}`);
+  if (stats.carries) {
+    const aboard = unit.cargo.map((c) => RULES.units[c.type].name).join(", ");
+    status.push(`On board: ${aboard || "nobody"}`);
+  }
+  if (unit.continues && mine) status.push("Can move on");
   if (unit.setUp) status.push("Set up");
   if (unit.cooldown > 0) status.push("Reloading");
   const image = stats.isFactory ? "units/factory.svg" : unitImage(unit.type, unit.owner);
@@ -1063,8 +1239,10 @@ function showGameOver() {
   const loser = winner === null ? "" : `${PLAYER_COLOURS[1 - winner].name}: `;
   let text = `${loser}${REASONS[reason]} ${round}.`;
   if (reason === "resigned") {
-    text = winner === AI_PLAYER ? `You quit ${round}.` : `Green surrendered ${round}.`;
+    text = winner === AI_PLAYER ? `You quit ${round}.`
+      : `${opponentName()} surrendered ${round}.`;
   }
+  if (reason === "missionFailed") text = `${m.failText} ${round}`;
   els.again.textContent = m ? "Retry mission" : "Replay this map";
   els.newMap.textContent = m ? "Next mission" : "New game";
   els.newMap.hidden = false;

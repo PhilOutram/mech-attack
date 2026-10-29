@@ -4,7 +4,7 @@ import { RULES } from "../rules-config.js";
 import { FIXED_MAP_1, buildMap } from "../maps.js";
 import {
   newGame, applyAction, legalActions, viewFor, reachableHexes, attackTargets, healTargets,
-  harvestTargets, defenceOf, crushingMoves,
+  harvestTargets, defenceOf, crushingMoves, darkTargets,
 } from "../engine.js";
 import { distance } from "../hex.js";
 import { scenario } from "./helpers.js";
@@ -500,11 +500,58 @@ describe("combat", () => {
     const target = unit("e", "scoutBike", GREEN, "0,-5");
     const alone = scenario({ units: [art, target], rules: SIGHT_FOG });
     assert.deepEqual(attackTargets(viewFor(alone, BLUE), "r"), []);
-    assert.equal(legalActions(alone).some((a) => a.type === "attack"), false);
+    assert.equal(legalActions(alone).some((a) => a.type === "attack" && a.targetId), false);
     const spotted = scenario({
       units: [art, target, unit("s", "scoutBike", BLUE, "0,-3")], rules: SIGHT_FOG,
     });
     assert.deepEqual(attackTargets(viewFor(spotted, BLUE), "r"), ["e"]);
+  });
+});
+
+describe("firing blind", () => {
+  // Blue has seen only the blocks round its artillery.
+  const art = unit("r", "artillery", BLUE, "0,0", { setUp: true });
+
+  test("hexes in range that cannot be seen can be fired into", () => {
+    const s = scenario({ units: [art], explored: false });
+    const view = viewFor(s, BLUE);
+    const dark = darkTargets(view, "r");
+    assert.ok(dark.length > 0);
+    for (const k of dark) {
+      assert.equal(view.visible[k], undefined, `${k} is out of sight`);
+      const d = distance("0,0", k);
+      assert.ok(d >= RULES.units.artillery.range[0] && d <= RULES.units.artillery.range[1]);
+    }
+  });
+
+  test("a blind shot hits an enemy that is there, and misses an empty hex", () => {
+    const s = scenario({
+      units: [art, unit("e", "tank", GREEN, "0,-4")], explored: false,
+    });
+    assert.equal(viewFor(s, BLUE).units.e, undefined, "blue cannot see the tank");
+    const hit = play(s, { type: "attack", unitId: "r", at: "0,-4" });
+    assert.ok(hit.events.some((e) => e.type === "fireBlind" && e.hit && e.targetId === "e"));
+    assert.equal(hit.units.e.lives, RULES.lives - 1, "30 is at least the tank's 25");
+    const miss = play(s, { type: "attack", unitId: "r", at: "4,-4" });
+    assert.ok(miss.events.some((e) => e.type === "fireBlind" && !e.hit));
+    assert.equal(miss.units.r.acted, true, "the shot is spent either way");
+  });
+
+  test("a hex that can be seen is not a blind target", () => {
+    const s = scenario({ units: [art] });
+    assert.deepEqual(darkTargets(viewFor(s, BLUE), "r"), []);
+    assert.throws(() => play(s, { type: "attack", unitId: "r", at: "0,-4" }), /cannot attack/);
+  });
+});
+
+describe("factories under fire", () => {
+  test("factories cannot be fired on unless the rules allow it", () => {
+    const shooter = unit("a", "tank", BLUE, "0,-4");
+    const s = scenario({ units: [shooter] });
+    const factoryId = s.players[GREEN].factoryId;
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "a"), []);
+    const open = scenario({ units: [shooter], rules: { combat: { factoriesTakeFire: true } } });
+    assert.deepEqual(attackTargets(viewFor(open, BLUE), "a"), [factoryId]);
   });
 });
 
@@ -671,21 +718,28 @@ describe("crystals", () => {
     assert.equal(s.crystals["0,-1"].amount, 15, "it grows again after the next turn");
   });
 
-  test("a pile that grows to the explode level explodes and is lost", () => {
+  test("a pile at the explode level waits a turn for each player, then explodes", () => {
+    const { explodeAt, holdTurns } = RULES.crystals;
     let s = scenario({ units: [harvester], crystals: { "3,-3": { amount: 70 } } });
     s = play(s, END, END);
+    assert.equal(s.crystals["3,-3"].amount, explodeAt, "it stops growing at the explode level");
+    for (let turn = 1; turn < holdTurns; turn++) s = play(s, END);
+    assert.equal(s.crystals["3,-3"].amount, explodeAt, "still there for the last turn");
+    s = play(s, END);
     assert.equal(s.crystals["3,-3"], undefined);
     assert.ok(s.events.some((e) => e.type === "crystalsExploded" && e.at === "3,-3" &&
-      e.amount === RULES.crystals.explodeAt));
+      e.amount === explodeAt));
   });
 
-  test("a starting pile left alone explodes after three rounds", () => {
+  test("a starting pile left alone explodes after four rounds", () => {
     let s = scenario({
       units: [harvester], crystals: { "3,-3": { amount: RULES.crystals.startAmount } },
     });
-    s = play(s, END, END, END, END);
-    assert.equal(s.crystals["3,-3"].amount, 70);
-    s = play(s, END, END);
+    s = play(s, END, END, END, END, END, END);
+    assert.equal(s.crystals["3,-3"].amount, RULES.crystals.explodeAt);
+    s = play(s, END);
+    assert.ok(s.crystals["3,-3"]);
+    s = play(s, END);
     assert.equal(s.crystals["3,-3"], undefined);
   });
 
@@ -832,7 +886,8 @@ describe("fog of war by map blocks", () => {
 
   test("a moving unit turns over the blocks it sees along the way", () => {
     let s = scenario({
-      units: [unit("h", "lightHarvester", BLUE, "-3,0")], explored: false, rules: blindFactories,
+      units: [unit("h", "lightHarvester", BLUE, "-3,0")], explored: false,
+      rules: { ...blindFactories, fog: { revealRange: null, stopOnReveal: false } },
     });
     const sight = RULES.units.lightHarvester.sight;
     const block = blockOf(s, "0,2");
@@ -843,11 +898,51 @@ describe("fog of war by map blocks", () => {
   });
 });
 
+describe("moving into face-down ground", () => {
+  // Reveal range 1: blocks turn over only when a unit is on or next to them.
+  test("a move stops where it turns over new ground, with the rest of its move left", () => {
+    let s = scenario({ units: [unit("t", "tank", BLUE, "0,0")], explored: false });
+    const target = "0,-4";
+    assert.equal(viewFor(s, BLUE).map.hexes[target].terrain, null);
+    assert.ok(reachableHexes(viewFor(s, BLUE), "t")[target], "planned through the dark");
+    s = play(s, { type: "move", unitId: "t", to: target });
+    const move = s.events.find((e) => e.type === "move");
+    assert.equal(move.stoppedBy, "revealed");
+    assert.notEqual(s.units.t.at, target);
+    const left = RULES.units.tank.move - s.units.t.moveUsed;
+    assert.ok(left > 0);
+    assert.equal(move.moveLeft, left);
+    const again = reachableHexes(viewFor(s, BLUE), "t");
+    assert.ok(Object.values(again).every((cost) => cost <= left), "only the rest of its move");
+    assert.ok(Object.keys(again).length > 0);
+  });
+
+  test("the unit can then carry on, and stops for good once its move is used", () => {
+    let s = scenario({ units: [unit("t", "tank", BLUE, "0,0")], explored: false });
+    for (let step = 0; step < RULES.units.tank.move && s.units.t.continues !== false; step++) {
+      const options = Object.keys(reachableHexes(viewFor(s, BLUE), "t"));
+      if (!options.length) break;
+      s = play(s, { type: "move", unitId: "t", to: options[0] });
+    }
+    assert.ok(s.units.t.moveUsed <= RULES.units.tank.move);
+    s = play(s, END, END);
+    assert.equal(s.units.t.continues, false, "a new turn starts afresh");
+  });
+
+  test("a move through ground already face up is not cut short", () => {
+    let s = scenario({ units: [unit("t", "tank", BLUE, "0,0")] });
+    s = play(s, { type: "move", unitId: "t", to: "0,-4" });
+    assert.equal(s.units.t.at, "0,-4");
+    assert.equal(s.units.t.continues, false);
+  });
+});
+
 describe("winning", () => {
-  test("destroying the enemy factory wins", () => {
+  test("destroying the enemy factory wins, when factories take fire", () => {
     let s = scenario({
       units: [unit("a", "heavyCannon", BLUE, "0,-3"), unit("g", "tank", GREEN, "3,-3")],
-      rules: { units: { ...RULES.units, factory: { ...RULES.units.factory, defence: 20 } } },
+      rules: { units: { ...RULES.units, factory: { ...RULES.units.factory, defence: 20 } },
+        combat: { factoriesTakeFire: true } },
     });
     s = play(s, attack("a", s.players[GREEN].factoryId));
     assert.deepEqual(s.result, { winner: BLUE, reason: "factoryDestroyed", round: 1 });

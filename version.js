@@ -1,8 +1,24 @@
-export const VERSION = "v0.36";
+export const VERSION = "v0.37";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.37",
+    date: "2026-10-29",
+    notes: [
+      "Factories are overrun, not destroyed: Infantry must wait a turn next to one before " +
+        "breaking in. Unused factories hold 25 crystals; a new Crystal lab upgrade makes 10 " +
+        "a turn.",
+      "Moves stop at newly turned-over ground with the rest of their move left; units can " +
+        "fire blind into hexes they cannot see.",
+      "New units: Chinook (flying transporter) and Turret. Three ranks to play at, each " +
+        "with its own opponent.",
+      "The campaign grows to eleven missions with Green bosses, an Objective button, unit " +
+        "info while building, longer banners and End turn flash, crystals that wait a turn " +
+        "at 80, and tips for mountains and rough ground.",
+    ],
+  },
   {
     version: "v0.36",
     date: "2026-10-29",

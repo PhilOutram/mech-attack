@@ -15,28 +15,36 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.36";
+} from "./hex.js?v=0.37";
 
-// Factories, infantry and transporters (format 6):
-// - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
-//   maps also have unused factories (owner null), which nobody can attack.
-// - Infantry capture a factory that is not their owner's by moving into it; the troops are
-//   used up. Home factories can be captured only if rules.capture.homeFactories is set.
-// - A transporter carries infantry in unit.cargo; they board by moving onto it and are dropped
-//   off on a free hex next to it, or straight into a factory to capture it.
-// - Factory upgrades (unit.upgrades) unlock the unit types that need them (stat "needs").
+// Factories, infantry and transporters (format 7):
+// - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
+//   a player who starts without one); bigger maps also have unused factories (owner null).
+//   Factories are not fired on unless rules.combat.factoriesTakeFire is set.
+// - Infantry capture ("overrun") a factory that is not their owner's by moving into it; the
+//   troops are used up. Home factories can be captured if rules.capture.homeFactories is set.
+//   An unused factory's store of crystals (unit.store) goes to whoever captures it.
+// - A transporter carries passengers in unit.cargo; they board by moving onto it and are
+//   dropped off on a free hex next to it, or straight into a factory to capture it.
+// - Factory upgrades (unit.upgrades) unlock the unit types that need them (stat "needs"); a
+//   Crystal lab makes crystals every turn.
+// - A move cut short by turning over new ground (stoppedBy "revealed") leaves the unit able
+//   to use the rest of its move (unit.continues).
+// - players[p].lost counts that player's destroyed units by type.
 
 // Saved games in any other format are not loaded.
-export const STATE_FORMAT = 6;
+export const STATE_FORMAT = 7;
 export const PLAYER_COLOURS = ["blue", "green"];
 
 // ---------------------------------------------------------------------------------------
 // Setting up
 
-// setup (campaign missions): { units: [blue types, green types], crystals: [blue, green],
-// unclaimedHome: [blue?, green?] } replaces the starting units and crystals in rules.start for
+// setup (campaign missions and difficulty levels): { units: [blue types, green types],
+// crystals: [blue, green], unclaimedHome: [blue?, green?], noHome: [blue?, green?],
+// upgrades: [blue's, green's] } replaces the starting units and crystals in rules.start for
 // that game. A player whose home is unclaimed starts with their home factory unused and must
-// capture it with infantry first.
+// capture it with infantry first; a player with noHome has no factory at all. upgrades are
+// already fitted to the player's home factory.
 export function newGame({
   rules, map, seed = 1, firstPlayer = 0, recordActions = true, setup = null,
 }) {
@@ -61,6 +69,7 @@ export function newGame({
       seenFactories: {},
       // Map blocks this player has turned over (fog mode "tiles").
       revealed: {},
+      lost: {},
     })),
     units: {},
     nextUnitId: 1,
@@ -77,8 +86,11 @@ export function newGame({
   const taken = new Set([...factorySites, ...map.deposits.map((d) => d.at)]);
   state.players.forEach((player, p) => {
     const unclaimed = Boolean(setup && setup.unclaimedHome && setup.unclaimedHome[p]);
-    const factory = addUnit(state, "factory", unclaimed ? null : p, map.factories[p]);
-    player.factoryId = factory.id;
+    if (!(setup && setup.noHome && setup.noHome[p])) {
+      const factory = addUnit(state, "factory", unclaimed ? null : p, map.factories[p]);
+      factory.upgrades = [...((setup && setup.upgrades && setup.upgrades[p]) || [])];
+      player.factoryId = factory.id;
+    }
     const types = setup ? setup.units[p] : rules.start.units;
     types.forEach((type, i) => {
       const at = startSite(state, p, map.starts[p][i], taken);
@@ -86,7 +98,9 @@ export function newGame({
       addUnit(state, type, p, at);
     });
   });
-  for (const site of map.neutralFactories || []) addUnit(state, "factory", null, site.at);
+  for (const site of map.neutralFactories || []) {
+    addUnit(state, "factory", null, site.at).store = rules.capture.unusedFactoryCrystals || 0;
+  }
   if (setup) state.players.forEach((player, p) => { player.crystals = setup.crystals[p]; });
   else state.players[otherPlayer].crystals += rules.start.secondPlayerCrystals || 0;
   for (const deposit of map.deposits) {
@@ -98,14 +112,15 @@ export function newGame({
   return state;
 }
 
-// Where a starting unit goes: the map's starting hex for it if free, otherwise the nearest
-// free open hex to the player's factory.
+// Where a starting unit goes: the map's starting hex for it if free and open, otherwise the
+// nearest free open hex to the player's factory site.
 function startSite(state, player, preferred, taken) {
-  if (preferred && !taken.has(preferred)) return preferred;
+  const open = (k) => !taken.has(k) &&
+    state.rules.terrain[state.map.hexes[k].terrain].moveCost !== null;
+  if (preferred && state.map.hexes[preferred] && open(preferred)) return preferred;
   const home = state.map.factories[player];
-  const open = Object.keys(state.map.hexes).filter((k) =>
-    !taken.has(k) && state.rules.terrain[state.map.hexes[k].terrain].moveCost !== null);
-  return open.sort((a, b) => distance(home, a) - distance(home, b) || a.localeCompare(b))[0];
+  const sites = Object.keys(state.map.hexes).filter(open);
+  return sites.sort((a, b) => distance(home, a) - distance(home, b) || a.localeCompare(b))[0];
 }
 
 function addUnit(state, type, owner, at) {
@@ -362,10 +377,11 @@ function plannedPaths(state, unit, byHex, move = Infinity, avoidCrystals = false
 
 // Movement points the unit has left this turn. Most units move once; a unit that splits its
 // move (splitMove) can keep moving, looking around between moves, until it has used them all.
+// So can a unit whose last move stopped to turn over new ground (unit.continues).
 function moveLeft(state, unit) {
   const stats = unitStats(state, unit);
   if (unit.acted || unit.setUp || stats.move <= 0) return 0;
-  if (stats.splitMove) return stats.move - (unit.moveUsed || 0);
+  if (stats.splitMove || unit.continues) return stats.move - (unit.moveUsed || 0);
   return unit.moved ? 0 : stats.move;
 }
 
@@ -382,12 +398,25 @@ export function canCapture(state, unit, factory) {
     !unitsOf(state, factory.owner).some((u) => distance(u.at, factory.at) === 1);
 }
 
-// A unit that rides can board its owner's transporter, if there is room, by moving onto it.
+// Places a passenger takes in a transporter: its stat "size", 2 for a vehicle if not given.
+const VEHICLE_SIZE = 2;
+
+function sizeOf(state, unit) {
+  return unitStats(state, unit).size || VEHICLE_SIZE;
+}
+
+// A ground unit can board its owner's transporter by moving onto it, if the transporter
+// loads its kind (only units that ride, or any ground unit) and has room for it.
 export function canBoard(state, unit, transporter) {
-  if (!transporter || !unitStats(state, unit).rides || transporter.owner !== unit.owner) {
+  if (!transporter || transporter.owner !== unit.owner || transporter.id === unit.id) {
     return false;
   }
-  return (transporter.cargo || []).length < (unitStats(state, transporter).carries || 0);
+  const carrier = unitStats(state, transporter);
+  const stats = unitStats(state, unit);
+  if (!carrier.carries || stats.air || stats.isFactory || stats.carries) return false;
+  if (carrier.loads === "infantry" && !stats.rides) return false;
+  const used = (transporter.cargo || []).reduce((sum, c) => sum + sizeOf(state, c), 0);
+  return used + sizeOf(state, unit) <= carrier.carries;
 }
 
 // Where a unit can move this turn: { hex: { cost, path, crushes } }. A ground unit takes a
@@ -481,29 +510,50 @@ function lineDirection(from, to) {
   return DIRECTIONS.find(([dq, dr]) => fq + dq * n === tq && fr + dr * n === tr) || null;
 }
 
-export function attackTargets(view, unitId) {
-  const unit = view.units[unitId];
-  if (!unit || unit.acted || unit.cooldown > 0) return [];
+// Whether a unit can fire on another: an enemy its attack can hit, and not a factory unless
+// factories take fire. Works on a view too.
+function canTarget(state, unit, target) {
+  return isEnemy(unit, target) && canHit(state, unit, target) &&
+    (state.rules.combat.factoriesTakeFire || !unitStats(state, target).isFactory);
+}
+
+// Whether the unit can fire now, and if so a test for the hexes it can fire at: in range,
+// along a straight line for a line attack, otherwise with a clear line of sight. Unknown
+// terrain does not block. null if it cannot fire.
+function firingReach(view, unit) {
+  if (unit.acted || unit.cooldown > 0) return null;
   const stats = unitStats(view, unit);
-  if (!stats.attack || !stats.range) return [];
-  if (stats.needsSetup && !unit.setUp) return [];
+  if (!stats.attack || !stats.range) return null;
+  if (stats.needsSetup && !unit.setUp) return null;
   const [minRange, maxRange] = stats.range;
-  const enemies = Object.values(view.units).filter((t) =>
-    isEnemy(unit, t) && view.visible[t.at] && canHit(view, unit, t));
   if (stats.line) {
-    // A line attack can be aimed at any enemy on one of the six straight lines within range.
     const reach = new Set(DIRECTIONS.flatMap((d) => lineHexes(view, unit.at, d, maxRange)));
-    return enemies
-      .filter((t) => reach.has(t.at) && distance(unit.at, t.at) >= minRange)
-      .map((t) => t.id);
+    return (k) => reach.has(k) && distance(unit.at, k) >= minRange;
   }
   const blocks = blocksSight(view);
-  return enemies
-    .filter((t) => {
-      const d = distance(unit.at, t.at);
-      return d >= minRange && d <= maxRange && lineOfSight(unit.at, t.at, blocks);
-    })
+  return (k) => {
+    const d = distance(unit.at, k);
+    return d >= minRange && d <= maxRange && lineOfSight(unit.at, k, blocks);
+  };
+}
+
+// Enemy units the unit can fire at: ids of targets in sight.
+export function attackTargets(view, unitId) {
+  const unit = view.units[unitId];
+  const reach = unit && firingReach(view, unit);
+  if (!reach) return [];
+  return Object.values(view.units)
+    .filter((t) => view.visible[t.at] && canTarget(view, unit, t) && reach(t.at))
     .map((t) => t.id);
+}
+
+// Hexes the unit can fire into blind (Phil, 29 October 2026): hexes in range that the player
+// cannot see. Whatever is there, if anything, is hit.
+export function darkTargets(view, unitId) {
+  const unit = view.units[unitId];
+  const reach = unit && firingReach(view, unit);
+  if (!reach) return [];
+  return Object.keys(view.map.hexes).filter((k) => !view.visible[k] && reach(k));
 }
 
 export function healTargets(view, unitId) {
@@ -540,8 +590,8 @@ export function canUnload(view, unitId) {
   return nextToOwnFactory(view, unit);
 }
 
-// Hexes a transporter can drop its next passenger on: a free hex next to it, or a factory
-// next to it that the passenger can capture (unless capture.mustStartNextTo).
+// Hexes a transporter can drop its next passenger on: a free open hex next to it, or a
+// factory next to it that the passenger can capture (unless capture.mustStartNextTo).
 export function dropSites(view, unitId) {
   const unit = view.units[unitId];
   if (!unit || !unit.cargo || !unit.cargo.length) return [];
@@ -623,6 +673,7 @@ export function legalActions(state) {
     for (const targetId of attackTargets(view, id)) {
       actions.push({ type: "attack", unitId: id, targetId });
     }
+    for (const at of darkTargets(view, id)) actions.push({ type: "attack", unitId: id, at });
     for (const targetId of healTargets(view, id)) {
       actions.push({ type: "heal", unitId: id, targetId });
     }
@@ -700,6 +751,7 @@ function cloneState(state) {
     revealed: { ...player.revealed },
     seenCrystals: { ...player.seenCrystals },
     seenFactories: { ...player.seenFactories },
+    lost: { ...player.lost },
   }));
   return {
     ...state,
@@ -731,8 +783,11 @@ function finishAction(unit) {
 
 // The path is planned on what the player knows. Walking it on the real board, a ground unit
 // stops early at anything hidden in the way: an enemy unit or impassable ground. A flying unit
-// passes over everything but cannot stop on a hex that turns out to be occupied. A move into
-// a factory captures it; a move onto a transporter boards it.
+// passes over everything but cannot stop on a hex that turns out to be occupied. With
+// rules.fog.stopOnReveal, a move that turns over new blocks stops there if the rest of the
+// path runs onto ground that was face down when the move was planned; the unit can use the
+// rest of its move afterwards. A move into a factory captures it; a move onto a transporter
+// boards it.
 function applyMove(state, { unitId, to }) {
   const unit = ownUnit(state, unitId);
   const view = viewFor(state, state.current);
@@ -744,11 +799,16 @@ function applyMove(state, { unitId, to }) {
     (canCapture(state, unit, byHex[k]) || canBoard(state, unit, byHex[k]));
   const allowance = moveLeft(state, unit);
   const flies = Boolean(unitStats(state, unit).air);
+  const player = state.players[unit.owner];
+  const unknown = (k) => !player.explored[k];
+  const stopOnReveal = tilesFog(state) && state.rules.fog.stopOnReveal;
   const from = unit.at;
+  // Each hex walked, with the move points it took.
   const walked = [];
-  let spent = 0;
   let stoppedBy = null;
-  for (const k of route.path) {
+  let spent = 0;
+  for (let i = 0; i < route.path.length; i++) {
+    const k = route.path[i];
     const cost = flies ? 1 : terrainRules(state, k).moveCost;
     const other = byHex[k];
     if (!flies && other && other.owner !== unit.owner && !entering(k)) {
@@ -760,28 +820,36 @@ function applyMove(state, { unitId, to }) {
       break;
     }
     spent += cost;
-    walked.push(k);
+    walked.push({ k, cost });
+    // Blocks come into sight along the way, not just at the end of the move.
+    if (!tilesFog(state)) continue;
+    const before = Object.keys(player.revealed).length;
+    revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
+    const turned = Object.keys(player.revealed).length > before;
+    if (stopOnReveal && turned && route.path.slice(i + 1).some(unknown)) {
+      stoppedBy = "revealed";
+      break;
+    }
   }
   // Never finish on a hex another unit is on, unless entering it.
   while (walked.length) {
-    const last = walked[walked.length - 1];
+    const last = walked[walked.length - 1].k;
     if (!byHex[last] || entering(last)) break;
     walked.pop();
   }
 
-  unit.at = walked.length ? walked[walked.length - 1] : from;
+  const path = walked.map((step) => step.k);
+  const used = walked.reduce((sum, step) => sum + step.cost, 0);
+  unit.at = path.length ? path[path.length - 1] : from;
   unit.moved = true;
-  unit.moveUsed = (unit.moveUsed || 0) + spent;
-  state.events.push({ type: "move", unitId, from, to: unit.at, path: walked, stoppedBy });
-
-  // Blocks come into sight along the way, not just at the end of the move.
-  if (tilesFog(state)) {
-    for (const k of walked) revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
-  }
+  unit.moveUsed = (unit.moveUsed || 0) + used;
+  unit.continues = stoppedBy === "revealed" && used > 0 && unit.at !== to;
+  state.events.push({ type: "move", unitId, from, to: unit.at, path, stoppedBy,
+    moveLeft: unit.continues ? moveLeft(state, unit) : 0 });
 
   // Driving onto or over crystals destroys them; flying over them does not.
   if (state.rules.crystals.crushedByMovement && !flies) {
-    for (const k of walked) {
+    for (const k of path) {
       const pile = state.crystals[k];
       if (!pile) continue;
       delete state.crystals[k];
@@ -801,11 +869,15 @@ function applyMove(state, { unitId, to }) {
 }
 
 // The troops go into the factory and are used up; the factory keeps its damage and upgrades.
+// Crystals in an unused factory's store go to its new owner.
 function capture(state, unit, factory) {
   removeUnit(state, unit);
+  const crystals = factory.store || 0;
+  state.players[unit.owner].crystals += crystals;
   state.events.push({ type: "capture", unitId: unit.id, factoryId: factory.id,
-    from: factory.owner, owner: unit.owner, at: factory.at });
+    from: factory.owner, owner: unit.owner, at: factory.at, crystals });
   factory.owner = unit.owner;
+  factory.store = 0;
 }
 
 function board(state, unit, transporter) {
@@ -829,7 +901,7 @@ function applyDrop(state, { unitId, at }) {
   }
   const [passenger, ...rest] = transporter.cargo;
   transporter.cargo = rest;
-  const unit = { ...passenger, at };
+  const unit = { ...passenger, at, continues: false };
   finishAction(unit);
   const there = unitAt(state, at);
   state.units[unit.id] = unit;
@@ -837,25 +909,35 @@ function applyDrop(state, { unitId, at }) {
   if (there) capture(state, unit, there);
 }
 
-function applyAttack(state, { unitId, targetId }) {
+// An attack at a unit in sight (targetId), or blind into a hex the player cannot see (at),
+// which hits whatever enemy is there, if any.
+function applyAttack(state, { unitId, targetId, at }) {
   const unit = ownUnit(state, unitId);
   const view = viewFor(state, state.current);
-  if (!attackTargets(view, unitId).includes(targetId)) illegal(`${unitId} cannot attack`);
-  const target = state.units[targetId];
+  const blind = targetId === undefined;
+  if (blind ? !darkTargets(view, unitId).includes(at)
+    : !attackTargets(view, unitId).includes(targetId)) illegal(`${unitId} cannot attack`);
   const stats = unitStats(state, unit);
   const attack = stats.attack;
+  const where = blind ? at : state.units[targetId].at;
+  const found = unitAt(state, where);
+  const target = found && canTarget(state, unit, found) ? found : null;
   finishAction(unit);
   if (stats.reload) unit.cooldown = stats.reload + 1;
-  state.events.push({ type: "fire", unitId, targetId, attack });
-  hit(state, target, attack);
+  if (blind) {
+    state.events.push({ type: "fireBlind", unitId, at: where, attack, hit: Boolean(target),
+      targetId: target ? target.id : null });
+  } else {
+    state.events.push({ type: "fire", unitId, targetId, attack });
+  }
+  if (target) hit(state, target, attack);
 
   // Sonic boom: every other enemy along the same line, up to range, is hit too.
   if (stats.line) {
-    const direction = lineDirection(unit.at, target.at);
+    const direction = lineDirection(unit.at, where);
     for (const k of lineHexes(state, unit.at, direction, stats.range[1])) {
       const other = unitAt(state, k);
-      if (!other || other === target || !isEnemy(unit, other)) continue;
-      if (!canHit(state, unit, other)) continue;
+      if (!other || other === target || !canTarget(state, unit, other)) continue;
       state.events.push({ type: "lineHit", unitId, targetId: other.id, attack });
       hit(state, other, attack);
     }
@@ -864,19 +946,19 @@ function applyAttack(state, { unitId, targetId }) {
   // Cluster bomb: enemy units next to the target take a share of the attack.
   if (stats.splash) {
     const amount = Math.floor(attack * stats.splash);
-    for (const k of neighbourKeys(target.at)) {
+    for (const k of neighbourKeys(where)) {
       const other = unitAt(state, k);
-      if (!other || !isEnemy(unit, other) || !canHit(state, unit, other)) continue;
+      if (!other || !canTarget(state, unit, other)) continue;
       state.events.push({ type: "splash", unitId, targetId: other.id, attack: amount });
       hit(state, other, amount);
     }
   }
 
   // Return fire is simultaneous: the target hits back even if this attack destroys it, so
-  // starting an even fight gives no free shot.
-  if (firesBack(state, unit, target)) {
+  // starting an even fight gives no free shot. A unit fired on blind does not know who fired.
+  if (target && !blind && firesBack(state, unit, target)) {
     const attackBack = unitStats(state, target).attack;
-    state.events.push({ type: "returnFire", unitId: targetId, targetId: unitId,
+    state.events.push({ type: "returnFire", unitId: target.id, targetId: unitId,
       attack: attackBack });
     hit(state, unit, attackBack);
   }
@@ -927,8 +1009,10 @@ function hit(state, target, amount) {
   target.lives = lives;
   if (lives === 0) {
     removeUnit(state, target);
-    // Infantry inside a transporter are lost with it.
+    // Passengers inside a transporter are lost with it.
     for (const unit of [target, ...(target.cargo || [])]) {
+      const lost = state.players[unit.owner].lost;
+      lost[unit.type] = (lost[unit.type] || 0) + 1;
       state.events.push({ type: "destroyed", unitId: unit.id, unitType: unit.type,
         owner: unit.owner, at: target.at });
     }
@@ -1028,7 +1112,7 @@ function applyResign(state, { player = state.current }) {
 
 function applyEndTurn(state) {
   unloadAtFactory(state, state.current);
-  factoryIncome(state, state.current);
+  labIncome(state, state.current);
   crystalsBetweenTurns(state);
   state.hits = {};
   state.events.push({ type: "endTurn", player: state.current });
@@ -1041,20 +1125,20 @@ function applyEndTurn(state) {
   for (const unit of unitsOf(state, state.current)) {
     unit.moved = false;
     unit.moveUsed = 0;
+    unit.continues = false;
     unit.acted = false;
     if (unit.cooldown > 0) unit.cooldown -= 1;
   }
 }
 
-// Each factory the player holds besides a home factory pays capture.incomePerTurn crystals at
-// the end of their turn.
-function factoryIncome(state, player) {
-  const income = state.rules.capture.incomePerTurn;
-  if (!income) return;
-  const count = factoriesOf(state, player).filter((f) => !isHomeFactory(state, f)).length;
-  if (!count) return;
-  state.players[player].crystals += count * income;
-  state.events.push({ type: "factoryIncome", player, amount: count * income });
+// Each of the player's factories with a Crystal lab makes crystals at the end of their turn.
+function labIncome(state, player) {
+  const lab = state.rules.factoryUpgrades.lab;
+  if (!lab) return;
+  const labs = factoriesOf(state, player).filter((f) => f.upgrades.includes("lab")).length;
+  if (!labs) return;
+  state.players[player].crystals += labs * lab.income;
+  state.events.push({ type: "labIncome", player, amount: labs * lab.income });
 }
 
 // Units that end their owner's turn next to one of its factories unload what they carry,
@@ -1068,16 +1152,24 @@ function unloadAtFactory(state, player) {
 // ---------------------------------------------------------------------------------------
 // Between turns: crystals grow, explode and spawn
 
-// After every turn, each pile not harvested during that turn grows; one that reaches the
-// explode level explodes and its crystals are lost. Then new piles spawn. Doing this after
-// every turn, not once a round, means neither player gets the growth or the new piles first.
+// After every turn, each pile not harvested during that turn grows, up to the explode level.
+// A pile at the explode level stays there for holdTurns turns (pile.held counts them), then
+// explodes and its crystals are lost. Then new piles spawn. Doing this after every turn, not
+// once a round, means neither player gets the growth or the new piles first.
 function crystalsBetweenTurns(state) {
   const rules = state.rules.crystals;
   for (const k in state.crystals) {
     const pile = state.crystals[k];
-    if (!pile.harvestedThisTurn) pile.amount += rules.growthPerTurn;
-    pile.harvestedThisTurn = false;
     if (pile.amount >= rules.explodeAt) {
+      pile.held = (pile.held || 0) + 1;
+    } else {
+      pile.held = 0;
+      if (!pile.harvestedThisTurn) {
+        pile.amount = Math.min(rules.explodeAt, pile.amount + rules.growthPerTurn);
+      }
+    }
+    pile.harvestedThisTurn = false;
+    if (pile.amount >= rules.explodeAt && pile.held >= (rules.holdTurns || 0)) {
       delete state.crystals[k];
       state.events.push({ type: "crystalsExploded", at: k, amount: pile.amount });
     }
@@ -1136,7 +1228,7 @@ function checkResult(state) {
     .map((player, p) => {
       if (state.rules.winCondition === "allFactories") {
         if (!factoriesOf(state, p).length) return { p, reason: "noFactories" };
-      } else {
+      } else if (player.factoryId !== null) {
         const home = state.units[player.factoryId];
         if (!home) return { p, reason: "factoryDestroyed" };
         // An unclaimed home (campaign) is not lost until the enemy takes it.

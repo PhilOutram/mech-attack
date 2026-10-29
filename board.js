@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.36";
-import { unitStats, defenceOf } from "./engine.js?v=0.36";
+import { parseKey, toPixel } from "./hex.js?v=0.37";
+import { unitStats, defenceOf } from "./engine.js?v=0.37";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -27,8 +27,8 @@ export const PLAYER_COLOURS = {
 };
 // Ring round an unused factory, which belongs to nobody.
 const NEUTRAL_RING = "#b9b2a8";
-// Factory upgrade letters shown on the factory: H = Heavy works, A = Airfield.
-const UPGRADE_LETTERS = { heavyWorks: "H", airfield: "A" };
+// Factory upgrade letters shown on the factory: H = Heavy works, A = Airfield, L = Crystal lab.
+const UPGRADE_LETTERS = { heavyWorks: "H", airfield: "A", lab: "L" };
 
 // Plain fills used when no tile image is available.
 const TERRAIN_FILL = {
@@ -39,6 +39,10 @@ const TERRAIN_FILL = {
 export const OVERLAY_STYLES = {
   move: { stroke: "#7ae4ff", fill: "rgba(90, 216, 255, 0.22)" },
   fire: { stroke: "#ff7a66", fill: "rgba(255, 90, 74, 0.3)" },
+  // A hex out of sight that can be fired into blind.
+  fireBlind: { stroke: "rgba(255, 122, 102, 0.75)", fill: "rgba(255, 90, 74, 0.14)" },
+  // A campaign mission's destination.
+  objective: { stroke: "#ffd23f", fill: "rgba(255, 210, 63, 0.12)" },
   range: { stroke: "rgba(255, 90, 74, 0.5)", fill: "rgba(255, 90, 74, 0.06)" },
   harvest: { stroke: "#9ff7ff", fill: "rgba(127, 243, 255, 0.26)" },
   heal: { stroke: "#9dffa8", fill: "rgba(125, 255, 138, 0.24)" },
@@ -68,6 +72,9 @@ const UNIT_FILES = {
   fighter: "fighter",
   infantry: "infantry",
   transporter: "transporter",
+  chinook: "chinook",
+  turret: "turret",
+  vip: "vip",
 };
 
 export function unitImage(type, owner) {
@@ -213,13 +220,21 @@ function drawCrystals(view) {
   for (const k in view.crystals) {
     const pile = view.crystals[k];
     const [x, y] = hexCentre(k);
-    const { explodeAt, growthPerTurn } = view.rules.crystals;
+    const { explodeAt, growthPerTurn, holdTurns = 0 } = view.rules.crystals;
     const share = Math.min(1, pile.amount / explodeAt);
     const scale = CRYSTAL_MIN_SCALE + (CRYSTAL_MAX_SCALE - CRYSTAL_MIN_SCALE) * share;
     const size = HEX_HEIGHT * scale;
     out += image("units/crystals.svg", x, y - HEX_HEIGHT * 0.06, size, size);
-    // Red when the pile will explode at the end of this turn unless someone harvests it.
-    const warn = pile.amount + growthPerTurn >= explodeAt ? " crystal-warning" : "";
+    // Red when the pile will explode at the end of this turn unless someone harvests it; amber
+    // when it is at (or reaches) the explode level with a turn to spare.
+    const full = pile.amount >= explodeAt;
+    const held = pile.held || 0;
+    let warn = "";
+    if (full ? held + 1 >= holdTurns : !holdTurns && pile.amount + growthPerTurn >= explodeAt) {
+      warn = " crystal-warning";
+    } else if (full || pile.amount + growthPerTurn >= explodeAt) {
+      warn = " crystal-full";
+    }
     out += label(pile.amount, x, y + HEX_HEIGHT * 0.38, `board-label crystal-label${warn}`);
   }
   return out;

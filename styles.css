@@ -561,9 +561,9 @@ h1 {
   white-space: nowrap;
 }
 
-/* Every unit has done all it can: End turn flashes for 3 seconds (game.js nudgeEndTurn). */
+/* Every unit has done all it can: End turn flashes for 6 seconds (game.js nudgeEndTurn). */
 .end-turn.flash {
-  animation: end-turn-flash 0.5s ease-in-out 6;
+  animation: end-turn-flash 0.5s ease-in-out 12;
 }
 
 @keyframes end-turn-flash {
@@ -642,6 +642,11 @@ h1 {
 
 .crystal-label.crystal-warning {
   fill: #ff5a4a;
+}
+
+/* At the explode level, with a turn to spare. */
+.crystal-label.crystal-full {
+  fill: #ffb43a;
 }
 
 .setup-label {
@@ -1050,4 +1055,67 @@ h1 {
 .key-stats small {
   font-size: 0.7rem;
   color: #7dff8a;
+}
+
+/* The unit chosen in the factory, over the foot of the board while you pick where to build
+   it, so the build buttons never move. */
+.build-info {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: rgba(20, 8, 6, 0.92);
+  pointer-events: none;
+}
+
+.build-info img {
+  width: 44px;
+  height: 44px;
+  flex: none;
+}
+
+.build-info h3 {
+  margin: 0;
+  font-family: var(--title-font);
+  font-size: 0.95rem;
+}
+
+.build-info .cost {
+  margin-left: 0.5rem;
+  color: #9ff4ff;
+  font-family: system-ui, sans-serif;
+}
+
+.build-info .key-stats {
+  margin-top: 0.2rem;
+}
+
+.build-info .unit-stats,
+.build-info .panel-hint {
+  margin: 0.2rem 0 0;
+}
+
+.objective-btn {
+  border-color: #ffd23f;
+  color: #ffd23f;
+}
+
+.level-pick {
+  margin-bottom: 0.3rem;
+}
+
+.level-pick select {
+  width: 100%;
+}
+
+.level-persona {
+  margin: 0 0 0.8rem;
+  font-size: 0.85rem;
+  color: var(--muted);
 }

@@ -1,12 +1,13 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.36";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.36";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.36";
-import { confirmDialog } from "./dialog.js?v=0.36";
-import { showTip, resetTips } from "./tips.js?v=0.36";
-import { RULES } from "./rules-config.js?v=0.36";
-import { MISSIONS, missionsDone } from "./campaign.js?v=0.36";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.36";
+import { VERSION, CHANGELOG } from "./version.js?v=0.37";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.37";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.37";
+import { confirmDialog } from "./dialog.js?v=0.37";
+import { showTip, resetTips } from "./tips.js?v=0.37";
+import { RULES } from "./rules-config.js?v=0.37";
+import { MISSIONS, missionsDone } from "./campaign.js?v=0.37";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.37";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.37";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -73,8 +74,15 @@ document.getElementById("campaign-list").addEventListener("click", async (e) => 
   play({ mission: Number(button.dataset.mission) });
 });
 
+const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight",
+  "nine", "ten", "eleven", "twelve"];
+
 function showCampaign() {
   const done = missionsDone();
+  const count = NUMBER_WORDS[MISSIONS.length] || String(MISSIONS.length);
+  document.getElementById("campaign-intro").textContent = `${count[0].toUpperCase()}` +
+    `${count.slice(1)} missions on Kharon, the red crystal world. Each one is built round a ` +
+    "different unit or tactic, and finishing it opens the next.";
   document.getElementById("campaign-list").innerHTML = MISSIONS.map((m, i) => {
     const action = i > done ? `<span class="muted">Locked</span>`
       : `<button type="button" class="start-btn mission-play" data-mission="${i}">` +
@@ -90,6 +98,22 @@ document.getElementById("menu-help").addEventListener("click", () => {
   showTip("welcome", RULES);
 });
 document.getElementById("home").addEventListener("click", showSplash);
+
+// The rank you play at picks your opponent (see difficulty.js); it is remembered.
+const levelSelect = document.getElementById("level");
+levelSelect.innerHTML = LEVELS.map((level) =>
+  `<option value="${level.id}">${level.rank} (${level.level}) vs ${level.opponent}</option>`)
+  .join("");
+levelSelect.value = storedLevel();
+showPersona();
+levelSelect.addEventListener("change", () => {
+  storeLevel(levelSelect.value);
+  showPersona();
+});
+
+function showPersona() {
+  document.getElementById("level-persona").textContent = levelById(levelSelect.value).persona;
+}
 
 // The size and shape chosen in the picker apply to New map and to a map typed by number.
 // "Any" shape picks one of that size: at random for a new map, by number for a typed one.
@@ -173,7 +197,7 @@ function showMapPicker() {
 function play(options) {
   picker.hidden = true;
   splash.hidden = true;
-  openGame({ ...options, onLeave: showSplash });
+  openGame({ level: levelSelect.value, ...options, onLeave: showSplash });
 }
 
 function showUnits() {
