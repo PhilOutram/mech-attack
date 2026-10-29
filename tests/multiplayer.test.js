@@ -6,6 +6,7 @@ import {
   applyAction, legalActions, viewFor, attackTargets, reachableHexes, upgradeOptions,
   harvestTargets,
 } from "../engine.js";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js";
 import { scenario, MORE_FACTORIES } from "./helpers.js";
 
 const BLUE = 0;
@@ -195,5 +196,41 @@ describe("four sides", () => {
       s = play(s, END);
     }
     assert.equal(s.round, 2);
+  });
+});
+
+describe("the AI with more than two sides", () => {
+  const ROUNDS = 25;
+
+  test("plays a three-sided game: every move legal, and the game goes on or ends", () => {
+    let s = scenario({
+      sides: free(3), rules: { roundCap: ROUNDS },
+      units: [unit("bt", "tank", BLUE, "0,4"), unit("bh", "lightHarvester", BLUE, "1,4"),
+        unit("gt", "tank", GREEN, "0,-4"), unit("gh", "lightHarvester", GREEN, "-1,-4"),
+        unit("yt", "tank", YELLOW, "4,0"), unit("yh", "lightHarvester", YELLOW, "4,-1")],
+      crystals: { "0,0": { amount: 50 }, "2,2": { amount: 50 }, "-2,-2": { amount: 50 } },
+    });
+    while (!s.result) {
+      const action = chooseAction(viewFor(s, s.current), DEFAULT_PERSONALITY);
+      const legal = legalActions(s).some((a) => JSON.stringify(a) === JSON.stringify(action));
+      assert.ok(legal, `${JSON.stringify(action)} is not legal`);
+      s = applyAction(s, action);
+    }
+    assert.ok(s.result.round <= ROUNDS + 1);
+  });
+
+  test("goes for the weaker opponent when weakness counts", () => {
+    const weakFirst = { ...DEFAULT_PERSONALITY, targetWeakness: 2, targetNearness: 0,
+      targetThreat: 0, captureFactories: 0, harvestersEarly: 0, harvestersMax: 0 };
+    // Green is strong, yellow weak; blue's tank heads for yellow's side.
+    const s = scenario({
+      sides: free(3),
+      units: [unit("b", "tank", BLUE, "0,2"), unit("g1", "heavyCannon", GREEN, "-1,-3"),
+        unit("g2", "heavyCannon", GREEN, "1,-4"), unit("y", "scoutBike", YELLOW, "4,0")],
+      playerCrystals: [0, 100, 100],
+    });
+    const action = chooseAction(viewFor(s, BLUE), weakFirst);
+    assert.equal(action.type, "move");
+    assert.ok(action.to.split(",")[0] > 0, `moved to ${action.to}, not towards yellow`);
   });
 });

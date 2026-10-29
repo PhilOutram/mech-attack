@@ -11,7 +11,7 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
-  canBoard,
+  canBoard, allied,
 } from "./engine.js?v=0.47";
 import { neighbourKeys, distance } from "./hex.js?v=0.47";
 import { COUNTERS } from "./counters.js?v=0.47";
@@ -70,6 +70,12 @@ export const DEFAULT_PERSONALITY = {
   captureFactories: 1, // infantry kept while there are factories to capture
   transportInfantry: 0.3, // above TRANSPORT_THRESHOLD, infantry ride in a transporter
   labs: 1, // factories it fits with a Crystal lab, once its first harvesters are out
+  // With more than one opponent, which to go for (its home factory is the army's goal):
+  // how much nearness, weakness (what it has been seen to own) and threat (its fighters
+  // near the AI's factories) count.
+  targetNearness: 1,
+  targetWeakness: 1,
+  targetThreat: 1,
 };
 
 // Allowed range of each gene: [lowest, highest, whole number?]. Every mix share is 0 to 1.
@@ -90,6 +96,9 @@ export const PERSONALITY_RANGES = {
   captureFactories: [0, 3, true],
   transportInfantry: [0, 1, false],
   labs: [0, 2, true],
+  targetNearness: [0, 2, false],
+  targetWeakness: [0, 2, false],
+  targetThreat: [0, 2, false],
 };
 const MIX_RANGE = [0, 1, false];
 
@@ -135,7 +144,9 @@ export function crossPersonalities(a, b, random) {
   const pickOne = (x, y) => (random() < 0.5 ? x : y);
   const p = { mix: {} };
   for (const type in a.mix) p.mix[type] = pickOne(a.mix[type], b.mix[type]);
-  for (const gene in PERSONALITY_RANGES) p[gene] = pickOne(a[gene], b[gene]);
+  for (const gene in PERSONALITY_RANGES) {
+    p[gene] = pickOne(a[gene] ?? DEFAULT_PERSONALITY[gene], b[gene] ?? DEFAULT_PERSONALITY[gene]);
+  }
   p.harvestersMax = Math.max(p.harvestersMax, p.harvestersEarly);
   return p;
 }
@@ -211,17 +222,48 @@ export function playout(state, player, personalities, random) {
   };
   while (!s.result) s = applyAction(s, chooseAction(viewFor(s, s.current), players[s.current]));
   const { winner } = s.result;
-  if (winner !== null) return winner === player ? 1 : 0;
-  const mine = worth(s, player);
-  const theirs = worth(s, 1 - player);
+  if (winner !== null) return allied(s, winner, player) ? 1 : 0;
+  const sides = s.players.map((_, p) => p);
+  const mine = sides.filter((p) => allied(s, p, player)).reduce((t, p) => t + worth(s, p), 0);
+  const theirs = sides.filter((p) => !allied(s, p, player)).reduce((t, p) => t + worth(s, p), 0);
   return mine + theirs > 0 ? mine / (mine + theirs) : 0.5;
+}
+
+// How far apart two homes are, and how much a seen army is worth, in the units the target
+// score adds up (so one step of distance or this many crystals counts as much as one enemy
+// fighter near home).
+const TARGET_DISTANCE_SCALE = 5;
+const TARGET_WORTH_SCALE = 100;
+
+// The opponent to go for, of those still in the game: by nearness of its home, weakness
+// (the cost of its units the AI can see) and the threat its fighters pose to the AI's
+// factories, weighed by the personality. With one opponent, that one.
+function targetOpponent(view, me, enemies, myFactories, p) {
+  const opponents = view.players.map((_, o) => o)
+    .filter((o) => !allied(view, o, me) && !view.players[o].out);
+  if (opponents.length <= 1) return opponents[0] ?? null;
+  const home = view.map.factories[me];
+  const score = (o) => {
+    const theirs = enemies.filter((u) => u.owner === o && !unitStats(view, u).isFactory);
+    const worthSeen = theirs.reduce((t, u) => t + unitStats(view, u).cost, 0);
+    const threat = theirs.filter((u) => unitStats(view, u).attack > 0 && myFactories
+      .some((f) => distance(f.at, u.at) <= p.homeDefenceRadius)).length;
+    return p.targetThreat * threat -
+      p.targetNearness * distance(home, view.map.factories[o]) / TARGET_DISTANCE_SCALE -
+      p.targetWeakness * worthSeen / TARGET_WORTH_SCALE;
+  };
+  return opponents.reduce((best, o) => (score(o) > score(best) ? o : best));
 }
 
 function context(view, personality, counters = COUNTERS) {
   const me = view.viewer;
   const mine = unitsOf(view, me);
-  const enemies = unitsOf(view, 1 - me);
+  // Everyone not on the AI's team is an enemy.
+  const enemies = Object.values(view.units).filter((u) =>
+    u.owner !== null && !allied(view, u.owner, me));
   const isFighter = (u) => unitStats(view, u).attack > 0;
+  const myFactories = factoriesOf(view, me);
+  const target = targetOpponent(view, me, enemies, myFactories, personality);
   return {
     view,
     p: personality,
@@ -232,8 +274,8 @@ function context(view, personality, counters = COUNTERS) {
     enemies,
     enemyFighters: enemies.filter(isFighter),
     myFactory: view.units[view.players[me].factoryId],
-    myFactories: factoriesOf(view, me),
-    enemyFactorySite: view.map.factories[1 - me],
+    myFactories,
+    enemyFactorySite: target === null ? null : view.map.factories[target],
   };
 }
 
