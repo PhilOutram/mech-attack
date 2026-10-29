@@ -69,48 +69,6 @@ function vip(fill, dark) {
     `<polygon points="${star}" fill="#ffd23f" stroke="#111" stroke-width="2"/>`;
 }
 
-// Factory upgrade badges, drawn on the factory tile (one colour for both players):
-// a helipad for the Airfield, a crane and gear for Heavy works, a crystal dome for the
-// Crystal lab. Placeholders until Phil's art is ready (docs/art-brief-factory-upgrades.md).
-function airfieldBadge() {
-  return `<circle cx="100" cy="100" r="84" fill="#2b2f36" stroke="#111" stroke-width="6"/>` +
-    `<circle cx="100" cy="100" r="66" fill="none" stroke="#ffd23f" stroke-width="8"` +
-    ` stroke-dasharray="18 10"/>` +
-    `<path d="M70 58 V142 M130 58 V142 M70 100 H130" stroke="#ffffff" stroke-width="18"` +
-    ` stroke-linecap="square" fill="none"/>`;
-}
-
-function heavyWorksBadge() {
-  const teeth = Array.from({ length: 8 }, (_, i) =>
-    `<rect x="90" y="18" width="20" height="30" rx="3" fill="#8a8f98" stroke="#111"` +
-    ` stroke-width="4" transform="rotate(${i * 45} 100 100)"/>`).join("");
-  return teeth +
-    `<circle cx="100" cy="100" r="62" fill="#8a8f98" stroke="#111" stroke-width="6"/>` +
-    `<circle cx="100" cy="100" r="22" fill="#2b2f36" stroke="#111" stroke-width="4"/>` +
-    `<path d="M64 120 L100 72 L136 120 Z" fill="#ff9a3c" stroke="#111" stroke-width="5"` +
-    ` stroke-linejoin="round"/>`;
-}
-
-function labBadge() {
-  return `<rect x="22" y="128" width="156" height="34" rx="8" fill="#2b2f36" stroke="#111"` +
-    ` stroke-width="6"/>` +
-    `<path d="M30 130 A70 70 0 0 1 170 130 Z" fill="#7dffb0" fill-opacity="0.35"` +
-    ` stroke="#d8fff0" stroke-width="6"/>` +
-    `<polygon points="80,128 92,74 104,128" fill="#5ad8ff" stroke="#111" stroke-width="4"/>` +
-    `<polygon points="100,128 116,58 132,128" fill="#5ad8ff" stroke="#111" stroke-width="4"/>` +
-    `<polygon points="60,128 68,96 78,128" fill="#5ad8ff" stroke="#111" stroke-width="4"/>` +
-    `<path d="M58 72 Q80 50 104 52" stroke="#ffffff" stroke-width="6" fill="none"` +
-    ` stroke-linecap="round" opacity="0.8"/>`;
-}
-
-const BADGES = [["airfield", airfieldBadge], ["heavy-works", heavyWorksBadge],
-  ["lab", labBadge]];
-
-for (const [name, draw] of BADGES) {
-  writeFileSync(`units/upgrade-${name}.svg`, `<svg xmlns="http://www.w3.org/2000/svg" ` +
-    `width="200" height="200" viewBox="0 0 200 200">${draw()}</svg>\n`);
-}
-
 const TOKENS = [["infantry", infantry], ["transporter", transporter], ["chinook", chinook],
   ["turret", turret], ["vip", vip]];
 

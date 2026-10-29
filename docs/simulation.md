@@ -62,6 +62,19 @@ Starting the second player with about 40–50 extra crystals evens it out. Phil 
 - The rule-based AI mostly builds the cheaper new units: 253 Attack Helicopters and 164 Anti-Aircraft Jeeps, but 1 Blast Cannon and no Sonic Tanks. It seldom saves up for expensive units, so the splash and line attacks were barely tested. The learning AI (idea 9) is the better way to find out what each unit is worth.
 - The first player now wins 37.5% and blue 30.9%: the 40-crystal bonus was tuned before these units existed and needs rechecking.
 
+## Overrun rules (v0.37: factories overrun, not fired on; siege turn; Crystal lab)
+
+Evolved again for these rules (`docs/evolution.md`). The five best beat the hand-tuned AI 73–84% of the time. 100 games between them, every map shape:
+
+- 70% of games end with a home factory overrun, 26% with a side out of units, 4% at the round limit. Median length 19 rounds.
+- Units built per game, both sides together: Infantry 24.3, Scout Bike 7.0, Anti-Aircraft Jeep 4.7, Light Harvester 3.1, Light Medic 2.6, Tank 2.6, Artillery 2.5, Turret 1.3, Spotter Drone 1.1, Fighter 0.2, Attack Helicopter 0.
+- Every personality buys one Crystal lab; almost none buys Heavy works or an Airfield.
+- The first player wins only 35% of decided games: the second player's 40 extra crystals now buy two more Infantry.
+
+The unit trials (`docs/balance/unit-trials.md`, 40 games a unit) make one side lean on one unit against the evolved mix. Every unit loses that match-up, because time and crystals spent on it are not spent on the Infantry rush. Per unit built, though, the Heavy Cannon finishes off 8.4 enemy units and is lost 0.3 times, and the Turret 5.0 and 0.4: both are strong once on the board, but too slow to get (Heavy works plus saving up) against a rush. The air units do almost nothing, because there is little in the air to shoot and the AI uses the Chinook only to carry Infantry.
+
+Infantry rushes decide these games. Options to test, for Phil to choose from: dearer Infantry (30), `capture.guarded` (a factory with one of its owner's units next to it cannot be overrun), and a smaller second-player bonus (20).
+
 ## Evolved personalities for v0.24 costs (cheaper unused units, drone 15)
 
 Same settings (`node evolve.js --generations 40 --population 20 --games 10 --seed 1`, 69 minutes); tables in `docs/evolution.md`.
