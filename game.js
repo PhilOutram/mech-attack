@@ -1,23 +1,24 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.35";
-import { mapById, seededRandom } from "./maps.js?v=0.35";
+import { RULES } from "./rules-config.js?v=0.36";
+import { mapById, seededRandom } from "./maps.js?v=0.36";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
+  defenceOf,
   STATE_FORMAT,
-} from "./engine.js?v=0.35";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.35";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.35";
-import { distance } from "./hex.js?v=0.35";
+} from "./engine.js?v=0.36";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.36";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.36";
+import { distance } from "./hex.js?v=0.36";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.35";
-import { confirmDialog } from "./dialog.js?v=0.35";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.35";
-import { showTip, showNote } from "./tips.js?v=0.35";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.35";
+} from "./board.js?v=0.36";
+import { confirmDialog } from "./dialog.js?v=0.36";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.36";
+import { showTip, showNote } from "./tips.js?v=0.36";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.36";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -28,7 +29,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.35";
+const ASSET_VERSION = "0.36";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -270,9 +271,7 @@ function missionOf(s) {
 function showBriefing(m, index) {
   return confirmDialog({
     title: `Mission ${index + 1}: ${m.title}`,
-    text: `${m.story}
-
-Objective: ${m.objective}`,
+    text: `${m.story}\n\nObjective: ${m.objective}`,
     confirm: "Start",
     cancel: "Back",
   });
@@ -414,7 +413,17 @@ function undo() {
 // surrenders if it wins too few of them.
 async function demandSurrender() {
   const m = missionOf(state);
-  if (!myTurn() || surrenderUsed || (m && m.noSurrender)) return;
+  if (!myTurn() || (m && m.noSurrender)) return;
+  if (surrenderUsed) {
+    await confirmDialog({
+      title: "Surrender already demanded",
+      text: "You can demand surrender only once a game. It is there to end a game early " +
+        "when Green has no chance of winning.",
+      confirm: "OK",
+      cancel: null,
+    });
+    return;
+  }
   surrenderUsed = true;
   saveExtras();
   ui.busy = true;
@@ -715,11 +724,14 @@ function actionFor(view, mode, unitId, k) {
   return null;
 }
 
-function onHexTap(k) {
+async function onHexTap(k) {
   if (!state || ui.busy) return;
   const view = viewFor(state, HUMAN);
   if (myTurn() && ui.mode && targetsFor(view, ui.mode, ui.selectedId).includes(k)) {
-    act(actionFor(view, ui.mode, ui.selectedId, k));
+    const unitId = ui.selectedId;
+    if (ui.mode === "move" && crushingMoves(view, unitId).includes(k) &&
+      !(await confirmCrush(view, unitId))) return;
+    act(actionFor(view, ui.mode, unitId, k));
     return;
   }
   const unit = Object.values(view.units).find((u) => u.at === k);
@@ -727,6 +739,20 @@ function onHexTap(k) {
   ui.mode = unit ? defaultMode(view, unit) : null;
   ui.buildType = null;
   render();
+}
+
+// A move that drives over crystals destroys them; ask first, and say how to harvest instead.
+function confirmCrush(view, unitId) {
+  const harvests = unitStats(view, view.units[unitId]).storage > 0;
+  return confirmDialog({
+    title: "Crush the crystals?",
+    text: "This move drives over crystals, which destroys them." +
+      (harvests ? " To harvest them instead, stop on a hex next to the pile, then tap " +
+        "Harvest (and the pile, if there are several)." : "") +
+      "\n\nDo you really want to crush them?",
+    confirm: "Crush them",
+    cancel: "Cancel move",
+  });
 }
 
 // ---------------------------------------------------------------------------------------
@@ -881,15 +907,22 @@ function renderBar(view) {
 
 const HITS = { ground: "ground", air: "air only", both: "ground and air" };
 
+// Attack and defence, the numbers that decide fights, in large type above the other stats.
+// Defence shows any bonus from the ground the unit stands on.
+function keyStats(view, unit) {
+  const stats = unitStats(view, unit);
+  const bonus = defenceOf(view, unit) - stats.defence;
+  const attack = stats.attack ? `<span>Attack ${stats.attack}</span>` : "";
+  const extra = bonus ? ` <small>+${bonus} rough ground</small>` : "";
+  return `<p class="key-stats">${attack}<span>Defence ${stats.defence}${extra}</span></p>`;
+}
+
 function statLine(stats) {
   const range = stats.range ? stats.range.join("–").replace(/^(\d)–\1$/, "$1") : "-";
   const parts = [];
   if (stats.air) parts.push("Flies");
-  parts.push(`Move ${stats.move}`, `Defence ${stats.defence}`);
-  if (stats.attack) {
-    const hits = HITS[stats.hits || "ground"];
-    parts.push(`Attack ${stats.attack}`, `Range ${range}`, `Hits ${hits}`);
-  }
+  parts.push(`Move ${stats.move}`);
+  if (stats.attack) parts.push(`Range ${range}`, `Hits ${HITS[stats.hits || "ground"]}`);
   if (stats.splash) parts.push("Cluster bomb");
   if (stats.line) parts.push("Sonic boom");
   if (stats.reload) parts.push("Fires every other turn");
@@ -964,7 +997,7 @@ function renderPanel(view) {
     const undo = history.length ? undoButton() : "";
     // Some campaign missions (Green has nothing to surrender) leave the button out.
     const surrender = m && m.noSurrender ? "" : orderButton("surrender",
-      surrenderUsed ? "Surrender demanded" : "Demand surrender", myTurn() && !surrenderUsed);
+      surrenderUsed ? "Surrender demanded" : "Demand surrender", myTurn());
     els.panel.innerHTML = `${objective}<p class="panel-hint">${hint}</p>` +
       `<div class="orders">${undo}${surrender}</div>`;
     return;
@@ -989,7 +1022,7 @@ function renderPanel(view) {
   // The stats run full width under the name, so they stay on a line or two on a phone.
   const head = `<div class="panel-head"><img src="${image}" alt="">` +
     `<div><h2>${name}</h2><p>${status.join(" · ")}</p></div></div>` +
-    `<p class="unit-stats">${statLine(stats)}</p>`;
+    keyStats(view, unit) + `<p class="unit-stats">${statLine(stats)}</p>`;
 
   if (stats.isFactory) {
     factoryPanel(view, unit, head);

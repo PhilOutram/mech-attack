@@ -11,8 +11,8 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
-} from "./engine.js?v=0.35";
-import { neighbourKeys, distance } from "./hex.js?v=0.35";
+} from "./engine.js?v=0.36";
+import { neighbourKeys, distance } from "./hex.js?v=0.36";
 
 // Score for an attack that costs no life now but sets up a combined attack this turn.
 const SETUP_ATTACK_SCORE = 1;

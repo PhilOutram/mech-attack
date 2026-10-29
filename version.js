@@ -1,8 +1,17 @@
-export const VERSION = "v0.35";
+export const VERSION = "v0.36";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.36",
+    date: "2026-10-29",
+    notes: [
+      "Moving onto crystals asks first, and explains how to harvest them instead.",
+      "A second Demand surrender explains the one-try rule.",
+      "Attack and Defence (with any rough-ground bonus) stand out in the unit panel.",
+    ],
+  },
   {
     version: "v0.35",
     date: "2026-10-29",
