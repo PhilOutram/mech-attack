@@ -1,21 +1,21 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.20";
-import { mapById, seededRandom } from "./maps.js?v=0.20";
+import { RULES } from "./rules-config.js?v=0.21";
+import { mapById, seededRandom } from "./maps.js?v=0.21";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.20";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.20";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.20";
-import { distance } from "./hex.js?v=0.20";
+} from "./engine.js?v=0.21";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.21";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.21";
+import { distance } from "./hex.js?v=0.21";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.20";
-import { confirmDialog } from "./dialog.js?v=0.20";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.20";
+} from "./board.js?v=0.21";
+import { confirmDialog } from "./dialog.js?v=0.21";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.21";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -26,7 +26,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.20";
+const ASSET_VERSION = "0.21";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;

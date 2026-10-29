@@ -1,125 +1,34 @@
 {
-  "note": "Hex tiles made by tools/extract-art.py from Phil's map art. Flat-topped, 192 x 166 px, cut on the middle of the dark border. 'centre' and 'radius' are in source pixels. Change 'terrain' here to correct a classification.",
+  "note": "Hex tiles, flat-topped, 192 x 166 px, cut on the middle of the dark border, transparent outside the hex. Plain and rocky tiles are Phil's Affinity redraws (2026-10-29), fitted by tools/fit-tile.py; mountain and chasm tiles were made by tools/extract-art.py from Phil's map art. Change 'terrain' here to correct a classification.",
   "tileWidth": 192,
   "tileHeight": 166,
   "tiles": [
     {
       "file": "plain-1.png",
       "terrain": "plain",
-      "source": "Map Tiles/Mech Attack - Map Page 3.png",
-      "centre": [
-        1586.0,
-        1806.5
-      ],
-      "radius": 189.33,
-      "clusterPosition": "S",
-      "copiesInSources": 61,
-      "positionsInClusters": [
-        "NW",
-        "S"
-      ],
-      "rockInkShare": 0.0142,
-      "peachShare": 0.0005,
-      "cutLinePixels": 2762,
-      "cutLinesRemoved": 1,
-      "cutLinePixelsAfter": 0,
-      "foreignBorderPixels": 279,
-      "bytes": 18878,
+      "source": "Map Tiles/Plains1.png (Phil, Affinity, 2026-10-29)",
+      "bytes": 23602,
       "png": "lossless"
     },
     {
       "file": "plain-2.png",
       "terrain": "plain",
-      "source": "Map Tiles/Mech Attack - Map Page 1.png",
-      "centre": [
-        764.0,
-        668.0
-      ],
-      "radius": 189.33,
-      "clusterPosition": "SE",
-      "copiesInSources": 51,
-      "positionsInClusters": [
-        "SE",
-        "SW"
-      ],
-      "rockInkShare": 0.0192,
-      "peachShare": 0.0021,
-      "cutLinePixels": 2881,
-      "cutLinesRemoved": 1,
-      "cutLinePixelsAfter": 6,
-      "foreignBorderPixels": 21,
-      "bytes": 18479,
+      "source": "Map Tiles/Plains2.png (Phil, Affinity, 2026-10-29)",
+      "bytes": 21453,
+      "png": "lossless"
+    },
+    {
+      "file": "plain-3.png",
+      "terrain": "plain",
+      "source": "Map Tiles/Plains3.png (Phil, Affinity, 2026-10-29)",
+      "bytes": 23287,
       "png": "lossless"
     },
     {
       "file": "rocky-1.png",
       "terrain": "rocky",
-      "source": "Map Tiles/Mech Attack - Map Page 1.png",
-      "centre": [
-        937.0,
-        2295.0
-      ],
-      "radius": 189.33,
-      "clusterPosition": "NE",
-      "copiesInSources": 23,
-      "positionsInClusters": [
-        "NE"
-      ],
-      "rockInkShare": 0.0295,
-      "peachShare": 0.0034,
-      "cutLinePixels": 2900,
-      "cutLinesRemoved": 1,
-      "cutLinePixelsAfter": 8,
-      "foreignBorderPixels": 7,
-      "bytes": 21396,
-      "png": "lossless",
-      "note": "Borderline plain or rocky: rock ink covers 2.9 % of the hex, the rocky threshold is 2.6 %."
-    },
-    {
-      "file": "rocky-2.png",
-      "terrain": "rocky",
-      "source": "Map Tiles/Mech Attack - Map Page 1.png",
-      "centre": [
-        653.0,
-        2131.5
-      ],
-      "radius": 189.33,
-      "clusterPosition": "N",
-      "copiesInSources": 24,
-      "positionsInClusters": [
-        "N"
-      ],
-      "rockInkShare": 0.0303,
-      "peachShare": 0.0035,
-      "cutLinePixels": 2807,
-      "cutLinesRemoved": 1,
-      "cutLinePixelsAfter": 6,
-      "foreignBorderPixels": 501,
-      "bytes": 22126,
-      "png": "lossless",
-      "note": "Borderline plain or rocky: rock ink covers 3.0 % of the hex, the rocky threshold is 2.6 %."
-    },
-    {
-      "file": "rocky-3.png",
-      "terrain": "rocky",
-      "source": "Map Tiles/Mech Attack - Map Page 1.png",
-      "centre": [
-        480.0,
-        504.0
-      ],
-      "radius": 189.33,
-      "clusterPosition": "C",
-      "copiesInSources": 31,
-      "positionsInClusters": [
-        "C"
-      ],
-      "rockInkShare": 0.038,
-      "peachShare": 0.005,
-      "cutLinePixels": 10,
-      "cutLinesRemoved": 0,
-      "cutLinePixelsAfter": 10,
-      "foreignBorderPixels": 24,
-      "bytes": 22629,
+      "source": "Map Tiles/rough-terrain.png (Phil, Affinity, 2026-10-29)",
+      "bytes": 39412,
       "png": "lossless"
     },
     {

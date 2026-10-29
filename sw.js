@@ -1,7 +1,7 @@
 // Minimal offline-first service worker.
 // Bump the version in CACHE whenever you change the cached files, and keep ASSETS
 // in sync with the files the app needs to work offline.
-const CACHE = "mech-attack-v0.20";
+const CACHE = "mech-attack-v0.21";
 const UNIT_TYPES = [
   "scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester", "light-medic",
 ];
@@ -11,7 +11,7 @@ const TOKEN_TYPES = [
   "attack-helicopter", "fighter", "infantry", "transporter",
 ];
 const TILES = [
-  "plain-1", "plain-2", "rocky-1", "rocky-2", "rocky-3", "mountain-1",
+  "plain-1", "plain-2", "plain-3", "rocky-1", "mountain-1",
   "chasm-n", "chasm-centre", "chasm-sw", "chasm-single",
 ];
 const SOUND_FILES = [
@@ -20,27 +20,27 @@ const SOUND_FILES = [
 const ASSETS = [
   ".",
   "index.html",
-  "styles.css?v=0.20",
-  "app.js?v=0.20",
-  "version.js?v=0.20",
-  "units.js?v=0.20",
-  "game.js?v=0.20",
-  "dialog.js?v=0.20",
-  "board.js?v=0.20",
-  "engine.js?v=0.20",
-  "ai.js?v=0.20",
-  "hex.js?v=0.20",
-  "maps.js?v=0.20",
-  "ai-personalities.js?v=0.20",
-  "rules-config.js?v=0.20",
-  "sound.js?v=0.20",
+  "styles.css?v=0.21",
+  "app.js?v=0.21",
+  "version.js?v=0.21",
+  "units.js?v=0.21",
+  "game.js?v=0.21",
+  "dialog.js?v=0.21",
+  "board.js?v=0.21",
+  "engine.js?v=0.21",
+  "ai.js?v=0.21",
+  "hex.js?v=0.21",
+  "maps.js?v=0.21",
+  "ai-personalities.js?v=0.21",
+  "rules-config.js?v=0.21",
+  "sound.js?v=0.21",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
   "icon-maskable.png",
   "apple-touch-icon.png",
   "splash.jpg",
-  "tiles/tiles.json?v=0.20",
+  "tiles/tiles.json?v=0.21",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
   ...TOKEN_TYPES.flatMap((u) => [`units/${u}-blue.svg`, `units/${u}-green.svg`]),
