@@ -2,14 +2,14 @@
 // on a bigger map with more to do. A mission sets the map, the starting units and crystals,
 // any rule changes, how the AI plays, and its objective; finishing one unlocks the next.
 // Progress is remembered on this device.
-import { unitsOf, factoriesOf } from "./engine.js?v=0.34";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.35";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 const HUMAN = 0;
 
 export const CAMPAIGN_NAME = "Red Dust";
 
-// tip (optional): a top tip shown when the mission starts.
+// tip (optional): a top tip shown when the mission starts. noSurrender: no Demand surrender.
 // done(state): the objective is met (the mission is won). null: win the usual way, by
 // destroying Green's home factory. steps (optional): the objective in parts, ticked off in the
 // panel as they are done; the mission is won when they all are. ai: "default" is the gentler
@@ -49,6 +49,7 @@ export const MISSIONS = [
     setup: { units: [Array(LANDFALL_INFANTRY).fill("infantry"), []],
       crystals: [LANDFALL_CRYSTALS, 0], unclaimedHome: [true, false] },
     rules: { loseWithNoUnits: false, allowedUnits: BASIC_UNITS, allowedUpgrades: [] },
+    noSurrender: true,
     ai: "default",
     done: (state) => LANDFALL_STEPS.every((step) => step.done(state)),
   },

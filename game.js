@@ -1,23 +1,23 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.34";
-import { mapById, seededRandom } from "./maps.js?v=0.34";
+import { RULES } from "./rules-config.js?v=0.35";
+import { mapById, seededRandom } from "./maps.js?v=0.35";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.34";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.34";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.34";
-import { distance } from "./hex.js?v=0.34";
+} from "./engine.js?v=0.35";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.35";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.35";
+import { distance } from "./hex.js?v=0.35";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.34";
-import { confirmDialog } from "./dialog.js?v=0.34";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.34";
-import { showTip, showNote } from "./tips.js?v=0.34";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.34";
+} from "./board.js?v=0.35";
+import { confirmDialog } from "./dialog.js?v=0.35";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.35";
+import { showTip, showNote } from "./tips.js?v=0.35";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.35";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -28,7 +28,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.34";
+const ASSET_VERSION = "0.35";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -413,7 +413,8 @@ function undo() {
 // Demand surrender (once per game): the AI plays the game on from here several times and
 // surrenders if it wins too few of them.
 async function demandSurrender() {
-  if (!myTurn() || surrenderUsed) return;
+  const m = missionOf(state);
+  if (!myTurn() || surrenderUsed || (m && m.noSurrender)) return;
   surrenderUsed = true;
   saveExtras();
   ui.busy = true;
@@ -961,7 +962,8 @@ function renderPanel(view) {
         "scroll to zoom."
       : "Green is taking its turn.";
     const undo = history.length ? undoButton() : "";
-    const surrender = orderButton("surrender",
+    // Some campaign missions (Green has nothing to surrender) leave the button out.
+    const surrender = m && m.noSurrender ? "" : orderButton("surrender",
       surrenderUsed ? "Surrender demanded" : "Demand surrender", myTurn() && !surrenderUsed);
     els.panel.innerHTML = `${objective}<p class="panel-hint">${hint}</p>` +
       `<div class="orders">${undo}${surrender}</div>`;
