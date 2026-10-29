@@ -146,7 +146,8 @@ first player; steps 2 to 4 need the numbers above.
 2. How long to keep the data (provisional 12 months)?
 
 Settled since (Phil, 29 October 2026), both handed to the AI and rules work:
-- Units can attack a crystal pile, and an attack blows up every crystal on that hex, because
+- Any ground unit that can attack can attack a crystal pile; it uses up that unit's attack for
+  the turn. The attack blows up every crystal on that hex, because
   crystals are unstable: the same as driving over them, which already destroys them
   (`crystals.crushedByMovement`). Starving the enemy then works from range as well as by
   driving through their piles. Still to decide: whether splash and sonic booms also destroy
