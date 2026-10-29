@@ -127,10 +127,11 @@ export const RULES = {
   // A factory starts out building light ground units only. Each upgrade, bought for one
   // factory, unlocks the units that need it (Phil, 28 October 2026; costs provisional).
   // Crystal lab (Phil, 29 October 2026): the factory makes "income" crystals at the end of
-  // each of its owner's turns (cost and income provisional).
+  // each of its owner's turns (cost and income provisional). Heavy works and Airfield cut from
+  // 100 to 60 (Phil, 29 October 2026): at 100 the evolved AI hardly ever bought them.
   factoryUpgrades: {
-    heavyWorks: { name: "Heavy works", cost: 100 },
-    airfield: { name: "Airfield", cost: 100 },
+    heavyWorks: { name: "Heavy works", cost: 60 },
+    airfield: { name: "Airfield", cost: 60 },
     lab: { name: "Crystal lab", cost: 60, income: 10 },
   },
 
@@ -201,8 +202,9 @@ export const RULES = {
     crystals: 50, // provisional
     units: ["lightHarvester", "scoutBike", "tank"], // provisional
     // Extra starting crystals for whoever moves second, to make up for the first player's
-    // first shot in round 2 (Phil, 28 October 2026; see docs/simulation.md).
-    secondPlayerCrystals: 40,
+    // first shot in round 2 (Phil, 28 October 2026: 40; cut to 30 on 29 October; see
+    // docs/simulation.md).
+    secondPlayerCrystals: 30,
   },
 
   // "fixed": the same player moves first every round. "alternate": the order flips each round

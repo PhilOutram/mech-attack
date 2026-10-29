@@ -65,8 +65,8 @@ Settled with Phil, 28 October 2026: a factory starts out building light ground u
 
 | Upgrade | Cost (provisional) | Unlocks |
 |---|---|---|
-| Heavy works | 100 | Heavy Cannon, Blast Cannon, Sonic Tank |
-| Airfield | 100 | Attack Helicopter, Fighter, Spotter Drone, Chinook (provisional) |
+| Heavy works | 60 (was 100; Phil, 29 October 2026) | Heavy Cannon, Blast Cannon, Sonic Tank |
+| Airfield | 60 (was 100; Phil, 29 October 2026) | Attack Helicopter, Fighter, Spotter Drone, Chinook (provisional) |
 | Crystal lab | 60 | Makes 10 crystals at the end of each of its owner's turns (Phil, 29 October 2026; cost and income provisional) |
 
 A unit's `needs` stat names the upgrade it needs (`factoryUpgrades` in the config). Buying an upgrade is not a unit's action and can happen any time in your turn. A factory shows each upgrade as a badge on its tile: a helipad (Airfield), a gear (Heavy works) and a crystal dome (Crystal lab); placeholders until Phil's art is ready (`docs/art-brief-factory-upgrades.md`). The crystal count shows what Crystal labs add each turn.
@@ -106,7 +106,7 @@ Games against the AI are played at a rank (Phil, 29 October 2026), each with its
 
 | Rank | Level | Opponent | AI | Start |
 |---|---|---|---|---|
-| Cadet | Beginner | Sergeant Brack | hand-tuned | You get 30 extra crystals; Green does not get the second player's 40 |
+| Cadet | Beginner | Sergeant Brack | hand-tuned | You get 30 extra crystals; Green does not get the second player's 30 |
 | Major | Intermediate | Colonel Rane | an evolved personality | The usual start |
 | Field Marshal | Master | General Kaldra | the strongest evolved personality | Green gets 60 extra crystals and an extra Tank |
 
@@ -135,7 +135,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Rule | Current setting | Config |
 |---|---|---|
 | Factories | Each player starts with a home factory. A factory builds units on free hexes next to it, cannot move, has defence 100 and sight 4 (the Factory row of the full unit table) and two lives like any unit. | `units.factory` |
-| Starting position | Factory, Light Harvester, Scout Bike, Tank and 50 crystals. Whoever moves second gets 40 more (settled with Phil, 28 October 2026), to make up for the first player's first shot in round 2. | `start` |
+| Starting position | Factory, Light Harvester, Scout Bike, Tank and 50 crystals. Whoever moves second gets 30 more (Phil: 40 on 28 October 2026, cut to 30 on 29 October when the first player was winning only 35% of evolved-AI games), to make up for the first player's first shot in round 2. | `start` |
 | Building | Any number of units per turn, limited by crystals and free hexes next to the factory. A new unit cannot move or act until its owner's next turn. | |
 | Turn order for a unit | Move once, then take one action (attack, heal, harvest, unload, set up or pack up). Acting ends the unit's turn. | |
 | Return fire | A unit with a maximum range of 3 or less that is attacked from an adjacent hex hits back once at its full attack, **even if the attack destroys it** (settled with Phil, 28 October 2026: otherwise whoever starts an even fight gets a free killing shot). Artillery (minimum range 2), harvesters, medics and factories never return fire. Still provisional: the range limit of 3. | `combat.returnFireMaxRange` |

@@ -113,6 +113,35 @@ describe("AI choices", () => {
   });
 });
 
+describe("AI against Infantry swarms", () => {
+  // Green Infantry: one alone at 0,-3, and a cluster of three round 3,-3.
+  const swarm = [unit("a", "infantry", GREEN, "0,-3"), unit("b", "infantry", GREEN, "3,-3"),
+    unit("c", "infantry", GREEN, "4,-3"), unit("d", "infantry", GREEN, "3,-2")];
+
+  test("one Blast Cannon shot destroys the target and the Infantry next to it", () => {
+    let s = scenario({ units: [unit("x", "blastCannon", BLUE, "3,0"), ...swarm] });
+    s = applyAction(s, { type: "attack", unitId: "x", targetId: "b" });
+    for (const id of ["b", "c", "d"]) assert.equal(s.units[id], undefined, `${id} is gone`);
+    assert.ok(s.units.a, "the lone Infantry was not next to the target");
+  });
+
+  test("the AI aims a Blast Cannon at the middle of a cluster", () => {
+    const s = scenario({ units: [unit("x", "blastCannon", BLUE, "1,0"), ...swarm] });
+    const action = choose(s);
+    assert.equal(action.type, "attack");
+    assert.ok(["b", "c", "d"].includes(action.targetId), "not the lone Infantry");
+  });
+
+  test("the AI builds a Blast Cannon to answer enemy Infantry", () => {
+    const personality = { ...DEFAULT_PERSONALITY, harvestersEarly: 0, harvestersMax: 0,
+      captureFactories: 0, labs: 0, blastPerEnemyInfantry: 1 };
+    const s = scenario({ units: [...swarm], playerCrystals: [500, 100] });
+    s.units[s.players[BLUE].factoryId].upgrades = ["heavyWorks"];
+    const action = chooseAction(viewFor(s, BLUE), personality);
+    assert.deepEqual([action.type, action.unitType], ["build", "blastCannon"]);
+  });
+});
+
 describe("AI and factories", () => {
   test("infantry move next to an unused factory, then break in the next turn", () => {
     const factory = unit("n", "factory", null, "0,0", { upgrades: [] });

@@ -12,8 +12,8 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard,
-} from "./engine.js?v=0.43";
-import { neighbourKeys, distance } from "./hex.js?v=0.43";
+} from "./engine.js?v=0.44";
+import { neighbourKeys, distance } from "./hex.js?v=0.44";
 
 // Score for an attack that costs no life now but sets up a combined attack this turn.
 const SETUP_ATTACK_SCORE = 1;
@@ -26,8 +26,10 @@ const FACTORY_CLEAR_PENALTY = 3;
 const CRUSH_PENALTY = 2;
 // Units that explore the map, then watch the enemy factory.
 const SCOUT_TYPES = ["scoutBike", "spotterDrone"];
-// The unit bought to answer enemy air units.
+// The unit bought to answer enemy air units, and the one bought to answer swarms of Infantry
+// (its cluster bomb hits every unit next to the target).
 const ANTI_AIR_TYPE = "antiAircraftJeep";
+const ANTI_SWARM_TYPE = "blastCannon";
 // Patience below this means: if the wanted unit is too dear, buy the best affordable one.
 const PATIENCE_THRESHOLD = 0.5;
 // How far a mutation moves a gene, as a share of its range.
@@ -50,6 +52,7 @@ export const DEFAULT_PERSONALITY = {
   harvestersEarly: 2,
   harvestersMax: 3,
   antiAirPerEnemyAir: 1, // anti-air units wanted for each enemy air unit seen
+  blastPerEnemyInfantry: 0.25, // Blast Cannons wanted for each enemy Infantry seen
   // Worth of one life of the enemy factory, in crystals (when factories take fire), and of
   // killing infantry about to overrun one of its own factories.
   factoryLifeValue: 200,
@@ -72,6 +75,7 @@ export const PERSONALITY_RANGES = {
   harvestersEarly: [1, 3, true],
   harvestersMax: [1, 5, true],
   antiAirPerEnemyAir: [0, 2, false],
+  blastPerEnemyInfantry: [0, 1, false],
   factoryLifeValue: [50, 400, false],
   killBonusShare: [0, 1, false],
   returnFireCaution: [0, 2, false],
@@ -265,6 +269,54 @@ function lifeValue(ctx, unit) {
   return stats.isFactory ? ctx.p.factoryLifeValue : stats.cost / ctx.view.rules.lives;
 }
 
+// What a hit of amount on target is worth: the lives it takes, plus a bonus for destroying it
+// (more for Infantry about to overrun one of the AI's factories).
+function hitValue(ctx, target, amount) {
+  const { view, p } = ctx;
+  const after = livesAfterHit(view, target, amount);
+  let value = (target.lives - after.lives) * lifeValue(ctx, target);
+  if (after.lives === 0 && !unitStats(view, target).isFactory) {
+    value += p.killBonusShare * unitStats(view, target).cost;
+    if (threatensFactory(ctx, target)) value += p.factoryLifeValue;
+  }
+  return value;
+}
+
+// Other enemies an attack on target would hit, with how hard: next to the target for a
+// cluster bomb, along the same line for a sonic boom.
+function alsoHit(ctx, unit, target) {
+  const { view } = ctx;
+  const stats = unitStats(view, unit);
+  const hit = (other) => other.id !== target.id && canHit(view, unit, other) &&
+    !unitStats(view, other).isFactory;
+  if (stats.splash) {
+    const amount = Math.floor(stats.attack * stats.splash);
+    return ctx.enemies.filter((e) => distance(e.at, target.at) === 1 && hit(e))
+      .map((e) => [e, amount]);
+  }
+  if (stats.line) {
+    return ctx.enemies.filter((e) => hit(e) && inLine(unit.at, target.at, e.at) &&
+      distance(unit.at, e.at) <= stats.range[1]).map((e) => [e, stats.attack]);
+  }
+  return [];
+}
+
+// The straight-line direction from hex a to hex b, as "dq,dr", or null if they are not on one
+// of the six straight lines.
+function rayDirection(a, b) {
+  const [aq, ar] = a.split(",").map(Number);
+  const [bq, br] = b.split(",").map(Number);
+  const n = distance(a, b);
+  const [dq, dr] = [(bq - aq) / n, (br - ar) / n];
+  return n && Number.isInteger(dq) && Number.isInteger(dr) ? `${dq},${dr}` : null;
+}
+
+// Whether c lies on the straight line from a through b, beyond a.
+function inLine(a, b, c) {
+  const direction = rayDirection(a, b);
+  return direction !== null && rayDirection(a, c) === direction;
+}
+
 function threatensFactory(ctx, unit) {
   return Boolean(unitStats(ctx.view, unit).captures) &&
     ctx.myFactories.some((f) => distance(f.at, unit.at) === 1);
@@ -277,7 +329,7 @@ function returnFireLoss(ctx, attacker, target) {
 }
 
 function bestAttack(ctx) {
-  const { view, mine, p } = ctx;
+  const { view, mine } = ctx;
   const options = [];
   const ready = {};
   for (const unit of mine) {
@@ -292,13 +344,12 @@ function bestAttack(ctx) {
     const attack = unitStats(view, unit).attack;
     const after = livesAfterHit(view, target, attack);
     const livesLost = target.lives - after.lives;
-    let score = livesLost * lifeValue(ctx, target);
-    if (after.lives === 0 && !unitStats(view, target).isFactory) {
-      score += p.killBonusShare * unitStats(view, target).cost;
-      // Infantry next to one of its factories could overrun it next turn.
-      if (threatensFactory(ctx, target)) score += p.factoryLifeValue;
+    let score = hitValue(ctx, target, attack);
+    // A cluster bomb or sonic boom also hits other enemies.
+    for (const [other, amount] of alsoHit(ctx, unit, target)) {
+      score += hitValue(ctx, other, amount);
     }
-    if (livesLost === 0) {
+    if (livesLost === 0 && score === 0) {
       // Worth starting only if everything ready to fire at it this turn can take a life.
       const combined = livesAfterHit(view, target, ready[target.id]);
       if (combined.lives < target.lives) score = SETUP_ATTACK_SCORE;
@@ -399,6 +450,10 @@ function wantedUnitType(ctx, maxCost = Infinity) {
   if (antiAirWanted > army.filter(hitsAir).length && fits(ANTI_AIR_TYPE)) {
     return ANTI_AIR_TYPE;
   }
+  const enemyInfantry = ctx.enemies.filter((e) => e.type === INFANTRY_TYPE).length;
+  const blastWanted = Math.round(enemyInfantry * p.blastPerEnemyInfantry);
+  if (blastWanted > army.filter((u) => u.type === ANTI_SWARM_TYPE).length &&
+    fits(ANTI_SWARM_TYPE)) return ANTI_SWARM_TYPE;
 
   // Infantry to capture factories, carried in a transporter if the personality likes that.
   if (captureSites(ctx).length) {

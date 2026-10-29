@@ -10,10 +10,10 @@
 // The first player alternates between games so neither colour always moves first.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "./rules-config.js?v=0.43";
-import { FIXED_MAP_1, buildMap, mapById } from "./maps.js?v=0.43";
-import { newGame, applyAction, viewFor, unitStats } from "./engine.js?v=0.43";
-import { chooseAction, DEFAULT_PERSONALITY } from "./ai.js?v=0.43";
+import { RULES } from "./rules-config.js?v=0.44";
+import { FIXED_MAP_1, buildMap, mapById } from "./maps.js?v=0.44";
+import { newGame, applyAction, viewFor, unitStats } from "./engine.js?v=0.44";
+import { chooseAction, DEFAULT_PERSONALITY } from "./ai.js?v=0.44";
 
 const DEFAULT_GAMES = 100;
 const DEFAULT_SEED = 1;

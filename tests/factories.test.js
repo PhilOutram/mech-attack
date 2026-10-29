@@ -15,7 +15,7 @@ const GREEN = 1;
 const BLUE_FACTORY_HEX = "0,6";
 const GREEN_FACTORY_HEX = "0,-6";
 const MIDDLE = "0,0";
-const UPGRADE_COST = 100;
+const UPGRADE_COST = RULES.factoryUpgrades.heavyWorks.cost;
 const LAB_INCOME = RULES.factoryUpgrades.lab.income;
 const STORE = RULES.capture.unusedFactoryCrystals;
 // Infantry may go straight into a factory, without a turn next to it first.
@@ -46,7 +46,8 @@ describe("factory upgrades", () => {
   });
 
   test("an upgrade cannot be bought twice or without the crystals", () => {
-    let s = scenario({ playerCrystals: [150, 100] });
+    const airfield = RULES.factoryUpgrades.airfield.cost;
+    let s = scenario({ playerCrystals: [airfield + UPGRADE_COST - 1, 100] });
     const upgrade = { type: "upgrade", factoryId: homeOf(s, BLUE), upgrade: "airfield" };
     s = play(s, upgrade);
     assert.throws(() => play(s, upgrade), /Illegal/);

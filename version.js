@@ -1,8 +1,18 @@
-export const VERSION = "v0.43";
+export const VERSION = "v0.44";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.44",
+    date: "2026-10-29",
+    notes: [
+      "Heavy works and Airfield cost 60 (were 100); the second player's extra crystals are " +
+        "30 (were 40).",
+      "The AI counts a Blast Cannon's cluster bomb and a Sonic Tank's line when choosing a " +
+        "target, and builds Blast Cannons against swarms of Infantry.",
+    ],
+  },
   {
     version: "v0.43",
     date: "2026-10-29",
