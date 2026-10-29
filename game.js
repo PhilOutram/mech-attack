@@ -1,23 +1,23 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.33";
-import { mapById, seededRandom } from "./maps.js?v=0.33";
+import { RULES } from "./rules-config.js?v=0.34";
+import { mapById, seededRandom } from "./maps.js?v=0.34";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.33";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.33";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.33";
-import { distance } from "./hex.js?v=0.33";
+} from "./engine.js?v=0.34";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.34";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.34";
+import { distance } from "./hex.js?v=0.34";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-} from "./board.js?v=0.33";
-import { confirmDialog } from "./dialog.js?v=0.33";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.33";
-import { showTip, showNote } from "./tips.js?v=0.33";
-import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.33";
+} from "./board.js?v=0.34";
+import { confirmDialog } from "./dialog.js?v=0.34";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.34";
+import { showTip, showNote } from "./tips.js?v=0.34";
+import { MISSIONS, missionRules, markMissionDone } from "./campaign.js?v=0.34";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -28,7 +28,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.33";
+const ASSET_VERSION = "0.34";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -76,8 +76,9 @@ const REASONS = {
 
 let state = null;
 // moving: a unit part way along its route while its move is shown, { unit, at, hidden }.
+// briefing: a campaign mission's briefing is open (tips wait for it).
 const ui = { selectedId: null, mode: null, buildType: null, busy: false, effects: [],
-  messages: [], moving: null };
+  messages: [], moving: null, briefing: false };
 // Which way each unit faces (unitId -> angle), from its last move; display only.
 let facing = {};
 // Undo: states before each of your actions this turn, and how many undos the game has left.
@@ -229,6 +230,7 @@ export async function openGame({ resume = false, mapId = "fixed-1", mission = nu
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
   facing = {};
   flashedRound = null;
+  pendingTips = [];
   history = [];
   if (resume) {
     loadExtras();
@@ -242,11 +244,15 @@ export async function openGame({ resume = false, mapId = "fixed-1", mission = nu
   preloadArt();
   await loadTiles(ASSET_VERSION);
   fitBoard();
+  // Tips wait until the mission briefing has been read; the mission's top tip comes first.
+  ui.briefing = briefing;
   render();
   if (briefing && !(await showBriefing(m, state.campaign.mission))) {
+    ui.briefing = false;
     leaveGame();
     return;
   }
+  ui.briefing = false;
   if (briefing && m.tip) showNote(m.tip, RULES);
   tip("welcome");
   render();
@@ -734,7 +740,7 @@ function tip(id) {
 
 // The tips for what is selected and shown now, plus any waiting; called after each render.
 function offerTips(view) {
-  if (!myTurn()) return;
+  if (!myTurn() || ui.briefing) return;
   const unit = view.units[ui.selectedId];
   if (unit) {
     const stats = unitStats(view, unit);
