@@ -132,13 +132,44 @@ describe("AI against Infantry swarms", () => {
     assert.ok(["b", "c", "d"].includes(action.targetId), "not the lone Infantry");
   });
 
-  test("the AI builds a Blast Cannon to answer enemy Infantry", () => {
-    const personality = { ...DEFAULT_PERSONALITY, harvestersEarly: 0, harvestersMax: 0,
-      captureFactories: 0, labs: 0, blastPerEnemyInfantry: 1 };
+  // A counters table where only the Blast Cannon answers Infantry well.
+  const counters = { infantry: { blastCannon: 0.9, tank: 0.2 } };
+  const builder = { ...DEFAULT_PERSONALITY, harvestersEarly: 0, harvestersMax: 0,
+    captureFactories: 0, labs: 0, counterWeight: 1 };
+
+  test("the AI builds the best counter in the table to the enemy units it sees", () => {
     const s = scenario({ units: [...swarm], playerCrystals: [500, 100] });
     s.units[s.players[BLUE].factoryId].upgrades = ["heavyWorks"];
-    const action = chooseAction(viewFor(s, BLUE), personality);
+    const action = chooseAction(viewFor(s, BLUE), builder, counters);
     assert.deepEqual([action.type, action.unitType], ["build", "blastCannon"]);
+  });
+
+  test("it stops building counters once it has enough of them", () => {
+    const cannons = [unit("x", "blastCannon", BLUE, "2,2"),
+      unit("y", "blastCannon", BLUE, "3,2")];
+    const s = scenario({ units: [...swarm, ...cannons], playerCrystals: [500, 100] });
+    s.units[s.players[BLUE].factoryId].upgrades = ["heavyWorks"];
+    const action = chooseAction(viewFor(s, BLUE), { ...builder, mix: { tank: 1 } }, counters);
+    assert.notEqual(action.unitType, "blastCannon");
+  });
+
+  test("it buys the upgrade a wanted counter needs, even when impatient", () => {
+    const s = scenario({ units: [...swarm], playerCrystals: [70, 100] });
+    const action = chooseAction(viewFor(s, BLUE), { ...builder, patience: 0 }, counters);
+    assert.deepEqual(action, { type: "upgrade", factoryId: s.players[BLUE].factoryId,
+      upgrade: "heavyWorks" });
+  });
+});
+
+describe("AI targets", () => {
+  test("a harvester full of crystals is worth more than an empty one", () => {
+    // Both damaged, so one shot destroys either; the full one's crystals are lost with it.
+    const s = scenario({
+      units: [unit("t", "tank", BLUE, "0,0"),
+        unit("e", "lightHarvester", GREEN, "1,-2", { carrying: 0, lives: 1 }),
+        unit("f", "lightHarvester", GREEN, "-1,-1", { carrying: 90, lives: 1 })],
+    });
+    assert.deepEqual(choose(s), { type: "attack", unitId: "t", targetId: "f" });
   });
 });
 

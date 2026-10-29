@@ -12,24 +12,25 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard,
-} from "./engine.js?v=0.46";
-import { neighbourKeys, distance } from "./hex.js?v=0.46";
+} from "./engine.js?v=0.47";
+import { neighbourKeys, distance } from "./hex.js?v=0.47";
+import { COUNTERS } from "./counters.js?v=0.47";
 
 // Score for an attack that costs no life now but sets up a combined attack this turn.
 const SETUP_ATTACK_SCORE = 1;
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
 // Units with nothing to unload are pushed off the hexes next to their own factory, which
-// are needed for unloading and building.
+// are needed for unloading and building; units that cannot capture are pushed off the hexes
+// next to a factory their side means to overrun, which its Infantry need.
 const FACTORY_CLEAR_PENALTY = 3;
 // Stopping on crystals destroys them, so the AI avoids it unless nothing else gets closer.
 const CRUSH_PENALTY = 2;
 // Units that explore the map, then watch the enemy factory.
 const SCOUT_TYPES = ["scoutBike", "spotterDrone"];
-// The unit bought to answer enemy air units, and the one bought to answer swarms of Infantry
-// (its cluster bomb hits every unit next to the target).
-const ANTI_AIR_TYPE = "antiAircraftJeep";
-const ANTI_SWARM_TYPE = "blastCannon";
+// A counter is built only if it scores at least this against what the enemy fields (the
+// measured table in counters.js runs from -1 to +1).
+const COUNTER_MIN_SCORE = 0.3;
 // Patience below this means: if the wanted unit is too dear, buy the best affordable one.
 const PATIENCE_THRESHOLD = 0.5;
 // How far a mutation moves a gene, as a share of its range.
@@ -51,8 +52,9 @@ export const DEFAULT_PERSONALITY = {
   },
   harvestersEarly: 2,
   harvestersMax: 3,
-  antiAirPerEnemyAir: 1, // anti-air units wanted for each enemy air unit seen
-  blastPerEnemyInfantry: 0.25, // Blast Cannons wanted for each enemy Infantry seen
+  // Value of counters it keeps against the enemy units it can see, as a share of their value.
+  // Counters come from the measured table in counters.js (tools/matchups.mjs).
+  counterWeight: 1,
   // Worth of one life of the enemy factory, in crystals (when factories take fire), and of
   // killing infantry about to overrun one of its own factories.
   factoryLifeValue: 200,
@@ -74,8 +76,7 @@ export const DEFAULT_PERSONALITY = {
 export const PERSONALITY_RANGES = {
   harvestersEarly: [1, 3, true],
   harvestersMax: [1, 5, true],
-  antiAirPerEnemyAir: [0, 2, false],
-  blastPerEnemyInfantry: [0, 1, false],
+  counterWeight: [0, 2, false],
   factoryLifeValue: [50, 400, false],
   killBonusShare: [0, 1, false],
   returnFireCaution: [0, 2, false],
@@ -148,8 +149,9 @@ export function favouriteUnits(personality, count = 3) {
     .slice(0, count);
 }
 
-export function chooseAction(view, personality = DEFAULT_PERSONALITY) {
-  const ctx = context(view, personality);
+// counters: the table of which units beat which (counters.js); tests can pass their own.
+export function chooseAction(view, personality = DEFAULT_PERSONALITY, counters = COUNTERS) {
+  const ctx = context(view, personality, counters);
   return (
     bestAttack(ctx) ||
     firstHeal(ctx) ||
@@ -215,7 +217,7 @@ export function playout(state, player, personalities, random) {
   return mine + theirs > 0 ? mine / (mine + theirs) : 0.5;
 }
 
-function context(view, personality) {
+function context(view, personality, counters = COUNTERS) {
   const me = view.viewer;
   const mine = unitsOf(view, me);
   const enemies = unitsOf(view, 1 - me);
@@ -223,6 +225,7 @@ function context(view, personality) {
   return {
     view,
     p: personality,
+    counters,
     me,
     mine,
     army: mine.filter((u) => !unitStats(view, u).isFactory),
@@ -270,13 +273,14 @@ function lifeValue(ctx, unit) {
 }
 
 // What a hit of amount on target is worth: the lives it takes, plus a bonus for destroying it
-// (more for Infantry about to overrun one of the AI's factories).
+// (more for Infantry about to overrun one of the AI's factories), plus the crystals it is
+// carrying, which are lost with it.
 function hitValue(ctx, target, amount) {
   const { view, p } = ctx;
   const after = livesAfterHit(view, target, amount);
   let value = (target.lives - after.lives) * lifeValue(ctx, target);
   if (after.lives === 0 && !unitStats(view, target).isFactory) {
-    value += p.killBonusShare * unitStats(view, target).cost;
+    value += p.killBonusShare * unitStats(view, target).cost + (target.carrying || 0);
     if (threatensFactory(ctx, target)) value += p.factoryLifeValue;
   }
   return value;
@@ -444,16 +448,8 @@ function wantedUnitType(ctx, maxCost = Infinity) {
     return "lightHarvester";
   }
 
-  const hitsAir = (u) => ["air", "both"].includes(unitStats(view, u).hits);
-  const enemyAir = ctx.enemies.filter((e) => unitStats(view, e).air).length;
-  const antiAirWanted = Math.round(enemyAir * p.antiAirPerEnemyAir);
-  if (antiAirWanted > army.filter(hitsAir).length && fits(ANTI_AIR_TYPE)) {
-    return ANTI_AIR_TYPE;
-  }
-  const enemyInfantry = ctx.enemies.filter((e) => e.type === INFANTRY_TYPE).length;
-  const blastWanted = Math.round(enemyInfantry * p.blastPerEnemyInfantry);
-  if (blastWanted > army.filter((u) => u.type === ANTI_SWARM_TYPE).length &&
-    fits(ANTI_SWARM_TYPE)) return ANTI_SWARM_TYPE;
+  const counter = counterWanted(ctx, fits);
+  if (counter) return counter;
 
   // Infantry to capture factories, carried in a transporter if the personality likes that.
   if (captureSites(ctx).length) {
@@ -482,6 +478,35 @@ function wantedUnitType(ctx, maxCost = Infinity) {
   return best;
 }
 
+// The best answer to the enemy units it can see, if its army does not already hold enough
+// answers: the unit that scores best against them in the counters table, weighted by what
+// each enemy unit is worth. null if it has enough, or nothing that fits scores well enough.
+function counterWanted(ctx, fits) {
+  const { view, army, p, counters } = ctx;
+  const cost = (type) => view.rules.units[type].cost;
+  const threats = ctx.enemies.filter((e) => {
+    const stats = unitStats(view, e);
+    return !stats.isFactory && (stats.attack > 0 || stats.captures || stats.carries);
+  });
+  const threatValue = threats.reduce((sum, e) => sum + cost(e.type), 0);
+  if (!threatValue) return null;
+  const score = (type) => threats.reduce((sum, e) =>
+    sum + cost(e.type) * ((counters[e.type] || {})[type] || 0), 0) / threatValue;
+  const answers = army.reduce((sum, u) => sum + cost(u.type) * Math.max(0, score(u.type)), 0);
+  if (answers >= p.counterWeight * threatValue) return null;
+  let best = null;
+  let bestScore = COUNTER_MIN_SCORE;
+  for (const type of Object.keys(view.rules.units)) {
+    if (!view.rules.units[type].attack || !fits(type)) continue;
+    const s = score(type);
+    if (s > bestScore) {
+      bestScore = s;
+      best = type;
+    }
+  }
+  return best;
+}
+
 function cheapestGatherer(view, crystals) {
   const types = Object.keys(view.rules.units).filter((type) => {
     const stats = view.rules.units[type];
@@ -497,6 +522,13 @@ function bestBuild(ctx) {
   if (!myFactories.length) return null;
   const crystals = view.players[me].crystals;
   let type = wantedUnitType(ctx);
+  // The factory upgrade the wanted unit needs is bought as soon as it is affordable, whatever
+  // the personality's patience, so a liking for heavy or air units is not lost to always
+  // buying something cheaper while saving for unit and upgrade together.
+  const needed = type && upgradeNeeded(ctx, type);
+  if (needed && needed.factoryId && needed.cost <= crystals) {
+    return { type: "upgrade", factoryId: needed.factoryId, upgrade: needed.name };
+  }
   const price = (t) => view.rules.units[t].cost + upgradeNeeded(ctx, t).cost;
   if (type && price(type) > crystals && p.patience < PATIENCE_THRESHOLD) {
     type = wantedUnitType(ctx, crystals);
@@ -744,6 +776,8 @@ function attackGoals(ctx, unit, stats) {
 function bestMove(ctx) {
   const { view } = ctx;
   const claimedPiles = new Set();
+  // The hexes next to factories it means to overrun are kept free for its Infantry.
+  const siegeHexes = new Set(captureSites(ctx).flatMap((k) => neighbourKeys(k)));
   // Gatherers first so they claim piles in a stable order, then everyone else.
   const order = [...ctx.army].sort((a, b) =>
     Number(!gatherers(ctx).includes(a)) - Number(!gatherers(ctx).includes(b)));
@@ -758,8 +792,10 @@ function bestMove(ctx) {
     const crowding = (k) => !unloading &&
       ctx.myFactories.some((f) => distance(k, f.at) === 1) ? FACTORY_CLEAR_PENALTY : 0;
     const crushing = (k) => (view.crystals[k] ? CRUSH_PENALTY : 0);
+    const captures = Boolean(unitStats(view, unit).captures);
+    const blocking = (k) => (!captures && siegeHexes.has(k) ? FACTORY_CLEAR_PENALTY : 0);
     const score = (k) => (field[k] === undefined ? Infinity : field[k]) +
-      (careful ? dangerAt(ctx, k) : 0) + crowding(k) + crushing(k);
+      (careful ? dangerAt(ctx, k) : 0) + crowding(k) + crushing(k) + blocking(k);
     let best = null;
     let bestScore = score(unit.at);
     for (const k in reach) {

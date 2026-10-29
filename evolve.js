@@ -16,13 +16,13 @@
 // play the hand-tuned AI, and they are written out for the game to use.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "./rules-config.js?v=0.46";
-import { mapById, seededRandom, MAP_SHAPES } from "./maps.js?v=0.46";
+import { RULES } from "./rules-config.js?v=0.47";
+import { mapById, seededRandom, MAP_SHAPES } from "./maps.js?v=0.47";
 import {
   DEFAULT_PERSONALITY, randomPersonality, mutatePersonality, crossPersonalities,
   favouriteUnits,
-} from "./ai.js?v=0.46";
-import { runGame, withOverrides } from "./sim.js?v=0.46";
+} from "./ai.js?v=0.47";
+import { runGame, withOverrides } from "./sim.js?v=0.47";
 
 const DEFAULTS = { generations: 30, population: 16, games: 8, seed: 1 };
 // Generated maps in the pool (map-1 .. map-N of every shape), alongside fixed map 1.
@@ -137,9 +137,29 @@ function unitName(type) {
   return RULES.units[type] ? RULES.units[type].name : type;
 }
 
-function personalityName(personality) {
-  const names = favouriteUnits(personality, 2).map(([type]) => unitName(type));
-  return names.join(" and ");
+// A personality's name: the two units it built most in its benchmark games (harvesters
+// aside), or, before it has played them, its two strongest build preferences.
+function personalityName(personality, built = null) {
+  const made = built ? Object.entries(built.units).filter(([type]) => type !== "lightHarvester")
+    .sort((x, y) => y[1] - x[1]).slice(0, 2).map(([type]) => type) : [];
+  const types = made.length ? made : favouriteUnits(personality, 2).map(([type]) => type);
+  return types.map(unitName).join(" and ");
+}
+
+// A build preference counts as strong at this share of the mix, and as hardly built below
+// this share of the units actually built.
+const STRONG_PREFERENCE = 0.1;
+const HARDLY_BUILT = 0.02;
+
+// Units a personality strongly prefers but hardly ever built: a sign that another gene (such
+// as patience) or a rule keeps the preference from ever reaching the board, so evolution
+// cannot judge it.
+function unbuiltPreferences(personality, built) {
+  const total = Object.values(built.units).reduce((sum, n) => sum + n, 0) || 1;
+  return favouriteUnits(personality, Object.keys(personality.mix).length)
+    .filter(([type, share]) => share >= STRONG_PREFERENCE &&
+      (built.units[type] || 0) / total < HARDLY_BUILT)
+    .map(([type, share]) => `${unitName(type)} (${Math.round(share * PERCENT)}% wanted)`);
 }
 
 function round(value) {
@@ -147,8 +167,8 @@ function round(value) {
 }
 
 function writeModule(path, best, settings) {
-  const list = best.map(({ personality, winRateVsDefault }) => ({
-    name: personalityName(personality),
+  const list = best.map(({ personality, winRateVsDefault, built }) => ({
+    name: personalityName(personality, built),
     winRateVsDefault: round(winRateVsDefault),
     personality: {
       ...Object.fromEntries(Object.entries(personality).filter(([k]) => k !== "mix")
@@ -191,8 +211,8 @@ function writeReport(path, { history, best, benchmarkGames }, settings) {
     `${benchmarkGames} games each, seats and maps mixed.`,
     "",
     "| Personality | Wins against the default AI | Units it built (share) | " +
-      "Upgrades and captures per game |",
-    "|---|---|---|---|",
+      "Upgrades and captures per game | Wanted but hardly built |",
+    "|---|---|---|---|---|",
     ...best.map((b) => {
       const total = Object.values(b.built.units).reduce((s, n) => s + n, 0);
       const units = Object.entries(b.built.units).sort((x, y) => y[1] - x[1])
@@ -203,8 +223,9 @@ function writeReport(path, { history, best, benchmarkGames }, settings) {
           `${RULES.factoryUpgrades[u].name} ${perGame(n)}`),
         `captures ${perGame(b.built.captures)}`,
       ].join(", ");
-      return `| ${personalityName(b.personality)} | ${share(b.winRateVsDefault, 1)} | ` +
-        `${units} | ${extras} |`;
+      const unbuilt = unbuiltPreferences(b.personality, b.built).join(", ") || "-";
+      return `| ${personalityName(b.personality, b.built)} | ` +
+        `${share(b.winRateVsDefault, 1)} | ${units} | ${extras} | ${unbuilt} |`;
     }),
     "",
     "## Genes of the best personality",

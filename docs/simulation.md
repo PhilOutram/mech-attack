@@ -62,6 +62,18 @@ Starting the second player with about 40–50 extra crystals evens it out. Phil 
 - The rule-based AI mostly builds the cheaper new units: 253 Attack Helicopters and 164 Anti-Aircraft Jeeps, but 1 Blast Cannon and no Sonic Tanks. It seldom saves up for expensive units, so the splash and line attacks were barely tested. The learning AI (idea 9) is the better way to find out what each unit is worth.
 - The first player now wins 37.5% and blue 30.9%: the 40-crystal bonus was tuned before these units existed and needs rechecking.
 
+## Counters measured, not left to evolution (v0.46)
+
+Evolution missed that the Blast Cannon answers Infantry swarms (Phil, 29 October 2026). Three things hid it: a liking for heavy units never reached the board, because impatient personalities never saved for unit and Heavy works together; the AI aimed the Blast Cannon without counting its splash; and 10 games a generation against a population that all rushed with Infantry is a lot of noise. Changes:
+
+- `tools/matchups.mjs` stages equal-value battles between every pair of units and writes the table to `counters.js` (report: `docs/balance/counters.md`). The AI builds the best answer to the enemy units it sees; the gene `counterWeight` sets how much of its army goes on answers. This replaces the hand-written anti-air and anti-swarm rules.
+- The AI buys the factory upgrade a wanted unit needs as soon as it can afford it, whatever its patience.
+- The AI counts splash and sonic-boom hits when aiming, and the crystals a unit carries when deciding what to destroy.
+- The evolution report names personalities by what they actually built and flags strong preferences that were hardly ever built.
+- Units that cannot capture keep off the hexes next to a factory their Infantry are besieging: an army crowding round the enemy factory had been locking its own Infantry out (9 of 40 games stalled at the round limit on one map; now 1).
+
+What the counter table says (8 battles a pairing): the Attack Helicopter beats almost every ground unit, since only anti-air can touch it; Tanks, Heavy Cannons and Turrets all beat Infantry cleanly, the Blast Cannon less so (it fires every other turn); the Fighter is useless against anything on the ground.
+
 ## Overrun rules (v0.37: factories overrun, not fired on; siege turn; Crystal lab)
 
 Evolved again for these rules (`docs/evolution.md`). The five best beat the hand-tuned AI 73–84% of the time. 100 games between them, every map shape:
