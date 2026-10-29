@@ -80,6 +80,10 @@ Built in v0.51 (provisional): co-op set-up offers one or two AI sides, and each 
 
 Demand surrender is offered in any multiplayer game where the other side is one team of AIs. The AI plays the game on for up to 8 seconds before answering, with shorter games when there are more than two sides.
 
+## The AI in games with more sides
+
+v0.54: AI sides in games with 3 or more sides use personalities evolved in 3- and 4-sided free-for-alls (`ai-personalities-multi.js`; report in `docs/evolution-multi.md`), scored by finishing place. Against the hand-tuned AI on every other side, the best five score 48% to 65% (50% means as good) and win outright 9 to 16 times in 40 games, against about 12 by chance. All five go for the nearest and weakest opponent (targetNearness about 1.5, targetWeakness 1.1 to 1.6), with some weight on whoever threatens their factories (targetThreat 0.7 to 1.2); none chose to gang up on the strongest. They build mostly Infantry (about 4 factory captures a game), Attack Helicopters and Crystal labs. Co-op games against an AI team use the same personalities; they were not bred for that, so co-op balance needs watching.
+
 ## Co-op campaigns (planned, Phil, 29 October 2026)
 
 Campaign missions for 2 or 3 humans playing at the same time against the AI. How they would work:

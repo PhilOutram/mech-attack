@@ -1,4 +1,207 @@
-// AI personalities bred by evolve.js for games with 3 or 4 sides; empty until a run writes
-// them. Run: node evolve.js --sides 3,4 --export MULTI_SIDE_PERSONALITIES
-// --out ai-personalities-multi.js --report docs/evolution-multi.md
-export const MULTI_SIDE_PERSONALITIES = [];
+// AI personalities bred by evolve.js; the game picks one at random each game.
+// Each entry: a name from its favourite units, its win rate against the default AI, and
+// its genes (see DEFAULT_PERSONALITY in ai.js).
+// Run: node evolve.js --generations 20 --population 16 --games 3 --seed 1 --sides 3,4 --export MULTI_SIDE_PERSONALITIES
+// Do not edit by hand; run evolve.js again instead.
+export const MULTI_SIDE_PERSONALITIES = [
+  {
+    "name": "Infantry and Attack Helicopter",
+    "winRateVsDefault": 0.59,
+    "personality": {
+      "harvestersEarly": 2,
+      "harvestersMax": 2,
+      "counterWeight": 0.87,
+      "factoryLifeValue": 50,
+      "killBonusShare": 0.92,
+      "returnFireCaution": 1.45,
+      "homeDefenceRadius": 4,
+      "standOff": 3,
+      "harvesterDangerRadius": 0,
+      "dangerPenalty": 2.8,
+      "scoutWatchDistance": 3,
+      "armySizeForMedic": 4,
+      "patience": 0.97,
+      "captureFactories": 3,
+      "transportInfantry": 0.78,
+      "labs": 2,
+      "wreckPiles": 0,
+      "targetNearness": 1.6,
+      "targetWeakness": 1.41,
+      "targetThreat": 1.19,
+      "mix": {
+        "tank": 0.37,
+        "heavyCannon": 0.95,
+        "artillery": 0.69,
+        "blastCannon": 0.54,
+        "sonicTank": 0.16,
+        "scoutBike": 0.04,
+        "spotterDrone": 0,
+        "attackHelicopter": 0.63,
+        "fighter": 0.85,
+        "antiAircraftJeep": 0.79,
+        "lightMedic": 0.46,
+        "turret": 0.98
+      }
+    }
+  },
+  {
+    "name": "Infantry and Attack Helicopter",
+    "winRateVsDefault": 0.61,
+    "personality": {
+      "harvestersEarly": 2,
+      "harvestersMax": 2,
+      "counterWeight": 0.87,
+      "factoryLifeValue": 50,
+      "killBonusShare": 0.82,
+      "returnFireCaution": 1.42,
+      "homeDefenceRadius": 4,
+      "standOff": 3,
+      "harvesterDangerRadius": 1,
+      "dangerPenalty": 2.64,
+      "scoutWatchDistance": 3,
+      "armySizeForMedic": 4,
+      "patience": 1,
+      "captureFactories": 3,
+      "transportInfantry": 0.79,
+      "labs": 2,
+      "wreckPiles": 0,
+      "targetNearness": 1.49,
+      "targetWeakness": 1.41,
+      "targetThreat": 0.89,
+      "mix": {
+        "tank": 0.44,
+        "heavyCannon": 0.89,
+        "artillery": 0.6,
+        "blastCannon": 0.38,
+        "sonicTank": 0.16,
+        "scoutBike": 0.29,
+        "spotterDrone": 0,
+        "attackHelicopter": 0.45,
+        "fighter": 0.69,
+        "antiAircraftJeep": 0.92,
+        "lightMedic": 0.46,
+        "turret": 0.98
+      }
+    }
+  },
+  {
+    "name": "Infantry and Scout Bike",
+    "winRateVsDefault": 0.65,
+    "personality": {
+      "harvestersEarly": 2,
+      "harvestersMax": 2,
+      "counterWeight": 0.87,
+      "factoryLifeValue": 50,
+      "killBonusShare": 0.92,
+      "returnFireCaution": 1.59,
+      "homeDefenceRadius": 4,
+      "standOff": 3,
+      "harvesterDangerRadius": 0,
+      "dangerPenalty": 1.51,
+      "scoutWatchDistance": 3,
+      "armySizeForMedic": 4,
+      "patience": 0.97,
+      "captureFactories": 3,
+      "transportInfantry": 0.78,
+      "labs": 2,
+      "wreckPiles": 0,
+      "targetNearness": 1.49,
+      "targetWeakness": 1.06,
+      "targetThreat": 0.99,
+      "mix": {
+        "tank": 0.37,
+        "heavyCannon": 0.95,
+        "artillery": 0.69,
+        "blastCannon": 0.56,
+        "sonicTank": 0.16,
+        "scoutBike": 0.04,
+        "spotterDrone": 0,
+        "attackHelicopter": 0.63,
+        "fighter": 0.85,
+        "antiAircraftJeep": 0.94,
+        "lightMedic": 0.46,
+        "turret": 1
+      }
+    }
+  },
+  {
+    "name": "Infantry and Scout Bike",
+    "winRateVsDefault": 0.48,
+    "personality": {
+      "harvestersEarly": 2,
+      "harvestersMax": 2,
+      "counterWeight": 0.87,
+      "factoryLifeValue": 71.33,
+      "killBonusShare": 0.92,
+      "returnFireCaution": 1.45,
+      "homeDefenceRadius": 4,
+      "standOff": 3,
+      "harvesterDangerRadius": 0,
+      "dangerPenalty": 4.28,
+      "scoutWatchDistance": 3,
+      "armySizeForMedic": 4,
+      "patience": 0.96,
+      "captureFactories": 3,
+      "transportInfantry": 0.79,
+      "labs": 2,
+      "wreckPiles": 0,
+      "targetNearness": 1.6,
+      "targetWeakness": 1.24,
+      "targetThreat": 1.1,
+      "mix": {
+        "tank": 0.37,
+        "heavyCannon": 0.95,
+        "artillery": 0.69,
+        "blastCannon": 0.54,
+        "sonicTank": 0.16,
+        "scoutBike": 0.2,
+        "spotterDrone": 0,
+        "attackHelicopter": 0.63,
+        "fighter": 0.85,
+        "antiAircraftJeep": 0.79,
+        "lightMedic": 0.46,
+        "turret": 1
+      }
+    }
+  },
+  {
+    "name": "Infantry and Scout Bike",
+    "winRateVsDefault": 0.53,
+    "personality": {
+      "harvestersEarly": 2,
+      "harvestersMax": 2,
+      "counterWeight": 0.87,
+      "factoryLifeValue": 50,
+      "killBonusShare": 0.94,
+      "returnFireCaution": 1.42,
+      "homeDefenceRadius": 5,
+      "standOff": 3,
+      "harvesterDangerRadius": 1,
+      "dangerPenalty": 1.51,
+      "scoutWatchDistance": 3,
+      "armySizeForMedic": 4,
+      "patience": 0.76,
+      "captureFactories": 3,
+      "transportInfantry": 0.79,
+      "labs": 2,
+      "wreckPiles": 0.04,
+      "targetNearness": 1.49,
+      "targetWeakness": 1.62,
+      "targetThreat": 0.66,
+      "mix": {
+        "tank": 0.31,
+        "heavyCannon": 0.95,
+        "artillery": 0.38,
+        "blastCannon": 0.21,
+        "sonicTank": 0.17,
+        "scoutBike": 0,
+        "spotterDrone": 0,
+        "attackHelicopter": 0.45,
+        "fighter": 0.69,
+        "antiAircraftJeep": 0.92,
+        "lightMedic": 0.32,
+        "turret": 0.98
+      }
+    }
+  }
+];
