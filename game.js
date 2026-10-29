@@ -1,28 +1,28 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.47";
-import { mapById, seededRandom } from "./maps.js?v=0.47";
+import { RULES } from "./rules-config.js?v=0.48";
+import { mapById, seededRandom } from "./maps.js?v=0.48";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture,
   STATE_FORMAT,
-} from "./engine.js?v=0.47";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.47";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.47";
-import { distance } from "./hex.js?v=0.47";
+} from "./engine.js?v=0.48";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.48";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.48";
+import { distance } from "./hex.js?v=0.48";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage,
-} from "./board.js?v=0.47";
-import { confirmDialog } from "./dialog.js?v=0.47";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.47";
-import { showTip, showNote } from "./tips.js?v=0.47";
+} from "./board.js?v=0.48";
+import { confirmDialog } from "./dialog.js?v=0.48";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.48";
+import { showTip, showNote } from "./tips.js?v=0.48";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.47";
-import { levelById, levelSetup } from "./difficulty.js?v=0.47";
+} from "./campaign.js?v=0.48";
+import { levelById, levelSetup } from "./difficulty.js?v=0.48";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -33,7 +33,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.47";
+const ASSET_VERSION = "0.48";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -42,6 +42,10 @@ const HOP_MS = 90;
 // clears it sooner), the "Round 5" banner at the start of your turn, and the one naming your
 // opponent at the start of a game.
 const BANNER_MS = 3500;
+// How long the sum behind an attack ("Tank ATT 25 vs Scout Bike DEF 10 -> DESTROYED") stays
+// up, and how long Green's turn pauses after one so it can be read (Phil, 29 October 2026).
+const ATTACK_BANNER_MS = 3000;
+const ATTACK_READ_MS = 1500;
 const ROUND_BANNER_MS = 2000;
 const OPPONENT_BANNER_MS = 3500;
 // How long End turn flashes once every unit has done all it can this turn (styles.css flashes
@@ -579,7 +583,7 @@ async function runAiTurn() {
     } catch (error) {
       console.error(error);
     }
-    if (seen) await sleep(AI_STEP_MS);
+    if (seen) await sleep(ui.attackShown ? ATTACK_READ_MS : AI_STEP_MS);
   }
   ui.busy = false;
   save();
@@ -647,6 +651,9 @@ function showEvents(events, before, after) {
   const lines = [];
   const sounds = new Map();
   let unloaded = 0;
+  // The sum behind each hit blue can see, and the type of the unit whose shot is landing.
+  const sums = [];
+  let shooter = null;
   // Hexes your units fired into blind, so what is destroyed there can be reported.
   const blindShots = new Set();
   const sound = (clip) => {
@@ -659,6 +666,7 @@ function showEvents(events, before, after) {
       const to = (before.units[e.targetId] || after.units[e.targetId] || {}).at;
       if (!seen(from) && !seen(to)) continue;
       any = true;
+      shooter = typeOf(e.unitId);
       if (e.type === "fire" || e.type === "returnFire") sound(fireSound(typeOf(e.unitId)));
       if (from && seen(from)) effects.push({ at: from, size: 0.42 });
       if (to && seen(to)) effects.push({ at: to, size: 0.75 });
@@ -668,6 +676,14 @@ function showEvents(events, before, after) {
         ? `${unitName(before, e.targetId)} ${verb} ${e.attack}.`
         : `${unitName(before, e.unitId)} ${verb} ${unitName(before, e.targetId)} ` +
           `(${e.attack}).`);
+    } else if (e.type === "hit" && shooter && before.units[e.unitId] &&
+      seen(before.units[e.unitId].at)) {
+      sums.push(attackSum(shooter, before.units[e.unitId].type, e));
+      if (e.livesAfter === 0) continue;
+      lines.push(e.livesAfter < e.livesBefore
+        ? `${unitName(before, e.unitId)} lost a life.`
+        : `${unitName(before, e.unitId)}: ${e.total} of ${e.defence} this turn, ` +
+          "more fire this turn adds to it.");
     } else if (e.type === "hit" && e.livesAfter > 0) {
       const unit = before.units[e.unitId];
       if (!unit || !seen(unit.at)) continue;
@@ -753,7 +769,31 @@ function showEvents(events, before, after) {
   if (effects.length) flash(effects);
   for (const [clip, volume] of sounds) playSound(clip, volume);
   if (unloaded) showBanner(`${unloaded} crystals unloaded`);
+  if (sums.length) showBanner(sums.join("\n"), ATTACK_BANNER_MS);
+  ui.attackShown = sums.length > 0;
   return any;
+}
+
+// The sum behind a hit, for players learning how attacks work: attack against defence and
+// what it does. Attacks on one unit in a turn add up: reaching its defence costs it a life,
+// twice its defence destroys it.
+function attackSum(attackerType, targetType, hit) {
+  const { amount, total, defence, livesBefore, livesAfter } = hit;
+  const twice = RULES.combat.loseTwoLivesAt * defence;
+  const attack = total === amount ? `ATT ${amount}` : `ATT ${amount} (${total} this turn)`;
+  let result;
+  if (livesAfter === 0) {
+    result = total >= twice ? `DESTROYED (${total} ≥ 2 × ${defence})`
+      : `DESTROYED (${total} ≥ ${defence}, already damaged)`;
+  } else if (livesAfter < livesBefore) {
+    result = `1 HIT (${total} ≥ ${defence}): now damaged`;
+  } else if (total >= defence) {
+    result = `no more damage: ${twice - total} more this turn destroys it`;
+  } else {
+    result = `NO HIT (${total} < ${defence}): ${defence - total} more this turn`;
+  }
+  return `${RULES.units[attackerType].name} ${attack} vs ${RULES.units[targetType].name} ` +
+    `DEF ${defence} → ${result}`;
 }
 
 // Once every one of your units has done all it can this turn, End turn flashes (once a turn).

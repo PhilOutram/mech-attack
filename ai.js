@@ -12,12 +12,10 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard,
-} from "./engine.js?v=0.47";
-import { neighbourKeys, distance } from "./hex.js?v=0.47";
-import { COUNTERS } from "./counters.js?v=0.47";
+} from "./engine.js?v=0.48";
+import { neighbourKeys, distance } from "./hex.js?v=0.48";
+import { COUNTERS } from "./counters.js?v=0.48";
 
-// Score for an attack that costs no life now but sets up a combined attack this turn.
-const SETUP_ATTACK_SCORE = 1;
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
 // Units with nothing to unload are pushed off the hexes next to their own factory, which
@@ -26,8 +24,10 @@ const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
 const FACTORY_CLEAR_PENALTY = 3;
 // Stopping on crystals destroys them, so the AI avoids it unless nothing else gets closer.
 const CRUSH_PENALTY = 2;
-// Units that explore the map, then watch the enemy factory.
+// Units that explore the map, then watch the enemy factory. A scout that can fight turns to
+// enemies it can see within this many hexes.
 const SCOUT_TYPES = ["scoutBike", "spotterDrone"];
+const SCOUT_ENGAGE_RANGE = 6;
 // A counter is built only if it scores at least this against what the enemy fields (the
 // measured table in counters.js runs from -1 to +1).
 const COUNTER_MIN_SCORE = 0.3;
@@ -326,6 +326,17 @@ function threatensFactory(ctx, unit) {
     ctx.myFactories.some((f) => distance(f.at, unit.at) === 1);
 }
 
+// What a combined attack on target is expected to lose to return fire: every shooter it fires
+// back at, which may be only the first few when combat.returnFirePerTurn limits it.
+function combinedReturnFireLoss(ctx, shooters, target) {
+  const losses = shooters.map((s) => returnFireLoss(ctx, s, target)).sort((a, b) => b - a);
+  const limit = ctx.view.rules.combat.returnFirePerTurn;
+  const firedBack = (ctx.view.hits[target.id] || {}).firedBack || 0;
+  const count = limit === null || limit === undefined ? losses.length
+    : Math.max(0, limit - firedBack);
+  return losses.slice(0, count).reduce((sum, loss) => sum + loss, 0);
+}
+
 function returnFireLoss(ctx, attacker, target) {
   if (!firesBack(ctx.view, attacker, target)) return 0;
   const after = livesAfterHit(ctx.view, attacker, unitStats(ctx.view, target).attack);
@@ -346,19 +357,21 @@ function bestAttack(ctx) {
   let bestScore = 0;
   for (const { unit, target } of options) {
     const attack = unitStats(view, unit).attack;
-    const after = livesAfterHit(view, target, attack);
-    const livesLost = target.lives - after.lives;
     let score = hitValue(ctx, target, attack);
     // A cluster bomb or sonic boom also hits other enemies.
     for (const [other, amount] of alsoHit(ctx, unit, target)) {
       score += hitValue(ctx, other, amount);
     }
-    if (livesLost === 0 && score === 0) {
-      // Worth starting only if everything ready to fire at it this turn can take a life.
-      const combined = livesAfterHit(view, target, ready[target.id]);
-      if (combined.lives < target.lives) score = SETUP_ATTACK_SCORE;
+    if (score > 0) {
+      score -= returnFireLoss(ctx, unit, target);
+    } else {
+      // A shot that does nothing on its own can start a combined attack: worth it if what
+      // every unit ready to fire at the target does together outweighs all they would lose to
+      // return fire. Each shot of the plan carries an equal share of its worth.
+      const shooters = options.filter((o) => o.target.id === target.id).map((o) => o.unit);
+      score = (hitValue(ctx, target, ready[target.id]) -
+        combinedReturnFireLoss(ctx, shooters, target)) / shooters.length;
     }
-    score -= returnFireLoss(ctx, unit, target);
     if (score > bestScore) {
       bestScore = score;
       best = { type: "attack", unitId: unit.id, targetId: target.id };
@@ -675,7 +688,11 @@ function goalsFor(ctx, unit, claimedPiles) {
   const captureGoals = infantryGoals(ctx, unit);
   if (captureGoals) return captureGoals;
 
-  if (SCOUT_TYPES.includes(unit.type)) {
+  // Scouts explore, then watch the enemy factory; a scout that can fight takes on enemies it
+  // can see close by first.
+  const engage = stats.attack > 0 && ctx.enemies.some((e) => view.visible[e.at] &&
+    canHit(view, unit, e) && distance(e.at, unit.at) <= SCOUT_ENGAGE_RANGE);
+  if (SCOUT_TYPES.includes(unit.type) && !engage) {
     const unexplored = Object.keys(view.map.hexes).filter((k) => !view.map.hexes[k].terrain);
     if (unexplored.length) return unexplored;
     const watch = ctx.p.scoutWatchDistance;

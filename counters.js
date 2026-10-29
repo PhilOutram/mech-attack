@@ -5,14 +5,14 @@
 export const COUNTERS = {
   "scoutBike": {
     "scoutBike": 0,
-    "tank": 1,
+    "tank": 0.93,
     "heavyCannon": 0.93,
-    "artillery": 0.81,
-    "infantry": -0.36,
-    "turret": 0.75,
-    "blastCannon": 0.67,
-    "sonicTank": 0.21,
-    "antiAircraftJeep": -0.32,
+    "artillery": 0.8,
+    "infantry": -0.5,
+    "turret": 0.82,
+    "blastCannon": 0.96,
+    "sonicTank": 0.32,
+    "antiAircraftJeep": -0.29,
     "attackHelicopter": 1,
     "fighter": 0
   },
@@ -30,7 +30,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "heavyCannon": {
-    "scoutBike": -0.86,
+    "scoutBike": -0.96,
     "tank": -0.83,
     "heavyCannon": 0.17,
     "artillery": -0.44,
@@ -43,7 +43,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "artillery": {
-    "scoutBike": -0.87,
+    "scoutBike": -0.66,
     "tank": 0.75,
     "heavyCannon": 0.73,
     "artillery": 0.44,
@@ -56,7 +56,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "lightHarvester": {
-    "scoutBike": 0.5,
+    "scoutBike": 1,
     "tank": 0.94,
     "heavyCannon": 0.5,
     "artillery": 0.19,
@@ -82,7 +82,7 @@ export const COUNTERS = {
     "fighter": 0.93
   },
   "infantry": {
-    "scoutBike": 0.29,
+    "scoutBike": 0.36,
     "tank": 1,
     "heavyCannon": 1,
     "artillery": -0.55,
@@ -95,7 +95,7 @@ export const COUNTERS = {
     "fighter": -1
   },
   "transporter": {
-    "scoutBike": 0.21,
+    "scoutBike": 0.92,
     "tank": 1,
     "heavyCannon": 0.29,
     "artillery": 0.12,
@@ -121,7 +121,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "turret": {
-    "scoutBike": -0.75,
+    "scoutBike": -0.86,
     "tank": -0.85,
     "heavyCannon": -0.75,
     "artillery": -0.06,
@@ -134,7 +134,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "blastCannon": {
-    "scoutBike": -0.92,
+    "scoutBike": -0.89,
     "tank": 0.42,
     "heavyCannon": 0.67,
     "artillery": 0.17,
@@ -147,7 +147,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "sonicTank": {
-    "scoutBike": -0.64,
+    "scoutBike": -0.46,
     "tank": 0.92,
     "heavyCannon": 1,
     "artillery": -0.04,
@@ -160,7 +160,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "antiAircraftJeep": {
-    "scoutBike": 0.29,
+    "scoutBike": 0.43,
     "tank": 1,
     "heavyCannon": 0.54,
     "artillery": 0.14,
@@ -199,7 +199,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "lightMedic": {
-    "scoutBike": 0.1,
+    "scoutBike": 1,
     "tank": 1,
     "heavyCannon": 0.15,
     "artillery": 0.05,

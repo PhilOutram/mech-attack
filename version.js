@@ -1,8 +1,18 @@
-export const VERSION = "v0.47";
+export const VERSION = "v0.48";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.48",
+    date: "2026-10-29",
+    notes: [
+      "Every attack you can see shows its sum for 3 seconds, e.g. \"Tank ATT 25 vs Scout " +
+        "Bike DEF 10 → DESTROYED\".",
+      "The AI plans combined attacks as a whole, and its Scout Bikes fight nearby enemies " +
+        "instead of always exploring.",
+    ],
+  },
   {
     version: "v0.47",
     date: "2026-10-29",
