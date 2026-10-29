@@ -10,6 +10,9 @@
 //   --benchmark    games each of the best plays against the hand-tuned AI (default 100)
 //   --keep         how many of the best are kept (default 5)
 //   --json         also write the results as JSON to this file
+//   --sides        sides in each game, e.g. 3,4 for free-for-alls of 3 or 4 (default 2); a
+//                  game with more sides scores each player by finishing place
+//   --export       name of the list in --out (default EVOLVED_PERSONALITIES)
 // Each generation every personality plays games against others from the population on fixed
 // map 1 and generated maps, with seats and the first player mixed. The best quarter survive;
 // the rest are replaced by mixed and mutated copies of the survivors. At the end the best few
@@ -17,12 +20,12 @@
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { RULES } from "./rules-config.js?v=0.50";
-import { mapById, seededRandom, MAP_SHAPES } from "./maps.js?v=0.50";
+import { mapById, seededRandom, MAP_SHAPES, shapesForSides } from "./maps.js?v=0.50";
 import {
   DEFAULT_PERSONALITY, randomPersonality, mutatePersonality, crossPersonalities,
   favouriteUnits,
 } from "./ai.js?v=0.50";
-import { runGame, withOverrides } from "./sim.js?v=0.50";
+import { runGame, withOverrides, placeScores } from "./sim.js?v=0.50";
 
 const DEFAULTS = { generations: 30, population: 16, games: 8, seed: 1 };
 // Generated maps in the pool (map-1 .. map-N of every shape), alongside fixed map 1.
@@ -39,7 +42,7 @@ const PERCENT = 100;
 
 export function evolve({
   generations, population, games, seed, benchmarkGames = BENCHMARK_GAMES, keep = KEEP,
-  rules = RULES, log = () => {},
+  rules = RULES, log = () => {}, sides = [2],
 }) {
   const random = seededRandom(seed);
   const maps = new Map();
@@ -47,7 +50,12 @@ export function evolve({
     if (!maps.has(id)) maps.set(id, mapById(id, rules));
     return maps.get(id);
   };
-  const randomMap = () => {
+  const randomMap = (count = 2) => {
+    if (count > 2) {
+      const shapes = shapesForSides(count);
+      const shape = shapes[Math.floor(random() * shapes.length)];
+      return mapFor(`map-${1 + Math.floor(random() * MAP_POOL)}-${shape}-${count}p`);
+    }
     const n = Math.floor(random() * (MAP_POOL + 1));
     const shape = SHAPES[Math.floor(random() * SHAPES.length)];
     if (n === 0) return mapFor("fixed-1");
@@ -76,6 +84,37 @@ export function evolve({
     return winner === null ? 0.5 : winner === seatOfA ? 1 : 0;
   };
 
+  // A free-for-all of players.length sides, seats and first player at random. Returns each
+  // player's finishing-place score (see placeScores), in the order given; builtBy collects
+  // what the first player built.
+  const playMany = (players, builtBy) => {
+    const count = players.length;
+    const seats = players.map((_, i) => i);
+    for (let i = count - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [seats[i], seats[j]] = [seats[j], seats[i]];
+    }
+    const personalities = [];
+    players.forEach((p, i) => { personalities[seats[i]] = p; });
+    const record = runGame({
+      rules, map: randomMap(count), seed: Math.floor(random() * MAX_SEED),
+      firstPlayer: Math.floor(random() * count), personalities, roundCap: ROUND_CAP,
+    });
+    if (builtBy) {
+      for (const [type, n] of Object.entries(record.built[seats[0]])) {
+        builtBy.units[type] = (builtBy.units[type] || 0) + n;
+      }
+      for (const [upgrade, n] of Object.entries(record.upgrades[seats[0]])) {
+        builtBy.upgrades[upgrade] = (builtBy.upgrades[upgrade] || 0) + n;
+      }
+      builtBy.captures += record.captures[seats[0]];
+      builtBy.wins += record.result.winner === seats[0] ? 1 : 0;
+    }
+    const scores = placeScores(record, count);
+    return seats.map((seat) => scores[seat]);
+  };
+  const sideCount = () => sides[Math.floor(random() * sides.length)];
+
   let pool = [DEFAULT_PERSONALITY];
   while (pool.length < population) pool.push(randomPersonality(random));
   const history = [];
@@ -86,13 +125,28 @@ export function evolve({
     const played = pool.map(() => 0);
     for (let i = 0; i < pool.length; i++) {
       for (let g = 0; g < games; g++) {
-        let j = Math.floor(random() * (pool.length - 1));
-        if (j >= i) j += 1;
-        const score = play(pool[i], pool[j]);
-        points[i] += score;
-        points[j] += 1 - score;
-        played[i] += 1;
-        played[j] += 1;
+        const count = sideCount();
+        if (count === 2) {
+          let j = Math.floor(random() * (pool.length - 1));
+          if (j >= i) j += 1;
+          const score = play(pool[i], pool[j]);
+          points[i] += score;
+          points[j] += 1 - score;
+          played[i] += 1;
+          played[j] += 1;
+          continue;
+        }
+        // Opponents: others from the pool, all different.
+        const others = pool.map((_, k) => k).filter((k) => k !== i);
+        const chosen = [i];
+        while (chosen.length < count) {
+          chosen.push(others.splice(Math.floor(random() * others.length), 1)[0]);
+        }
+        const scores = playMany(chosen.map((k) => pool[k]));
+        chosen.forEach((k, n) => {
+          points[k] += scores[n];
+          played[k] += 1;
+        });
       }
     }
     ranked = pool
@@ -117,17 +171,22 @@ export function evolve({
     pool = next;
   }
 
-  // The best few against the hand-tuned AI.
+  // The best few against the hand-tuned AI: one of it in a two-sided game, or one on every
+  // other side of a free-for-all. With more sides the score is the finishing-place score
+  // (0.5 means as good as the default AI), and wins counts outright wins.
   const best = ranked.slice(0, keep).map(({ personality }) => {
-    const builtBy = { units: {}, upgrades: {}, captures: 0 };
+    const builtBy = { units: {}, upgrades: {}, captures: 0, wins: 0 };
     let score = 0;
     for (let g = 0; g < benchmarkGames; g++) {
-      score += play(personality, DEFAULT_PERSONALITY, builtBy);
+      const count = sideCount();
+      score += count === 2 ? play(personality, DEFAULT_PERSONALITY, builtBy)
+        : playMany([personality, ...Array(count - 1).fill(DEFAULT_PERSONALITY)], builtBy)[0];
     }
-    log(`Benchmark: ${(score / benchmarkGames * PERCENT).toFixed(0)}% against the default AI`);
+    log(`Benchmark: ${(score / benchmarkGames * PERCENT).toFixed(0)}% against the default AI` +
+      (sides.some((n) => n > 2) ? `, ${builtBy.wins} outright wins` : ""));
     return { personality, winRateVsDefault: score / benchmarkGames, built: builtBy };
   });
-  return { history, best, benchmarkGames };
+  return { history, best, benchmarkGames, sides };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -166,7 +225,7 @@ function round(value) {
   return Math.round(value * PERCENT) / PERCENT;
 }
 
-function writeModule(path, best, settings) {
+function writeModule(path, best, settings, exportName = "EVOLVED_PERSONALITIES") {
   const list = best.map(({ personality, winRateVsDefault, built }) => ({
     name: personalityName(personality, built),
     winRateVsDefault: round(winRateVsDefault),
@@ -182,7 +241,7 @@ function writeModule(path, best, settings) {
     "// its genes (see DEFAULT_PERSONALITY in ai.js).\n" +
     `// Run: node evolve.js ${settings}\n` +
     "// Do not edit by hand; run evolve.js again instead.\n" +
-    `export const EVOLVED_PERSONALITIES = ${JSON.stringify(list, null, 2)};\n`;
+    `export const ${exportName} = ${JSON.stringify(list, null, 2)};\n`;
   writeFileSync(path, text);
 }
 
@@ -190,10 +249,15 @@ function share(n, total) {
   return total ? `${((n / total) * PERCENT).toFixed(0)}%` : "-";
 }
 
-function writeReport(path, { history, best, benchmarkGames }, settings) {
+function writeReport(path, { history, best, benchmarkGames, sides = [2] }, settings) {
+  const many = sides.some((n) => n > 2);
   const lines = [
     "# Evolved AI personalities",
     "",
+    ...(many ? [`For games with ${sides.join(" or ")} sides, each a free-for-all. A game's ` +
+      "score is its finishing place: 1 for a win, 0 for being out first, shared when " +
+      "players finish level (still in at the round limit, or out together). The win " +
+      "rates below are average scores; 50% means as good as the opponents.", ""] : []),
     `Produced by \`node evolve.js ${settings}\`. Each generation every personality plays ` +
       "games against others on fixed map 1 and generated maps; the best quarter survive and " +
       "the rest are mixed and mutated copies of them. Games over " +
@@ -256,6 +320,8 @@ function parseArgs(argv) {
     out: args.out || "ai-personalities.js",
     json: args.json || null,
     report: args.report || "docs/evolution.md",
+    sides: (args.sides || "2").split(",").map(Number),
+    exportName: args.export || "EVOLVED_PERSONALITIES",
   };
 }
 
@@ -263,11 +329,13 @@ function main() {
   const options = parseArgs(process.argv.slice(2));
   const settings = `--generations ${options.generations} --population ${options.population} ` +
     `--games ${options.games} --seed ${options.seed}` +
+    (options.sides.join(",") !== "2" ? ` --sides ${options.sides.join(",")}` : "") +
+    (options.exportName !== "EVOLVED_PERSONALITIES" ? ` --export ${options.exportName}` : "") +
     options.set.map((s) => ` --set ${s}`).join("");
   const rules = withOverrides(RULES, options.set);
   const started = performance.now();
   const result = evolve({ ...options, rules, log: (line) => console.log(line) });
-  writeModule(options.out, result.best, settings);
+  writeModule(options.out, result.best, settings, options.exportName);
   writeReport(options.report, result, settings);
   if (options.json) writeFileSync(options.json, JSON.stringify({ settings, ...result }, null, 2));
   console.log(`Done in ${((performance.now() - started) / 1000 / 60).toFixed(1)} min; wrote ` +

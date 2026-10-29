@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RULES } from "../rules-config.js";
-import { runGame, summarise, withOverrides } from "../sim.js";
+import { runGame, summarise, withOverrides, placeScores } from "../sim.js";
+import { mapById } from "../maps.js";
 import { evolve } from "../evolve.js";
 
 const snapshot = (crystals, units, livesLost = 0) => ({
@@ -52,4 +53,29 @@ test("a tiny evolution run completes and ranks its personalities", () => {
   assert.equal(result.history.length, 1);
   assert.equal(result.best.length, 2);
   for (const b of result.best) assert.ok(b.winRateVsDefault >= 0 && b.winRateVsDefault <= 1);
+});
+
+test("a free-for-all on a map for three sides plays to the end and scores by place", () => {
+  const map = mapById("map-3-4-5-6-5-4-3p", RULES);
+  const record = runGame({ map, seed: 1, roundCap: 40 });
+  assert.ok(record.result);
+  assert.equal(record.built.length, 3);
+  const scores = placeScores(record, 3);
+  assert.deepEqual([...scores].sort(), [0, 0.5, 1]);
+});
+
+test("place scores: a draw shares the places of everyone still in", () => {
+  const draw = { result: { winner: null, reason: "roundCap" }, out: [2] };
+  assert.deepEqual(placeScores(draw, 3), [0.75, 0.75, 0]);
+  const twoDraw = { result: { winner: null, reason: "roundCap" }, out: [] };
+  assert.deepEqual(placeScores(twoDraw, 2), [0.5, 0.5]);
+  const win = { result: { winner: 1, reason: "noUnits" }, out: [] };
+  assert.deepEqual(placeScores(win, 2), [0, 1]);
+});
+
+test("a tiny evolution run of three-sided games completes", () => {
+  const result = evolve({ generations: 1, population: 4, games: 1, seed: 3, benchmarkGames: 1,
+    keep: 1, sides: [3] });
+  assert.equal(result.best.length, 1);
+  assert.ok(result.best[0].winRateVsDefault >= 0 && result.best[0].winRateVsDefault <= 1);
 });

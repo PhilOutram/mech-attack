@@ -4,7 +4,8 @@
 //   --seed   first game seed; game i uses seed + i (default 1)
 //   --quiet  rounds without a life lost that count as a stalled stretch (default 20)
 //   --json   also write every game's record to this file
-//   --map    map to play: fixed-1 (default) or map-<number> for a generated map
+//   --map    map to play: fixed-1 (default) or map-<number> for a generated map; a map for
+//            more sides (e.g. map-5-4-5-6-5-4-3p) plays a free-for-all, one AI on each side
 //   --set    override a rule for this run, e.g. --set crystals.growthPerTurn=10 (repeatable;
 //            the value is read as JSON, so numbers, true/false and null work)
 // The first player alternates between games so neither colour always moves first.
@@ -24,20 +25,26 @@ const MAX_ACTIONS_PER_TURN = 500;
 const REPORT_ROUNDS = [1, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100];
 const PERCENT = 100;
 
-// Plays one game and records a snapshot of both players at the end of every round, the units
-// each player built, the factory upgrades they bought and the factories they captured.
-// personalities: the AI personality for player 0 and player 1.
+// Plays one game and records a snapshot of every player at the end of every round, the units
+// each player built, the factory upgrades they bought, the factories they captured and the
+// order players were knocked out in (out). personalities: the AI personality for each player.
+// A map with more than two factory sites is played as a free-for-all, each side its own team.
 export function runGame({
   rules = RULES, map = buildMap(FIXED_MAP_1), seed, firstPlayer = 0,
   personalities = [DEFAULT_PERSONALITY, DEFAULT_PERSONALITY], roundCap,
 }) {
   const gameRules = roundCap ? { ...rules, roundCap } : rules;
-  let state = newGame({ rules: gameRules, map, seed, firstPlayer, recordActions: false });
+  const count = map.factories.length;
+  const sides = count > 2 ? Array.from({ length: count }, (_, p) => ({ team: p })) : null;
+  let state = newGame({ rules: gameRules, map, seed, firstPlayer, recordActions: false, sides });
+  const each = (value) => Array.from({ length: count }, () =>
+    (typeof value === "object" ? { ...value } : value));
   const rounds = [];
-  const built = [{}, {}];
-  const upgrades = [{}, {}];
-  const captures = [0, 0];
-  let destroyed = [0, 0];
+  const built = each({});
+  const upgrades = each({});
+  const captures = each(0);
+  const out = [];
+  let destroyed = each(0);
   let livesLost = 0;
   let actionsThisTurn = 0;
 
@@ -56,17 +63,40 @@ export function runGame({
       throw new Error(`Seed ${seed}: AI exceeded ${MAX_ACTIONS_PER_TURN} actions in a turn`);
     }
     for (const event of state.events) {
+      if (event.type === "knockedOut") out.push(event.player);
       if (event.type === "destroyed") destroyed[event.owner] += 1;
       if (event.type === "capture") captures[event.owner] += 1;
       if (event.type === "hit") livesLost += event.livesBefore - event.livesAfter;
       if (event.type === "newRound" || event.type === "gameOver") {
         rounds.push(snapshot(state, destroyed, livesLost));
-        destroyed = [0, 0];
+        destroyed = each(0);
         livesLost = 0;
       }
     }
   }
-  return { seed, firstPlayer, result: state.result, rounds, built, upgrades, captures };
+  return { seed, firstPlayer, result: state.result, rounds, built, upgrades, captures, out };
+}
+
+// How well each player of a game did, from 0 (out first) to 1 (won): the share of the other
+// players who were out before them, with players who finished level (out together, or still
+// in at a draw) sharing their places. With two players: 1 for a win, 0.5 for a draw.
+export function placeScores(record, count) {
+  const { result, out } = record;
+  const winners = result.winners || (result.winner === null ? [] : [result.winner]);
+  const lastOut = (winners.length ? [] : Array.from({ length: count }, (_, p) => p)
+    .filter((p) => !out.includes(p)));
+  const scores = Array.from({ length: count }, () => 0);
+  const placeOf = (p) => {
+    if (winners.includes(p)) {
+      return count - winners.length + (winners.length - 1) / 2;
+    }
+    if (lastOut.includes(p)) return out.length + (lastOut.length - 1) / 2;
+    // Out during the game; whoever lost in the final action that ended it counts as out last.
+    const before = out.indexOf(p);
+    return before >= 0 ? before : out.length;
+  };
+  for (let p = 0; p < count; p++) scores[p] = count > 1 ? placeOf(p) / (count - 1) : 1;
+  return scores;
 }
 
 function snapshot(state, destroyed, livesLost) {
@@ -111,7 +141,7 @@ function longestQuietStretch(record) {
 // Did the player behind on this measure at mid-game go on to win? null if level or no winner.
 function comeback(record, measure) {
   const { winner } = record.result;
-  if (winner === null) return null;
+  if (winner === null || record.rounds[0].players.length !== 2) return null;
   const mid = record.rounds[Math.max(0, Math.floor(record.rounds.length / 2) - 1)];
   const [a, b] = mid.players.map((p) => p[measure]);
   if (a === b) return null;

@@ -72,8 +72,9 @@ export const DEFAULT_PERSONALITY = {
   labs: 1, // factories it fits with a Crystal lab, once its first harvesters are out
   wreckPiles: 0.5, // keenness to blow up crystal piles on the enemy's side of the map
   // With more than one opponent, which to go for (its home factory is the army's goal):
-  // how much nearness, weakness (what it has been seen to own) and threat (its fighters
-  // near the AI's factories) count.
+  // how much nearness, weakness (what it has been seen to own; below 0, the AI goes for the
+  // strongest instead, to stop it running away with the game) and threat (its fighters near
+  // the AI's factories) count.
   targetNearness: 1,
   targetWeakness: 1,
   targetThreat: 1,
@@ -99,7 +100,7 @@ export const PERSONALITY_RANGES = {
   labs: [0, 2, true],
   wreckPiles: [0, 1, false],
   targetNearness: [0, 2, false],
-  targetWeakness: [0, 2, false],
+  targetWeakness: [-1, 2, false],
   targetThreat: [0, 2, false],
 };
 const MIX_RANGE = [0, 1, false];
