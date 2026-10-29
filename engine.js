@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.16";
+} from "./hex.js?v=0.17";
 
 // Factories, infantry and transporters (format 6):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
@@ -981,6 +981,7 @@ function applyResign(state, { player = state.current }) {
 
 function applyEndTurn(state) {
   unloadAtFactory(state, state.current);
+  factoryIncome(state, state.current);
   crystalsBetweenTurns(state);
   state.hits = {};
   state.events.push({ type: "endTurn", player: state.current });
@@ -996,6 +997,17 @@ function applyEndTurn(state) {
     unit.acted = false;
     if (unit.cooldown > 0) unit.cooldown -= 1;
   }
+}
+
+// Each factory the player holds besides a home factory pays capture.incomePerTurn crystals at
+// the end of their turn.
+function factoryIncome(state, player) {
+  const income = state.rules.capture.incomePerTurn;
+  if (!income) return;
+  const count = factoriesOf(state, player).filter((f) => !isHomeFactory(state, f)).length;
+  if (!count) return;
+  state.players[player].crystals += count * income;
+  state.events.push({ type: "factoryIncome", player, amount: count * income });
 }
 
 // Units that end their owner's turn next to one of its factories unload what they carry,

@@ -1,8 +1,15 @@
-export const VERSION = "v0.16";
+export const VERSION = "v0.17";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.17",
+    date: "2026-10-29",
+    notes: [
+      "No change to play: new rule options for testing capture in the simulator.",
+    ],
+  },
   {
     version: "v0.16",
     date: "2026-10-29",

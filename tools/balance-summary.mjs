@@ -1,11 +1,11 @@
-// Tabulates the balance experiment written by tools/balance.sh: for each rule variant, how the
+// Tabulates a balance experiment written by tools/balance.sh: for each rule variant, how the
 // best evolved personalities (both seeds) did against the hand-tuned AI, what they built, and
 // whether they bought upgrades or captured factories.
-// Usage (from the project folder): node tools/balance-summary.mjs
+// Usage (from the project folder): node tools/balance-summary.mjs upgrades|economy
 import { readFileSync, readdirSync } from "node:fs";
 import { RULES } from "../rules-config.js";
 
-const DIR = "docs/balance";
+const DIR = `docs/balance/${process.argv[2] || "economy"}`;
 const PERCENT = 100;
 const TOP_UNITS = 4;
 const DECIMALS = 1;

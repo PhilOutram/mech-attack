@@ -89,6 +89,8 @@ You win by destroying the enemy's home factory. A player with no units who canno
 
 Home factories cannot be captured for now (`capture.homeFactories`, provisional).
 
+Options for testing, all off: `capture.guarded` (a factory with one of its owner's units next to it cannot be captured), `capture.mustStartNextTo` (infantry capture only from a hex they started their turn on) and `capture.incomePerTurn` (crystals each captured factory pays its owner every turn). See the balance experiments in `docs/simulation.md`.
+
 ### Map
 Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and pile distances but different layouts, so exploring one side tells you nothing exact about the other. Generated maps follow the same pattern (see Maps).
 

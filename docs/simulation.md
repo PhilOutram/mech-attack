@@ -87,7 +87,7 @@ Full tables in `docs/evolution.md`. Games were played on fixed map 1 and generat
 
 ## Balance experiment: what makes upgrades and captures worth it? (v0.14 rules)
 
-`sh tools/balance.sh` evolves personalities under each rule variant (20 generations, 16 personalities, 8 games each, seeds 1 and 2, all map shapes); `node tools/balance-summary.mjs` gives the table. Each row covers the best 3 of each seed, benchmarked over 60 games against the hand-tuned AI. Reports per run are in `docs/balance/`.
+`sh tools/balance.sh upgrades` evolves personalities under each rule variant (20 generations, 16 personalities, 8 games each, seeds 1 and 2, all map shapes); `node tools/balance-summary.mjs upgrades` gives the table. Each row covers the best 3 of each seed, benchmarked over 60 games against the hand-tuned AI. Reports per run are in `docs/balance/upgrades/`.
 
 Variants:
 - **cheap-upgrades**: Heavy works and Airfield cost 50 instead of 100.
@@ -112,6 +112,36 @@ What it shows:
 - So upgrade costs and heavy-unit stats are not the bottleneck. Games are short (most end around round 20 with one side out of units) and income is low, so anything costing 200 crystals all in arrives too late. Scout Bike plus Light Medic is the efficient core.
 - Levers worth testing next: a weaker or dearer Scout Bike or Light Medic; more income (bigger starting piles, faster growth or bigger harvesters); or an income bonus from a captured factory, which would make capturing worth fighting over.
 - Caveats: two seeds and 20 generations per variant, so differences of a few percent are noise; the AI's use of heavy units is simple, so a human may get more from them than it does.
+
+## Balance experiment: economy, Scout Bike and Light Medic (v0.16 rules)
+
+`sh tools/balance.sh economy`, same settings as the upgrades experiment; reports in `docs/balance/economy/`, table from `node tools/balance-summary.mjs economy`.
+
+Variants:
+- **dear-scout**: Scout Bike costs 45 instead of 30.
+- **weak-scout**: Scout Bike attack 10 instead of 15.
+- **dear-medic**: Light Medic costs 60 instead of 40.
+- **more-income**: 100 starting crystals, a new pile after every turn (not 0 or 1), new piles of 20.
+- **capture-income**: each captured factory pays its owner 10 crystals at the end of their turn (`capture.incomePerTurn`, a new option, off by default).
+- **combined**: dear Scout Bike, dear Light Medic and capture income together.
+
+| Variant | Wins vs default AI | Heavy works / game | Airfield / game | Captures / game | Patience | Capture gene | Most built |
+|---|---|---|---|---|---|---|---|
+| baseline | 92% | 0.0 | 0.0 | 0.0 | 0.3 | 0.0 | Scout Bike 45%, Light Medic 27%, Tank 21%, Light Harvester 6% |
+| capture-income | 81% | 0.0 | 0.0 | 3.1 | 0.2 | 2.0 | Infantry 32%, Scout Bike 31%, Light Medic 13%, Anti-Aircraft Jeep 9% |
+| combined | 72% | 0.3 | 0.3 | 3.0 | 0.3 | 2.0 | Infantry 49%, Scout Bike 15%, Tank 12%, Spotter Drone 5% |
+| dear-medic | 74% | 0.0 | 0.0 | 1.2 | 0.1 | 0.8 | Scout Bike 45%, Infantry 20%, Tank 16%, Light Harvester 9% |
+| dear-scout | 81% | 0.0 | 0.0 | 0.0 | 0.3 | 0.0 | Scout Bike 34%, Light Medic 30%, Tank 22%, Artillery 10% |
+| more-income | 87% | 0.0 | 0.0 | 1.2 | 0.3 | 0.5 | Scout Bike 31%, Artillery 16%, Infantry 13%, Tank 13% |
+| weak-scout | 89% | 0.0 | 0.0 | 0.0 | 0.1 | 0.0 | Scout Bike 33%, Light Medic 32%, Tank 20%, Artillery 7% |
+
+What it shows:
+- **Income from captured factories is the lever that makes capturing matter.** At 10 crystals a turn, the best AIs capture about 3 factories a game and infantry become a third to a half of what they build. In the combined variant they also start buying both upgrades (about once every 3 games), the first time Heavy works has been bought at all.
+- **The Scout Bike is hard to dislodge.** At 45 crystals or attack 10 it is still the most built unit. It is cheap, fast, carries crystals and hits air, so it does too many jobs; the medic share rises to fill the gap.
+- **A dearer Light Medic** pushes armies away from bike-and-medic towards infantry and tanks, and brings some capturing (1.2 a game).
+- **More income** widens the army (artillery appears) and brings some capturing, but still no upgrades.
+- **Heavy works stays almost unused** everywhere: heavy units at 80–110 plus a 100 upgrade do not pay back within these short games.
+- Noise check: the current-rules baseline captured 0.7 a game in the first experiment and 0 here, so differences under about 1 capture a game, or 10% in win rate, are not reliable.
 
 ## Generated maps (100 games each, current rules, `--map`)
 

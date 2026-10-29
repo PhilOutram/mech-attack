@@ -1,9 +1,9 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.16";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.16";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.16";
-import { confirmDialog } from "./dialog.js?v=0.16";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.16";
+import { VERSION, CHANGELOG } from "./version.js?v=0.17";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.17";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.17";
+import { confirmDialog } from "./dialog.js?v=0.17";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.17";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.

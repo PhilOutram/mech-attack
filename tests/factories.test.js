@@ -126,6 +126,15 @@ describe("capturing factories", () => {
     assert.ok(!dropSites(viewFor(s, BLUE), "t").includes(MIDDLE));
   });
 
+  test("with capture.incomePerTurn, each captured factory pays its owner every turn", () => {
+    let s = scenario({ units: [unusedFactory()], rules: { capture: { incomePerTurn: 10 } } });
+    s = play(s, END);
+    assert.equal(s.players[BLUE].crystals, 100);
+    s.units.n.owner = BLUE;
+    s = play(s, END, END);
+    assert.equal(s.players[BLUE].crystals, 100 + 10);
+  });
+
   test("crystals can be unloaded at a captured factory", () => {
     let s = scenario({
       units: [unusedFactory(), unit("h", "lightHarvester", BLUE, "0,1", { carrying: 30 })],

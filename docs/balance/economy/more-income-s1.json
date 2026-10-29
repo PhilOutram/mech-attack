@@ -1,0 +1,522 @@
+{
+  "settings": "--generations 20 --population 16 --games 8 --seed 1 --set start.crystals=100 --set crystals.spawnChoices=[1] --set crystals.spawnAmount=20",
+  "history": [
+    {
+      "gen": 1,
+      "best": 0.9666666666666667,
+      "mean": 0.5033171773992691,
+      "favourites": [
+        [
+          "tank",
+          0.15018911824540537
+        ],
+        [
+          "lightMedic",
+          0.12950614844038674
+        ],
+        [
+          "fighter",
+          0.1285630835251392
+        ]
+      ]
+    },
+    {
+      "gen": 2,
+      "best": 0.6923076923076923,
+      "mean": 0.5026196403409542,
+      "favourites": [
+        [
+          "sonicTank",
+          0.15795566775283285
+        ],
+        [
+          "scoutBike",
+          0.14788192622522175
+        ],
+        [
+          "tank",
+          0.11892643245862669
+        ]
+      ]
+    },
+    {
+      "gen": 3,
+      "best": 0.8333333333333334,
+      "mean": 0.5020089285714285,
+      "favourites": [
+        [
+          "antiAircraftJeep",
+          0.16502317477097728
+        ],
+        [
+          "sonicTank",
+          0.14774779340001212
+        ],
+        [
+          "tank",
+          0.1112408197988359
+        ]
+      ]
+    },
+    {
+      "gen": 4,
+      "best": 0.8055555555555556,
+      "mean": 0.49850523479466013,
+      "favourites": [
+        [
+          "tank",
+          0.2118114047912501
+        ],
+        [
+          "lightMedic",
+          0.2118114047912501
+        ],
+        [
+          "heavyCannon",
+          0.16375538531617387
+        ]
+      ]
+    },
+    {
+      "gen": 5,
+      "best": 0.875,
+      "mean": 0.49413136205899366,
+      "favourites": [
+        [
+          "tank",
+          0.21144889613495063
+        ],
+        [
+          "lightMedic",
+          0.21144889613495063
+        ],
+        [
+          "heavyCannon",
+          0.1634751230481847
+        ]
+      ]
+    },
+    {
+      "gen": 6,
+      "best": 0.8571428571428571,
+      "mean": 0.5010493724273232,
+      "favourites": [
+        [
+          "tank",
+          0.21820583484570252
+        ],
+        [
+          "lightMedic",
+          0.21820583484570252
+        ],
+        [
+          "heavyCannon",
+          0.16869903959426227
+        ]
+      ]
+    },
+    {
+      "gen": 7,
+      "best": 0.71875,
+      "mean": 0.5132914645661356,
+      "favourites": [
+        [
+          "tank",
+          0.23637020401397213
+        ],
+        [
+          "lightMedic",
+          0.23637020401397213
+        ],
+        [
+          "heavyCannon",
+          0.18574292682924953
+        ]
+      ]
+    },
+    {
+      "gen": 8,
+      "best": 0.6538461538461539,
+      "mean": 0.49036016120961945,
+      "favourites": [
+        [
+          "tank",
+          0.2178528240692592
+        ],
+        [
+          "lightMedic",
+          0.2178528240692592
+        ],
+        [
+          "heavyCannon",
+          0.16842612031602885
+        ]
+      ]
+    },
+    {
+      "gen": 9,
+      "best": 0.7142857142857143,
+      "mean": 0.5083125481974167,
+      "favourites": [
+        [
+          "tank",
+          0.1851534270695892
+        ],
+        [
+          "lightMedic",
+          0.1851534270695892
+        ],
+        [
+          "heavyCannon",
+          0.1524312435485536
+        ]
+      ]
+    },
+    {
+      "gen": 10,
+      "best": 0.78125,
+      "mean": 0.49465069217633084,
+      "favourites": [
+        [
+          "lightMedic",
+          0.21593176335757033
+        ],
+        [
+          "tank",
+          0.18819682835348855
+        ],
+        [
+          "heavyCannon",
+          0.16694091210748874
+        ]
+      ]
+    },
+    {
+      "gen": 11,
+      "best": 0.7692307692307693,
+      "mean": 0.5037742106373589,
+      "favourites": [
+        [
+          "lightMedic",
+          0.196315308938912
+        ],
+        [
+          "heavyCannon",
+          0.18467879096779702
+        ],
+        [
+          "tank",
+          0.15914570992484336
+        ]
+      ]
+    },
+    {
+      "gen": 12,
+      "best": 0.7368421052631579,
+      "mean": 0.501119227537813,
+      "favourites": [
+        [
+          "lightMedic",
+          0.196315308938912
+        ],
+        [
+          "heavyCannon",
+          0.18467879096779702
+        ],
+        [
+          "tank",
+          0.15914570992484336
+        ]
+      ]
+    },
+    {
+      "gen": 13,
+      "best": 0.75,
+      "mean": 0.4987124447566107,
+      "favourites": [
+        [
+          "lightMedic",
+          0.2014068329612224
+        ],
+        [
+          "heavyCannon",
+          0.17386314553439922
+        ],
+        [
+          "tank",
+          0.1345649411800784
+        ]
+      ]
+    },
+    {
+      "gen": 14,
+      "best": 0.7142857142857143,
+      "mean": 0.50857035551308,
+      "favourites": [
+        [
+          "heavyCannon",
+          0.17929341277956848
+        ],
+        [
+          "lightMedic",
+          0.17776124940926483
+        ],
+        [
+          "tank",
+          0.13022384187174524
+        ]
+      ]
+    },
+    {
+      "gen": 15,
+      "best": 0.85,
+      "mean": 0.5039883177351209,
+      "favourites": [
+        [
+          "heavyCannon",
+          0.18354743524323033
+        ],
+        [
+          "lightMedic",
+          0.18354743524323033
+        ],
+        [
+          "attackHelicopter",
+          0.143699657925765
+        ]
+      ]
+    },
+    {
+      "gen": 16,
+      "best": 0.8529411764705882,
+      "mean": 0.4995817678032751,
+      "favourites": [
+        [
+          "heavyCannon",
+          0.18354743524323033
+        ],
+        [
+          "lightMedic",
+          0.18354743524323033
+        ],
+        [
+          "attackHelicopter",
+          0.143699657925765
+        ]
+      ]
+    },
+    {
+      "gen": 17,
+      "best": 0.6363636363636364,
+      "mean": 0.48149090895559543,
+      "favourites": [
+        [
+          "heavyCannon",
+          0.18443613784343857
+        ],
+        [
+          "lightMedic",
+          0.18443613784343857
+        ],
+        [
+          "attackHelicopter",
+          0.14439542498717034
+        ]
+      ]
+    },
+    {
+      "gen": 18,
+      "best": 0.6944444444444444,
+      "mean": 0.49189246895927424,
+      "favourites": [
+        [
+          "heavyCannon",
+          0.1818479534566491
+        ],
+        [
+          "lightMedic",
+          0.1818479534566491
+        ],
+        [
+          "attackHelicopter",
+          0.15640208717499854
+        ]
+      ]
+    },
+    {
+      "gen": 19,
+      "best": 0.6785714285714286,
+      "mean": 0.4921037290667708,
+      "favourites": [
+        [
+          "heavyCannon",
+          0.18443613784343857
+        ],
+        [
+          "lightMedic",
+          0.18443613784343857
+        ],
+        [
+          "attackHelicopter",
+          0.14439542498717034
+        ]
+      ]
+    },
+    {
+      "gen": 20,
+      "best": 0.9333333333333333,
+      "mean": 0.5151151748578219,
+      "favourites": [
+        [
+          "heavyCannon",
+          0.1912747097399473
+        ],
+        [
+          "lightMedic",
+          0.1912747097399473
+        ],
+        [
+          "attackHelicopter",
+          0.14974935674288686
+        ]
+      ]
+    }
+  ],
+  "best": [
+    {
+      "personality": {
+        "mix": {
+          "tank": 0.6681250045076013,
+          "heavyCannon": 1,
+          "artillery": 0.2521949909161776,
+          "blastCannon": 0.08767716223374011,
+          "sonicTank": 0.36016083233989776,
+          "scoutBike": 0.32386613395065067,
+          "spotterDrone": 0.12261990471743046,
+          "attackHelicopter": 0.7829020205885171,
+          "fighter": 0.6305366458371282,
+          "antiAircraftJeep": 0,
+          "lightMedic": 1
+        },
+        "harvestersEarly": 1,
+        "harvestersMax": 1,
+        "antiAirPerEnemyAir": 1.8315918853506445,
+        "factoryLifeValue": 50,
+        "killBonusShare": 0.6683722872752695,
+        "returnFireCaution": 1.4528250419534743,
+        "homeDefenceRadius": 2,
+        "standOff": 2,
+        "harvesterDangerRadius": 2,
+        "dangerPenalty": 3.833030513674021,
+        "scoutWatchDistance": 3,
+        "armySizeForMedic": 6,
+        "patience": 0.18149402551352975,
+        "captureFactories": 0,
+        "transportInfantry": 0
+      },
+      "winRateVsDefault": 0.8083333333333333,
+      "built": {
+        "units": {
+          "artillery": 105,
+          "tank": 147,
+          "scoutBike": 307,
+          "antiAircraftJeep": 59,
+          "lightMedic": 114,
+          "lightHarvester": 1
+        },
+        "upgrades": {},
+        "captures": 0
+      }
+    },
+    {
+      "personality": {
+        "mix": {
+          "tank": 0.5523979111574591,
+          "heavyCannon": 1,
+          "artillery": 0.2134732760023325,
+          "blastCannon": 0.23378977095708253,
+          "sonicTank": 0.36016083233989776,
+          "scoutBike": 0.3716017580591142,
+          "spotterDrone": 0,
+          "attackHelicopter": 0.7829020205885171,
+          "fighter": 0.6362655024975539,
+          "antiAircraftJeep": 0,
+          "lightMedic": 1
+        },
+        "harvestersEarly": 1,
+        "harvestersMax": 1,
+        "antiAirPerEnemyAir": 1.9615792263299225,
+        "factoryLifeValue": 82.29603880550712,
+        "killBonusShare": 0.6683722872752695,
+        "returnFireCaution": 1.4528250419534743,
+        "homeDefenceRadius": 2,
+        "standOff": 2,
+        "harvesterDangerRadius": 2,
+        "dangerPenalty": 2.5566935114562512,
+        "scoutWatchDistance": 3,
+        "armySizeForMedic": 6,
+        "patience": 0.38098812885582445,
+        "captureFactories": 0,
+        "transportInfantry": 0.1609986970201135
+      },
+      "winRateVsDefault": 0.8833333333333333,
+      "built": {
+        "units": {
+          "artillery": 107,
+          "tank": 136,
+          "scoutBike": 248,
+          "lightMedic": 120,
+          "lightHarvester": 2,
+          "antiAircraftJeep": 53
+        },
+        "upgrades": {},
+        "captures": 0
+      }
+    },
+    {
+      "personality": {
+        "mix": {
+          "tank": 0.7494160815142095,
+          "heavyCannon": 1,
+          "artillery": 0.2521949909161776,
+          "blastCannon": 0.23378977095708253,
+          "sonicTank": 0.36016083233989776,
+          "scoutBike": 0.3716017580591142,
+          "spotterDrone": 0.12261990471743046,
+          "attackHelicopter": 0.8600706480443476,
+          "fighter": 0.721715202741325,
+          "antiAircraftJeep": 0,
+          "lightMedic": 1
+        },
+        "harvestersEarly": 1,
+        "harvestersMax": 1,
+        "antiAirPerEnemyAir": 1.8315918853506445,
+        "factoryLifeValue": 50,
+        "killBonusShare": 0.5089476169552654,
+        "returnFireCaution": 1.4528250419534743,
+        "homeDefenceRadius": 2,
+        "standOff": 2,
+        "harvesterDangerRadius": 2,
+        "dangerPenalty": 2.5566935114562512,
+        "scoutWatchDistance": 3,
+        "armySizeForMedic": 6,
+        "patience": 0.3213120313361287,
+        "captureFactories": 0,
+        "transportInfantry": 0
+      },
+      "winRateVsDefault": 0.8583333333333333,
+      "built": {
+        "units": {
+          "artillery": 102,
+          "tank": 131,
+          "scoutBike": 235,
+          "lightMedic": 103,
+          "antiAircraftJeep": 42
+        },
+        "upgrades": {},
+        "captures": 0
+      }
+    }
+  ],
+  "benchmarkGames": 60
+}
