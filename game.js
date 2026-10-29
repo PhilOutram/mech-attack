@@ -1,28 +1,28 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.45";
-import { mapById, seededRandom } from "./maps.js?v=0.45";
+import { RULES } from "./rules-config.js?v=0.46";
+import { mapById, seededRandom } from "./maps.js?v=0.46";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture,
   STATE_FORMAT,
-} from "./engine.js?v=0.45";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.45";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.45";
-import { distance } from "./hex.js?v=0.45";
+} from "./engine.js?v=0.46";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.46";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.46";
+import { distance } from "./hex.js?v=0.46";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-  upgradeImage,
-} from "./board.js?v=0.45";
-import { confirmDialog } from "./dialog.js?v=0.45";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.45";
-import { showTip, showNote } from "./tips.js?v=0.45";
+  upgradeImage, factoryImage,
+} from "./board.js?v=0.46";
+import { confirmDialog } from "./dialog.js?v=0.46";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.46";
+import { showTip, showNote } from "./tips.js?v=0.46";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.45";
-import { levelById, levelSetup } from "./difficulty.js?v=0.45";
+} from "./campaign.js?v=0.46";
+import { levelById, levelSetup } from "./difficulty.js?v=0.46";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -33,7 +33,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.45";
+const ASSET_VERSION = "0.46";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -1224,7 +1224,8 @@ function renderPanel(view) {
   if (unit.continues && mine) status.push("Can move on");
   if (unit.setUp) status.push("Set up");
   if (unit.cooldown > 0) status.push("Reloading");
-  const image = stats.isFactory ? "units/factory.svg" : unitImage(unit.type, unit.owner);
+  const image = stats.isFactory ? factoryImage(unit.upgrades, unit.owner)
+    : unitImage(unit.type, unit.owner);
   // The stats run full width under the name, so they stay on a line or two on a phone.
   const head = `<div class="panel-head"><img src="${image}" alt="">` +
     `<div><h2>${name}</h2><p>${status.join(" · ")}</p></div></div>` +

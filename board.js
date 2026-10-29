@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.45";
-import { unitStats, defenceOf } from "./engine.js?v=0.45";
+import { parseKey, toPixel } from "./hex.js?v=0.46";
+import { unitStats, defenceOf } from "./engine.js?v=0.46";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -27,18 +27,27 @@ export const PLAYER_COLOURS = {
 };
 // Ring round an unused factory, which belongs to nobody.
 const NEUTRAL_RING = "#b9b2a8";
-// Factory upgrades show as badges on the factory tile, each in its own corner (as shares of
-// the hex: across, down), so a factory's upgrades can be read at a glance.
+// Badges for factory upgrades, used in menus and unlock cards. On the board the factory tile
+// itself shows its upgrades.
 const UPGRADE_BADGES = {
-  airfield: { file: "upgrade-airfield", at: [0.42, -0.3] },
-  heavyWorks: { file: "upgrade-heavy-works", at: [-0.42, -0.3] },
-  lab: { file: "upgrade-lab", at: [0, 0.36] },
+  airfield: "upgrade-airfield",
+  heavyWorks: "upgrade-heavy-works",
+  lab: "upgrade-lab",
 };
-const BADGE_SCALE = 0.42;
 
 // The badge image for a factory upgrade.
 export function upgradeImage(upgrade) {
-  return `units/${UPGRADE_BADGES[upgrade].file}.svg`;
+  return `units/${UPGRADE_BADGES[upgrade]}.svg`;
+}
+
+// Factory tiles: one per combination of upgrades, in each owner's colour, e.g.
+// units/factory-heavy-lab-blue.webp. The parts always come in this order.
+const FACTORY_PARTS = [["heavyWorks", "heavy"], ["airfield", "airfield"], ["lab", "lab"]];
+
+export function factoryImage(upgrades = [], owner = null) {
+  const parts = FACTORY_PARTS.filter(([u]) => upgrades.includes(u)).map(([, p]) => `-${p}`);
+  const colour = owner === null ? "neutral" : PLAYER_COLOURS[owner].file;
+  return `units/factory${parts.join("")}-${colour}.webp`;
 }
 
 // Plain fills used when no tile image is available.
@@ -270,15 +279,12 @@ function drawUnits(view, selectedId, facing, moving) {
         fill: "rgba(255, 255, 255, 0.12)" });
     }
     if (stats.isFactory) {
-      // The factory art is square; it is clipped to the hex and ringed in the owner's colour.
+      // The factory art is square, in the owner's colour and showing its upgrades; it is
+      // clipped to the hex and ringed in the owner's colour.
       const size = HEX_SIZE * 2 * FACTORY_SCALE;
-      out += image("units/factory.svg", x, y, size, size, 'clip-path="url(#hex-clip)"');
+      out += image(factoryImage(unit.upgrades, unit.owner), x, y, size, size,
+        'clip-path="url(#hex-clip)"');
       out += polygon(unit.at, { scale: SELECTED_INSET, stroke: ring, width: 6 });
-      for (const upgrade of unit.upgrades || []) {
-        const { at: [dx, dy] } = UPGRADE_BADGES[upgrade];
-        const badge = HEX_HEIGHT * BADGE_SCALE;
-        out += image(upgradeImage(upgrade), x + HEX_SIZE * dx, y + HEX_HEIGHT * dy, badge, badge);
-      }
     } else {
       const size = HEX_HEIGHT * UNIT_SCALE;
       // Units face the way they last moved; before that, Green's face down the board.
@@ -351,8 +357,14 @@ const preloaded = [];
 
 export function preloadArt() {
   if (preloaded.length) return;
-  const files = ["units/factory.svg", "units/crystals.svg", "units/explosion.svg",
+  const files = ["units/crystals.svg", "units/explosion.svg",
     ...Object.keys(UPGRADE_BADGES).map(upgradeImage)];
+  // Every combination of factory upgrades, for each owner and for nobody.
+  const combos = [[]];
+  for (const [upgrade] of FACTORY_PARTS) combos.push(...combos.map((c) => [...c, upgrade]));
+  for (const owner of [null, ...Object.keys(PLAYER_COLOURS).map(Number)]) {
+    for (const combo of combos) files.push(factoryImage(combo, owner));
+  }
   for (const type in UNIT_FILES) {
     for (const owner in PLAYER_COLOURS) files.push(unitImage(type, owner));
   }

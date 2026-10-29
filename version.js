@@ -1,8 +1,18 @@
-export const VERSION = "v0.45";
+export const VERSION = "v0.46";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.46",
+    date: "2026-10-29",
+    notes: [
+      "Factories show their upgrades in the art: a helipad for an Airfield, a crystal bubble " +
+        "for a Crystal lab, and armoured pods on the hangar for Heavy works. Each tile is in " +
+        "the owner's colour, built on Phil's original factory token.",
+      "The upgrade badges no longer sit on the board; they stay in the factory menu.",
+    ],
+  },
   {
     version: "v0.45",
     date: "2026-10-29",
