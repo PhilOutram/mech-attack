@@ -74,6 +74,32 @@ Start with the direct link; keep the PC server as the fallback.
 
 The existing single-player screens and campaign stay the default and are untouched apart from the engine underneath. Saved games in progress are lost once, when the saved-game format changes.
 
+## Balancing co-op against the AI
+
+Built in v0.51 (provisional): co-op set-up offers one or two AI sides, and each AI side starts with the usual crystals and units (including the second player's extra crystals, as it moves after the humans) times the number of humans per AI side, rounded, plus a Crystal lab when that is 2 or more. One AI with one factory can only build a few units a turn, so it cannot spend unlimited extra crystals; that is why two AI sides is the better fight for three or four humans.
+
+Demand surrender is offered in any multiplayer game where the other side is one team of AIs. The AI plays the game on for up to 8 seconds before answering, with shorter games when there are more than two sides.
+
+## Co-op campaigns (planned, Phil, 29 October 2026)
+
+Campaign missions for 2 or 3 humans playing at the same time against the AI. How they would work:
+- A co-op campaign is its own list of missions, with its own progress, started from the Campaign menu. The host picks a mission; the others join with the code, as for any co-op game.
+- Each mission names its sides: the humans (each with a home and starting units), and one or more AI sides with their own homes, units, upgrades and build mix, like the solo missions' `setup`, `aiMix` and `boss`. Maps come from the 3- to 6-sided generator, reshaped where a mission needs it (as Over the Mountains and The Pass are).
+- A mission can be written for 2 humans and also allow 3; with 3, it adds starting units for the AI by the same scaling as co-op games, or adds a second AI side.
+- Objectives are shared: the mission is won when the team meets it, and lost when the team is beaten (each human can be knocked out while the others carry on).
+
+Mission ideas, each built round working together:
+1. **Two Fronts** (2 humans, 1 AI): Green attacks both homes at once; each human must hold while sending help to the other. Teaches Comms: buy it to see where the attack is coming.
+2. **Supply Run** (2 humans): one player has the only factory with an Airfield, the other the crystals; Chinooks ferry units and harvested crystals between them.
+3. **Pincer** (2 or 3 humans, 1 AI): the AI's base sits between the humans' homes; overrun it from two sides before its boss (a Heavy Cannon) can turn on either.
+4. **Last Stand** (3 humans, 2 AIs): hold three factories for 15 rounds against two AI armies; any one factory lost loses the mission.
+5. **Kharon Rising** (2 or 3 humans, 2 AIs): the finale, all units, the two strongest AI personalities.
+
+Questions for Phil:
+- Should each human have their own home and crystals in every mission, or do some missions share one factory (like one base run by two commanders)?
+- Is a human who is knocked out able to keep watching and advising, or is their device done?
+- Should co-op progress be per device (each player unlocks missions on their own phone) or follow the host?
+
 ## Still to decide (provisional for now)
 
 - Co-op partners: one factory and crystal store each, or shared? Provisional: each has their own factory and crystals; Infantry overrun only enemy factories.
