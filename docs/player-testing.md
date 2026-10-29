@@ -146,7 +146,9 @@ first player; steps 2 to 4 need the numbers above.
 2. How long to keep the data (provisional 12 months)?
 
 Settled since (Phil, 29 October 2026), both handed to the AI and rules work:
-- Units should be able to blow up crystal piles, so starving the enemy is a real tactic.
-  The details (what it costs, whether a pile is destroyed outright or loses some crystals)
-  are still to be decided.
+- Units can attack a crystal pile, and an attack blows up every crystal on that hex, because
+  crystals are unstable: the same as driving over them, which already destroys them
+  (`crystals.crushedByMovement`). Starving the enemy then works from range as well as by
+  driving through their piles. Still to decide: whether splash and sonic booms also destroy
+  piles they pass over.
 - An "insane" rank above marshal, so wins there are rarer and more telling.
