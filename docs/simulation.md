@@ -62,6 +62,15 @@ Starting the second player with about 40–50 extra crystals evens it out. Phil 
 - The rule-based AI mostly builds the cheaper new units: 253 Attack Helicopters and 164 Anti-Aircraft Jeeps, but 1 Blast Cannon and no Sonic Tanks. It seldom saves up for expensive units, so the splash and line attacks were barely tested. The learning AI (idea 9) is the better way to find out what each unit is worth.
 - The first player now wins 37.5% and blue 30.9%: the 40-crystal bonus was tuned before these units existed and needs rechecking.
 
+## Evolved personalities for v0.19 (captured factories pay 10 a turn; Infantry, not Scout Bikes, hit air)
+
+Same settings as before (`node evolve.js --generations 40 --population 20 --games 10 --seed 1`); full tables in `docs/evolution.md`.
+
+- The five best beat the hand-tuned AI in 81–89% of 100 games each.
+- They capture about 3 factories a game, and infantry are about a third of what they build (27–35%). Capturing is now central to how the AI plays.
+- Scout Bikes are still half their army (38–59%), with Tanks about 13%. Even without hitting air, the bike is the cheap crystal carrier and skirmisher.
+- They still never buy an upgrade. Their personalities' names (from their unit mix, e.g. "Tank and Heavy Cannon") describe what they would like, not what they build when they buy what they can afford.
+
 ## Factory upgrades and unused factories (v0.12, hand-tuned AI)
 
 Fixed map 1, 200 games: the first player wins 57.3% (blue 26.6%); 41 games end with a home factory destroyed, 158 with a player out of units. The 40-crystal bonus still roughly holds for the first player, but blue's seat on fixed map 1 is weak with this AI.

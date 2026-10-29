@@ -8,12 +8,9 @@ export const RULES = {
   lives: 2,
 
   units: {
-    // The Scout Bike's gun hits air as well as ground, so a cheap unit can answer the Attack
-    // Helicopter (Phil, 28 October 2026).
     scoutBike: {
       name: "Scout Bike", cost: 30, move: 6, defence: 10, attack: 15,
       range: [1, 1], storage: 30, healing: 0, sight: 4,
-      hits: "both",
     },
     tank: {
       name: "Tank", cost: 70, move: 4, defence: 25, attack: 25,
@@ -43,11 +40,12 @@ export const RULES = {
     },
     // Infantry (Phil, 28 October 2026): weak and slow, but the only unit that can capture a
     // factory, by moving into it (the troops are used up). "rides": it can board a
-    // Transporter. Stats provisional.
+    // Transporter. Their guns hit air as well as ground, the cheap answer to the Attack
+    // Helicopter (Phil, 29 October 2026; the Scout Bike did this before). Stats provisional.
     infantry: {
       name: "Infantry", cost: 20, move: 3, defence: 5, attack: 10,
       range: [1, 1], storage: 0, healing: 0, sight: 2,
-      captures: true, rides: true,
+      captures: true, rides: true, hits: "both",
     },
     // Transporter: carries up to "carries" infantry, which board by moving onto it and are
     // dropped off next to it (or straight into a factory). Infantry inside are lost with it.
@@ -112,9 +110,10 @@ export const RULES = {
   // Provisional: whether infantry can capture a player's home factory, or only unused and
   // captured ones. Options for testing: guarded, a player's factory cannot be captured while
   // one of that player's units stands next to it; mustStartNextTo, infantry can only move into
-  // a factory they started their turn next to (so a transporter cannot drop them straight in);
-  // incomePerTurn, crystals each captured factory pays its owner at the end of their turn.
-  capture: { homeFactories: false, guarded: false, mustStartNextTo: false, incomePerTurn: 0 },
+  // a factory they started their turn next to (so a transporter cannot drop them straight in).
+  // incomePerTurn: crystals each captured factory pays its owner at the end of their turn
+  // (Phil, 29 October 2026: 10, so capturing is worth fighting over).
+  capture: { homeFactories: false, guarded: false, mustStartNextTo: false, incomePerTurn: 10 },
 
   // How a player loses besides running out of units: "homeFactory" when their home factory
   // is destroyed (or captured), "allFactories" only when they have no factory left. Phil:

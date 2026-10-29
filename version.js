@@ -1,8 +1,18 @@
-export const VERSION = "v0.18";
+export const VERSION = "v0.19";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.19",
+    date: "2026-10-29",
+    notes: [
+      "Each captured factory pays you 10 crystals a turn.",
+      "Infantry can hit air units; the Scout Bike now hits ground only.",
+      "The AI plays personalities evolved for these rules.",
+      "Sound: units rumble, fly and fire, and capturing a factory beeps. Speaker button to mute.",
+    ],
+  },
   {
     version: "v0.18",
     date: "2026-10-29",

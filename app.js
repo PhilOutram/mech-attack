@@ -1,9 +1,9 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.18";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.18";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.18";
-import { confirmDialog } from "./dialog.js?v=0.18";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.18";
+import { VERSION, CHANGELOG } from "./version.js?v=0.19";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.19";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.19";
+import { confirmDialog } from "./dialog.js?v=0.19";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.19";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -16,6 +16,15 @@ if ("serviceWorker" in navigator) {
 }
 
 const SIZE_NAMES = { L: "Light", H: "Heavy" };
+
+// Sound effects from freesound.org, all Creative Commons 0 (see CREDITS.md).
+const SOUND_CREDITS = [
+  ["S20-48 A squad firing 37mm anti tank guns", "craigsmith", 675587],
+  ["tracks moving", "christerljung", 849062],
+  ["Autocannon Three Shot Burst", "qubodup", 854186],
+  ["Sea-king Helicopter", "Sandermotions", 333505],
+  ["weird cowbell 1", "patchytherat", 532806],
+];
 
 const splash = document.getElementById("splash");
 const units = document.getElementById("units");
@@ -204,7 +213,13 @@ function showChangelog() {
       (e) =>
         `<section><h3>${e.version} <span class="muted">${e.date}</span></h3>` +
         `<ul>${e.notes.map((n) => `<li>${n}</li>`).join("")}</ul></section>`
-    ).join("");
+    ).join("") +
+    "<h2>Sound credits</h2><p class=\"muted\">From freesound.org, Creative Commons 0. " +
+    "Thank you!</p><ul>" +
+    SOUND_CREDITS.map(([title, author, id]) =>
+      `<li><a href="https://freesound.org/people/${author}/sounds/${id}/" target="_blank" ` +
+      `rel="noopener">${title}</a> by ${author}</li>`).join("") +
+    "</ul>";
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
 }

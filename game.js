@@ -1,20 +1,21 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.18";
-import { mapById, seededRandom } from "./maps.js?v=0.18";
+import { RULES } from "./rules-config.js?v=0.19";
+import { mapById, seededRandom } from "./maps.js?v=0.19";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.18";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.18";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.18";
-import { distance } from "./hex.js?v=0.18";
+} from "./engine.js?v=0.19";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.19";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.19";
+import { distance } from "./hex.js?v=0.19";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.18";
-import { confirmDialog } from "./dialog.js?v=0.18";
+} from "./board.js?v=0.19";
+import { confirmDialog } from "./dialog.js?v=0.19";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.19";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -25,7 +26,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.18";
+const ASSET_VERSION = "0.19";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -36,6 +37,22 @@ const WHEEL_ZOOM_RATE = 0.0015;
 const MAX_SEED = 2 ** 31;
 const MESSAGE_LINES = 2;
 const PERCENT = 100;
+
+// Sounds (Phil, 29 October 2026). Air units fly with the helicopter clip, the Spotter Drone
+// at half volume; other vehicles rumble like a tank; Infantry move silently. Small guns use
+// the infantry burst, everything else the tank shot.
+const DRONE_VOLUME = 0.5;
+const SMALL_GUNS = ["infantry", "scoutBike", "antiAircraftJeep"];
+
+// The sound a unit type makes moving, as [clip, volume], or null for none.
+function moveSound(type) {
+  if (RULES.units[type].air) return ["flying", type === "spotterDrone" ? DRONE_VOLUME : 1];
+  return type === "infantry" ? null : ["tankMoving", 1];
+}
+
+function fireSound(type) {
+  return [SMALL_GUNS.includes(type) ? "infantryFiring" : "tankFiring", 1];
+}
 
 const REASONS = {
   factoryDestroyed: "the home factory was destroyed",
@@ -207,7 +224,7 @@ function findElements() {
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
     again: $("play-again"), newMap: $("play-new-map"), toTitle: $("game-over-home"),
-    quit: $("quit-game"),
+    quit: $("quit-game"), sound: $("sound-toggle"),
   };
 }
 
@@ -228,6 +245,13 @@ function wire(onLeave) {
     runAiTurn();
   });
   els.quit.addEventListener("click", quitGame);
+  // Phones play sound only after a tap, so the first tap anywhere starts it.
+  document.addEventListener("pointerdown", unlockSound, { passive: true });
+  els.sound.addEventListener("click", () => {
+    setSoundOn(!soundOn());
+    renderSoundButton();
+  });
+  renderSoundButton();
   els.panel.addEventListener("click", onPanelClick);
   wireBoardInput();
   window.addEventListener("resize", () => {
@@ -404,11 +428,16 @@ function unitName(view, unitId, fallbackType, owner) {
   return `${who} ${type ? RULES.units[type].name : "unit"}`;
 }
 
-// Returns true if blue could see any of it.
+// Returns true if blue could see any of it. Plays the sounds of what blue saw, each clip once.
 function showEvents(events, before, after) {
   const seen = (k) => before.visible[k] || after.visible[k];
+  const typeOf = (unitId) => (before.units[unitId] || after.units[unitId] || {}).type;
   const effects = [];
   const lines = [];
+  const sounds = new Map();
+  const sound = (clip) => {
+    if (clip) sounds.set(clip[0], Math.max(clip[1], sounds.get(clip[0]) || 0));
+  };
   let any = false;
   for (const e of events) {
     if (["fire", "returnFire", "splash", "lineHit"].includes(e.type)) {
@@ -416,6 +445,7 @@ function showEvents(events, before, after) {
       const to = (before.units[e.targetId] || after.units[e.targetId] || {}).at;
       if (!seen(from) && !seen(to)) continue;
       any = true;
+      if (e.type === "fire" || e.type === "returnFire") sound(fireSound(typeOf(e.unitId)));
       if (from && seen(from)) effects.push({ at: from, size: 0.42 });
       if (to && seen(to)) effects.push({ at: to, size: 0.75 });
       const verb = { fire: "fired on", returnFire: "returned fire on",
@@ -436,7 +466,10 @@ function showEvents(events, before, after) {
       effects.push({ at: e.at, size: 1 });
       lines.push(`${unitName(before, e.unitId, e.unitType, e.owner)} destroyed.`);
     } else if (e.type === "move") {
-      if (e.path.some(seen) || seen(e.from)) any = true;
+      if (e.path.some(seen) || seen(e.from)) {
+        any = true;
+        if (e.path.length) sound(moveSound(typeOf(e.unitId)));
+      }
       // Only your own units say so; a Green unit stopped out of sight is not in your view.
       if (e.stoppedBy === "unit" && after.units[e.unitId]?.owner === HUMAN) {
         lines.push("Something hidden blocked the way.");
@@ -458,6 +491,7 @@ function showEvents(events, before, after) {
       lines.push(`${unitName(after, e.targetId)} repaired.`);
     } else if (e.type === "capture" && (seen(e.at) || e.from === HUMAN)) {
       any = true;
+      sound(["capture", 1]);
       const whose = e.from === null ? "an unused" : e.from === HUMAN ? "your" : "Green's";
       lines.push(`${e.owner === HUMAN ? "Your infantry" : "Green's infantry"} captured ` +
         `${whose} factory.`);
@@ -467,6 +501,8 @@ function showEvents(events, before, after) {
     } else if (e.type === "drop" && seen(e.at)) {
       any = true;
       lines.push(`${unitName(after, e.transporterId)} dropped off infantry.`);
+    } else if (e.type === "factoryIncome" && e.player === HUMAN) {
+      lines.push(`Captured factories paid ${e.amount} crystals.`);
     } else if (e.type === "upgrade" && seen(e.at)) {
       any = true;
       const upgrade = RULES.factoryUpgrades[e.upgrade].name;
@@ -475,6 +511,7 @@ function showEvents(events, before, after) {
   }
   for (const line of lines) say(line);
   if (effects.length) flash(effects);
+  for (const [clip, volume] of sounds) playSound(clip, volume);
   return any;
 }
 
@@ -635,6 +672,22 @@ function rangeHexes(view) {
   });
 }
 
+// A speaker icon, crossed out when sound is off.
+const SPEAKER = '<path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor"/>';
+const SOUND_WAVES = '<path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" ' +
+  'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+const SOUND_CROSS = '<path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round"/>';
+
+function renderSoundButton() {
+  const on = soundOn();
+  els.sound.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${SPEAKER}` +
+    `${on ? SOUND_WAVES : SOUND_CROSS}</svg>`;
+  els.sound.setAttribute("aria-pressed", String(on));
+  els.sound.setAttribute("aria-label", on ? "Sound on" : "Sound off");
+  els.sound.title = on ? "Sound on (tap to turn off)" : "Sound off (tap to turn on)";
+}
+
 function renderBar(view) {
   els.round.innerHTML = `<span class="map-name">${view.map.name} · </span>Round ${view.round}`;
   els.turn.textContent = view.current === HUMAN ? "Your turn" : "Green's turn";
@@ -735,6 +788,8 @@ function renderPanel(view) {
     name = `${OWNER_WORDS[unit.owner]} ${home ? "home factory" : "factory"}`;
     const upgrades = unit.upgrades.map((u) => RULES.factoryUpgrades[u].name);
     status.push(upgrades.length ? upgrades.join(" · ") : "Light units only");
+    const income = view.rules.capture.incomePerTurn;
+    if (!home && unit.owner !== null && income) status.push(`Pays ${income} a turn`);
   }
   if (stats.storage) status.push(`Carrying ${unit.carrying}/${stats.storage}`);
   if (stats.carries) status.push(`Infantry on board ${unit.cargo.length}/${stats.carries}`);

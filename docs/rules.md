@@ -38,11 +38,11 @@ Options for later, not built yet:
 ### Ground and air
 Settled with Phil, 28 October 2026: the rules are the same for every unit, and units differ by their stats. The one extra rule:
 - A unit is ground or air. Air units fly: every hex costs 1, they pass over mountains, chasms, other units and crystals (without crushing them), can stop on any hex without another unit, and get no cover from rocky ground.
-- Every attack hits ground units, air units, or both (the Sonic Tank and the Scout Bike). An air unit can only be hit by an attack that hits air. Return fire follows the same rule.
-- The Scout Bike hits air as well as ground (Phil, 28 October 2026), so a cheap unit can answer the Attack Helicopter.
+- Every attack hits ground units, air units, or both (the Sonic Tank and Infantry). An air unit can only be hit by an attack that hits air. Return fire follows the same rule.
+- Infantry hit air as well as ground (Phil, 29 October 2026), so a cheap unit can answer the Attack Helicopter. The Scout Bike did this from 28 October and went back to ground only: it was doing too many jobs.
 
 ### Spotter Drone
-Cost 30, move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Sonic Tank and the Scout Bike can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+Cost 30, move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Sonic Tank and Infantry can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
 
 ### Units added on 28 October 2026
 Stats start from the full unit table, with costs scaled to the Game 2 prices. The numbers are provisional; the abilities were confirmed by Phil.
@@ -73,11 +73,12 @@ Settled with Phil, 28 October 2026: bigger maps have unused factories, and only 
 - An unused factory belongs to nobody. It cannot be attacked.
 - Infantry capture a factory by moving into it. The troops are used up, and the factory becomes theirs, with its damage and upgrades. It builds and takes unloaded crystals like a home factory.
 - A captured factory can be captured back the same way.
+- Each captured factory pays its owner 10 crystals at the end of their turn (`capture.incomePerTurn`; Phil, 29 October 2026). Home factories do not. The balance experiments showed this is what makes capturing worth fighting over.
 - Infantry board their own Transporter by moving onto it. The Transporter drops its passengers one at a time onto a free hex next to it, or straight into a factory next to it to capture it. A dropped unit has finished for the turn; the Transporter can still move if it has not. Passengers are lost if the Transporter is destroyed.
 
 | Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
 |---|---|---|---|---|---|---|---|
-| Infantry | 20 | 3 | 5 | 10 | 1 | 2 | Captures factories; rides in a Transporter |
+| Infantry | 20 | 3 | 5 | 10 | 1 | 2 | Captures factories; rides in a Transporter; hits ground and air |
 | Transporter | 50 | 6 | 25 | – | – | 3 | Carries 2 Infantry |
 
 All the numbers are provisional, as is everything not listed as Phil's.
@@ -89,7 +90,7 @@ You win by destroying the enemy's home factory. A player with no units who canno
 
 Home factories cannot be captured for now (`capture.homeFactories`, provisional).
 
-Options for testing, all off: `capture.guarded` (a factory with one of its owner's units next to it cannot be captured), `capture.mustStartNextTo` (infantry capture only from a hex they started their turn on) and `capture.incomePerTurn` (crystals each captured factory pays its owner every turn). See the balance experiments in `docs/simulation.md`.
+Options for testing, both off: `capture.guarded` (a factory with one of its owner's units next to it cannot be captured) and `capture.mustStartNextTo` (infantry capture only from a hex they started their turn on). See the balance experiments in `docs/simulation.md`.
 
 ### Map
 Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and pile distances but different layouts, so exploring one side tells you nothing exact about the other. Generated maps follow the same pattern (see Maps).

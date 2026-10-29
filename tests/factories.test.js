@@ -15,6 +15,7 @@ const BLUE_FACTORY_HEX = "0,6";
 const GREEN_FACTORY_HEX = "0,-6";
 const MIDDLE = "0,0";
 const UPGRADE_COST = 100;
+const FACTORY_INCOME = 10;
 
 const play = (state, ...actions) => actions.reduce((s, a) => applyAction(s, a), state);
 const END = { type: "endTurn" };
@@ -126,13 +127,13 @@ describe("capturing factories", () => {
     assert.ok(!dropSites(viewFor(s, BLUE), "t").includes(MIDDLE));
   });
 
-  test("with capture.incomePerTurn, each captured factory pays its owner every turn", () => {
-    let s = scenario({ units: [unusedFactory()], rules: { capture: { incomePerTurn: 10 } } });
+  test("each captured factory pays its owner every turn; unused ones pay nobody", () => {
+    let s = scenario({ units: [unusedFactory()] });
     s = play(s, END);
     assert.equal(s.players[BLUE].crystals, 100);
     s.units.n.owner = BLUE;
     s = play(s, END, END);
-    assert.equal(s.players[BLUE].crystals, 100 + 10);
+    assert.equal(s.players[BLUE].crystals, 100 + FACTORY_INCOME);
   });
 
   test("crystals can be unloaded at a captured factory", () => {
@@ -142,7 +143,7 @@ describe("capturing factories", () => {
     s.units.n.owner = BLUE;
     assert.ok(canUnload(viewFor(s, BLUE), "h"));
     s = play(s, END);
-    assert.equal(s.players[BLUE].crystals, 100 + 30);
+    assert.equal(s.players[BLUE].crystals, 100 + 30 + FACTORY_INCOME);
   });
 });
 
@@ -216,11 +217,13 @@ describe("win conditions", () => {
   });
 });
 
-describe("the Scout Bike", () => {
-  test("hits air units as well as ground units", () => {
+describe("hitting air units", () => {
+  test("Infantry hit air units as well as ground units; the Scout Bike hits ground only", () => {
     const s = scenario({
-      units: [unit("b", "scoutBike", BLUE, "0,0"), unit("h", "attackHelicopter", GREEN, "0,-1")],
+      units: [unit("i", "infantry", BLUE, "0,0"), unit("b", "scoutBike", BLUE, "1,0"),
+        unit("h", "attackHelicopter", GREEN, "0,-1")],
     });
-    assert.deepEqual(attackTargets(viewFor(s, BLUE), "b"), ["h"]);
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "i"), ["h"]);
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "b"), []);
   });
 });

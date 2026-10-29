@@ -519,6 +519,29 @@ h1 {
   white-space: nowrap;
 }
 
+/* Sound on/off: an icon button the height of the others. */
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background-color: rgba(10, 20, 30, 0.55);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.sound-toggle svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.sound-toggle[aria-pressed="false"] {
+  border-color: #8a8f98;
+  color: #8a8f98;
+}
+
 .end-turn:disabled,
 .order:disabled {
   opacity: 0.35;
@@ -901,4 +924,8 @@ h1 {
 
 .changelog h3 {
   margin-bottom: 0.25rem;
+}
+
+.changelog a {
+  color: var(--accent);
 }

@@ -42,7 +42,8 @@ export const UNITS = [
     "Hits air units only", "anti-aircraft-jeep-green.svg"),
   // Not in the unit table: added 28 October 2026 with unused factories (placeholder art).
   u("L7", "Infantry", "Capture", "L", 20, 3, 5, 10, 1, 0, 0, 2,
-    "Captures a factory by moving into it; can ride in a Transporter", "infantry-green.svg"),
+    "Captures a factory by moving into it; rides in a Transporter; hits ground and air",
+    "infantry-green.svg"),
   u("L8", "Transporter", "Transport", "L", 50, 6, 25, 0, 0, 0, 0, 3,
     "Carries 2 Infantry and drops them off next to it or into a factory",
     "transporter-green.svg"),
