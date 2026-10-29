@@ -1,9 +1,9 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.19";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.19";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.19";
-import { confirmDialog } from "./dialog.js?v=0.19";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.19";
+import { VERSION, CHANGELOG } from "./version.js?v=0.20";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.20";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.20";
+import { confirmDialog } from "./dialog.js?v=0.20";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.20";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -24,6 +24,7 @@ const SOUND_CREDITS = [
   ["Autocannon Three Shot Burst", "qubodup", 854186],
   ["Sea-king Helicopter", "Sandermotions", 333505],
   ["weird cowbell 1", "patchytherat", 532806],
+  ["Footsteps_Mountain_Boots_Wet_Sand_Sequence_Mono", "Nox_Sound", 564893],
 ];
 
 const splash = document.getElementById("splash");

@@ -1,21 +1,21 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.19";
-import { mapById, seededRandom } from "./maps.js?v=0.19";
+import { RULES } from "./rules-config.js?v=0.20";
+import { mapById, seededRandom } from "./maps.js?v=0.20";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.19";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.19";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.19";
-import { distance } from "./hex.js?v=0.19";
+} from "./engine.js?v=0.20";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.20";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.20";
+import { distance } from "./hex.js?v=0.20";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.19";
-import { confirmDialog } from "./dialog.js?v=0.19";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.19";
+} from "./board.js?v=0.20";
+import { confirmDialog } from "./dialog.js?v=0.20";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.20";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -26,7 +26,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.19";
+const ASSET_VERSION = "0.20";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -39,15 +39,15 @@ const MESSAGE_LINES = 2;
 const PERCENT = 100;
 
 // Sounds (Phil, 29 October 2026). Air units fly with the helicopter clip, the Spotter Drone
-// at half volume; other vehicles rumble like a tank; Infantry move silently. Small guns use
-// the infantry burst, everything else the tank shot.
+// at half volume; Infantry march; other vehicles rumble like a tank. Small guns use the
+// infantry burst, everything else the tank shot.
 const DRONE_VOLUME = 0.5;
 const SMALL_GUNS = ["infantry", "scoutBike", "antiAircraftJeep"];
 
-// The sound a unit type makes moving, as [clip, volume], or null for none.
+// The sound a unit type makes moving, as [clip, volume].
 function moveSound(type) {
   if (RULES.units[type].air) return ["flying", type === "spotterDrone" ? DRONE_VOLUME : 1];
-  return type === "infantry" ? null : ["tankMoving", 1];
+  return [type === "infantry" ? "footsteps" : "tankMoving", 1];
 }
 
 function fireSound(type) {

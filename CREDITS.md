@@ -12,3 +12,4 @@ Trimmed and faded by Phil; the game evens out their loudness (see `sound.js`).
 | `audio/infantry-firing.mp3` | [Autocannon Three Shot Burst](https://freesound.org/people/qubodup/sounds/854186/) | qubodup |
 | `audio/helicopter.mp3` | [Sea-king Helicopter](https://freesound.org/people/Sandermotions/sounds/333505/) | Sandermotions |
 | `audio/capture-beep.mp3` | [weird cowbell 1](https://freesound.org/people/patchytherat/sounds/532806/) | patchytherat |
+| `audio/footsteps.mp3` | [Footsteps_Mountain_Boots_Wet_Sand_Sequence_Mono](https://freesound.org/people/Nox_Sound/sounds/564893/) | Nox_Sound |
