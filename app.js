@@ -1,14 +1,14 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.51";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.51";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.51";
-import { confirmDialog } from "./dialog.js?v=0.51";
-import { showTip, resetTips } from "./tips.js?v=0.51";
-import { RULES } from "./rules-config.js?v=0.51";
-import { MISSIONS, missionsDone } from "./campaign.js?v=0.51";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.51";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.51";
-import { wireMultiplayer } from "./multiplayer.js?v=0.51";
+import { VERSION, CHANGELOG } from "./version.js?v=0.52";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.52";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.52";
+import { confirmDialog } from "./dialog.js?v=0.52";
+import { showTip, resetTips } from "./tips.js?v=0.52";
+import { RULES } from "./rules-config.js?v=0.52";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.52";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.52";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.52";
+import { wireMultiplayer } from "./multiplayer.js?v=0.52";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -72,14 +72,34 @@ document.getElementById("campaign-list").addEventListener("click", async (e) => 
   });
   if (!replace) return;
   campaignPicker.hidden = true;
-  play({ mission: Number(button.dataset.mission) });
+  play({ mission: Number(button.dataset.mission), level: campaignLevel.value });
 });
+
+// The rank for campaign missions: the same choice as for a single game, so changing it in
+// either place changes both. It adjusts each mission on top of its design (difficulty.js).
+const campaignLevel = document.getElementById("campaign-level");
+campaignLevel.innerHTML = LEVELS.map((level) =>
+  `<option value="${level.id}">${level.rank} (${level.level})</option>`).join("");
+campaignLevel.addEventListener("change", () => {
+  storeLevel(campaignLevel.value);
+  levelSelect.value = campaignLevel.value;
+  showPersona();
+  showCampaignNote();
+});
+
+function showCampaignNote() {
+  document.getElementById("campaign-level-note").textContent =
+    levelById(campaignLevel.value).campaign.note;
+}
 
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight",
   "nine", "ten", "eleven", "twelve"];
 
 function showCampaign() {
   const done = missionsDone();
+  const ranks = missionRanks();
+  campaignLevel.value = storedLevel();
+  showCampaignNote();
   const count = NUMBER_WORDS[MISSIONS.length] || String(MISSIONS.length);
   document.getElementById("campaign-intro").textContent = `${count[0].toUpperCase()}` +
     `${count.slice(1)} missions on Kharon, the red crystal world. Each one is built round a ` +
@@ -88,8 +108,10 @@ function showCampaign() {
     const action = i > done ? `<span class="muted">Locked</span>`
       : `<button type="button" class="start-btn mission-play" data-mission="${i}">` +
         `${i < done ? "Replay" : "Play"}</button>`;
+    const best = ranks[i] ? `<span class="mission-rank">Won as ${levelById(ranks[i]).rank}` +
+      "</span>" : "";
     return `<li class="mission${i > done ? " locked" : ""}">` +
-      `<span class="mission-name">${i + 1}. ${m.title}</span>${action}</li>`;
+      `<span class="mission-name">${i + 1}. ${m.title}${best}</span>${action}</li>`;
   }).join("");
   campaignPicker.hidden = false;
 }

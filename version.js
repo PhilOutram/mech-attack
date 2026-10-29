@@ -1,8 +1,17 @@
-export const VERSION = "v0.51";
+export const VERSION = "v0.52";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.52",
+    date: "2026-10-29",
+    notes: [
+      "Choose your rank for the campaign too: it makes each mission easier or harder, and " +
+        "the mission list shows the highest rank you have won each one at.",
+      "A Blast Cannon's splash also destroys crystal piles next to its target.",
+    ],
+  },
   {
     version: "v0.51",
     date: "2026-10-29",

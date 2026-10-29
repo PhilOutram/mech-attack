@@ -1303,3 +1303,13 @@ h1 {
 .pass-device[hidden] {
   display: none;
 }
+
+/* The highest rank a campaign mission has been won at, under its name. */
+.mission-rank {
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #ffd23f;
+}

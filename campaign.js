@@ -3,11 +3,14 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.51";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.51";
-import { distance, cheapestPaths } from "./hex.js?v=0.51";
+import { RULES } from "./rules-config.js?v=0.52";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.52";
+import { distance, cheapestPaths } from "./hex.js?v=0.52";
+import { LEVELS } from "./difficulty.js?v=0.52";
 
 const PROGRESS_KEY = "mech-attack.campaign";
+// The highest rank each mission has been won at: { mission index: rank id }.
+const RANKS_KEY = "mech-attack.campaign-ranks";
 const HUMAN = 0;
 const AI_PLAYER = 1;
 
@@ -416,11 +419,27 @@ export function missionsDone() {
   }
 }
 
-export function markMissionDone(index) {
-  if (index + 1 <= missionsDone()) return;
+// A mission won, at the rank (difficulty level id) it was played at.
+export function markMissionDone(index, rank = null) {
   try {
-    localStorage.setItem(PROGRESS_KEY, String(index + 1));
+    if (index + 1 > missionsDone()) localStorage.setItem(PROGRESS_KEY, String(index + 1));
+    if (!rank) return;
+    const ranks = missionRanks();
+    const order = (id) => LEVELS.findIndex((level) => level.id === id);
+    if (order(rank) > order(ranks[index])) {
+      localStorage.setItem(RANKS_KEY, JSON.stringify({ ...ranks, [index]: rank }));
+    }
   } catch {
     // Not remembered; the mission still counts as won this time.
+  }
+}
+
+// The highest rank each mission has been won at, by mission index.
+export function missionRanks() {
+  try {
+    const ranks = JSON.parse(localStorage.getItem(RANKS_KEY));
+    return ranks && typeof ranks === "object" ? ranks : {};
+  } catch {
+    return {};
   }
 }

@@ -1,7 +1,7 @@
 // Difficulty levels for a game against the AI (Phil, 29 October 2026). The player picks the
 // rank they play at; each rank faces its own Consortium commander, who plays in their own way
 // and starts with more or less than you. Campaign missions set their own opponent instead.
-import { RULES } from "./rules-config.js?v=0.51";
+import { RULES } from "./rules-config.js?v=0.52";
 
 const LEVEL_KEY = "mech-attack.level";
 
@@ -21,6 +21,9 @@ export const LEVELS = [
     ai: "default",
     extraCrystals: [30, -RULES.start.secondPlayerCrystals],
     extraUnits: [[], []],
+    campaign: { note: "Easier: you start with 30 more crystals and Green with 30 fewer, " +
+      "against its gentlest commander.", extraCrystals: [30, -30], extraUnits: [[], []],
+    ai: "default" },
   },
   {
     id: "major",
@@ -31,6 +34,8 @@ export const LEVELS = [
     ai: "evolved",
     extraCrystals: [0, 0],
     extraUnits: [[], []],
+    campaign: { note: "Each mission as designed.", extraCrystals: [0, 0],
+      extraUnits: [[], []], ai: null },
   },
   {
     id: "marshal",
@@ -42,6 +47,8 @@ export const LEVELS = [
     ai: "best",
     extraCrystals: [0, 60],
     extraUnits: [[], ["tank"]],
+    campaign: { note: "Harder: Green has 60 more crystals, an extra Tank and a sharper " +
+      "commander.", extraCrystals: [0, 60], extraUnits: [[], ["tank"]], ai: "evolved" },
   },
   // Insane (Phil, 29 October 2026): so hard that a human win is rare and worth studying.
   // Provisional: Green moves first with a big head start, and you get no second player's
@@ -58,6 +65,9 @@ export const LEVELS = [
     extraCrystals: [-RULES.start.secondPlayerCrystals, 120],
     extraUnits: [[], ["tank", "tank"]],
     upgrades: [[], ["heavyWorks"]],
+    campaign: { note: "Brutal: Green has 120 more crystals, two extra Tanks and the " +
+      "Consortium's best commander.", extraCrystals: [0, 120],
+    extraUnits: [[], ["tank", "tank"]], ai: "best" },
   },
 ];
 
@@ -65,6 +75,19 @@ export const DEFAULT_LEVEL = "major";
 
 export function levelById(id) {
   return LEVELS.find((level) => level.id === id) || levelById(DEFAULT_LEVEL);
+}
+
+// A rank also adjusts each campaign mission on top of its own design (Phil, 29 October 2026;
+// figures provisional): campaign.extraCrystals and extraUnits are added to the mission's start
+// (Green's extra units only where it already has an army), and campaign.ai, when set, replaces
+// the mission's AI ("default", "evolved" or "best"). Major plays each mission as designed.
+export function missionSetup(level, setup) {
+  const { extraCrystals, extraUnits } = level.campaign;
+  return {
+    ...setup,
+    crystals: setup.crystals.map((c, p) => Math.max(0, c + extraCrystals[p])),
+    units: setup.units.map((units, p) => (units.length ? [...units, ...extraUnits[p]] : units)),
+  };
 }
 
 // The starting setup for a game at this level (see newGame in engine.js): the usual start

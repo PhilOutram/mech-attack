@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.51" />
+  <link rel="stylesheet" href="styles.css?v=0.52" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -34,6 +34,10 @@
     <div class="map-picker-card" role="dialog" aria-labelledby="campaign-title">
       <h2 id="campaign-title">Campaign: Red Dust</h2>
       <p id="campaign-intro" class="campaign-intro"></p>
+      <label class="map-shape level-pick">Your rank
+        <select id="campaign-level"></select>
+      </label>
+      <p id="campaign-level-note" class="level-persona"></p>
       <ul id="campaign-list" class="map-recent"></ul>
       <button id="campaign-cancel" class="start-btn" type="button">Back</button>
     </div>
@@ -206,6 +210,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.51" type="module"></script>
+  <script src="app.js?v=0.52" type="module"></script>
 </body>
 </html>

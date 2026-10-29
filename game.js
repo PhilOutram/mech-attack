@@ -7,30 +7,30 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.51";
-import { mapById, seededRandom } from "./maps.js?v=0.51";
+import { RULES } from "./rules-config.js?v=0.52";
+import { mapById, seededRandom } from "./maps.js?v=0.52";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.51";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.51";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.51";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.51";
-import { distance } from "./hex.js?v=0.51";
+} from "./engine.js?v=0.52";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.52";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.52";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.52";
+import { distance } from "./hex.js?v=0.52";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage,
-} from "./board.js?v=0.51";
-import { confirmDialog } from "./dialog.js?v=0.51";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.51";
-import { showTip, showNote } from "./tips.js?v=0.51";
+} from "./board.js?v=0.52";
+import { confirmDialog } from "./dialog.js?v=0.52";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.52";
+import { showTip, showNote } from "./tips.js?v=0.52";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.51";
-import { levelById, levelSetup } from "./difficulty.js?v=0.51";
+} from "./campaign.js?v=0.52";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.52";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -42,7 +42,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.51";
+const ASSET_VERSION = "0.52";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -225,7 +225,8 @@ function personalityFor(seed) {
 // A mission's aiMix replaces the units it builds and its aiGenes change other genes.
 function opponentPersonality(s) {
   const m = missionOf(s);
-  const kind = m ? m.ai : levelById(s.level).ai;
+  const level = levelById(s.level);
+  const kind = m ? level.campaign.ai || m.ai : level.ai;
   let personality = DEFAULT_PERSONALITY;
   if (kind === "best" && EVOLVED_PERSONALITIES.length) {
     personality = { ...DEFAULT_PERSONALITY, ...EVOLVED_PERSONALITIES[0].personality };
@@ -341,8 +342,11 @@ export async function openGame({
       const m = MISSIONS[mission];
       const rules = missionRules(m, RULES);
       const map = missionMap(m, mapById(m.mapId, rules), rules);
-      const game = newGame({ rules, map, seed, firstPlayer: HUMAN, setup: m.setup });
-      state = { ...game, campaign: { mission } };
+      // The rank you play at adjusts the mission (see missionSetup in difficulty.js).
+      const chosen = levelById(level);
+      const game = newGame({ rules, map, seed, firstPlayer: HUMAN,
+        setup: missionSetup(chosen, m.setup) });
+      state = { ...game, campaign: { mission }, level: chosen.id };
       briefing = true;
     } else {
       const map = mapById(mapId, RULES);
@@ -458,9 +462,11 @@ function missionOf(s) {
 // mission's are your first units). Resolves false if the player goes back.
 function showBriefing(m, index) {
   const heading = index === 0 ? "Your units" : "New this mission";
+  const level = levelById(state.level);
   return confirmDialog({
     title: `Mission ${index + 1}: ${m.title}`,
-    text: `${m.story}\n\nObjective: ${m.objective}`,
+    text: `${m.story}\n\nObjective: ${m.objective}\n\nYour rank: ${level.rank}. ` +
+      level.campaign.note,
     confirm: "Start",
     cancel: "Back",
     extra: unlockCards(heading, m.newUnits, m.newUpgrades),
@@ -600,10 +606,10 @@ function wire(onLeave) {
   els.toTitle.addEventListener("click", leave);
   // In the campaign: retry the mission, or go on to the next one.
   els.again.addEventListener("click", () => openGame(state.campaign
-    ? { mission: state.campaign.mission, onLeave }
+    ? { mission: state.campaign.mission, level: state.level, onLeave }
     : { mapId: state.map.id, level: state.level, onLeave }));
   els.newMap.addEventListener("click", () => openGame(state.campaign
-    ? { mission: state.campaign.mission + 1, onLeave }
+    ? { mission: state.campaign.mission + 1, level: state.level, onLeave }
     : { mapId: newMapId(shapeOf(state.map.id)), level: state.level, onLeave }));
   els.objective.addEventListener("click", showObjective);
   els.endTurn.addEventListener("click", async () => {
@@ -1631,9 +1637,10 @@ function showGameOver() {
     const index = state.campaign.mission;
     const last = index === MISSIONS.length - 1;
     const won = winner === me;
-    if (won) markMissionDone(index);
+    if (won) markMissionDone(index, state.level);
     els.overTitle.textContent = won ? "Mission complete" : "Mission failed";
     if (won && reason === "objective") text = `Objective met ${round}.`;
+    if (won) text += ` Won at the rank of ${levelById(state.level).rank}.`;
     if (won) {
       text += last ? " The Consortium is beaten: Kharon's crystals are yours."
         : " The next mission is unlocked.";
