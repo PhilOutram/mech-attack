@@ -7,29 +7,30 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.50";
-import { mapById, seededRandom } from "./maps.js?v=0.50";
+import { RULES } from "./rules-config.js?v=0.51";
+import { mapById, seededRandom } from "./maps.js?v=0.51";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.50";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.50";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.50";
-import { distance } from "./hex.js?v=0.50";
+} from "./engine.js?v=0.51";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.51";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.51";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.51";
+import { distance } from "./hex.js?v=0.51";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage,
-} from "./board.js?v=0.50";
-import { confirmDialog } from "./dialog.js?v=0.50";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.50";
-import { showTip, showNote } from "./tips.js?v=0.50";
+} from "./board.js?v=0.51";
+import { confirmDialog } from "./dialog.js?v=0.51";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.51";
+import { showTip, showNote } from "./tips.js?v=0.51";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.50";
-import { levelById, levelSetup } from "./difficulty.js?v=0.50";
+} from "./campaign.js?v=0.51";
+import { levelById, levelSetup } from "./difficulty.js?v=0.51";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -41,7 +42,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.50";
+const ASSET_VERSION = "0.51";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A moving unit hops one hex at a time along its route, this long per hex.
@@ -281,12 +282,14 @@ function namesOf(players) {
 }
 
 // The AI's personality for a multiplayer AI side: from its rank, as in a single-player game.
+// With more than two sides, the evolved ones come from those bred for such games, if any.
 function seatPersonality(p) {
   const kind = levelById(seatsOf(state)[p].level).ai;
-  if (kind === "best" && EVOLVED_PERSONALITIES.length) {
-    return { ...DEFAULT_PERSONALITY, ...EVOLVED_PERSONALITIES[0].personality };
-  }
-  return kind === "default" ? DEFAULT_PERSONALITY : personalityFor(state.seed + p);
+  const bred = state.players.length > 2 && MULTI_SIDE_PERSONALITIES.length
+    ? MULTI_SIDE_PERSONALITIES : EVOLVED_PERSONALITIES;
+  if (kind === "default" || !bred.length) return DEFAULT_PERSONALITY;
+  const index = kind === "best" ? 0 : (state.seed + p) % bred.length;
+  return { ...DEFAULT_PERSONALITY, ...bred[index].personality };
 }
 
 function personalityOf(p) {

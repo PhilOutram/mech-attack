@@ -1,14 +1,14 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.50";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.50";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.50";
-import { confirmDialog } from "./dialog.js?v=0.50";
-import { showTip, resetTips } from "./tips.js?v=0.50";
-import { RULES } from "./rules-config.js?v=0.50";
-import { MISSIONS, missionsDone } from "./campaign.js?v=0.50";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.50";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.50";
-import { wireMultiplayer } from "./multiplayer.js?v=0.50";
+import { VERSION, CHANGELOG } from "./version.js?v=0.51";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.51";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.51";
+import { confirmDialog } from "./dialog.js?v=0.51";
+import { showTip, resetTips } from "./tips.js?v=0.51";
+import { RULES } from "./rules-config.js?v=0.51";
+import { MISSIONS, missionsDone } from "./campaign.js?v=0.51";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.51";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.51";
+import { wireMultiplayer } from "./multiplayer.js?v=0.51";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.

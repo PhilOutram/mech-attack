@@ -1,8 +1,18 @@
-export const VERSION = "v0.50";
+export const VERSION = "v0.51";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.51",
+    date: "2026-10-29",
+    notes: [
+      "Co-op: Demand surrender against an AI team, one or two AI sides, and the AI starts " +
+        "with more for each human it faces.",
+      "The simulator and evolution play 3- and 4-sided free-for-alls, ready for AI tuned " +
+        "to games with more sides.",
+    ],
+  },
   {
     version: "v0.50",
     date: "2026-10-29",
