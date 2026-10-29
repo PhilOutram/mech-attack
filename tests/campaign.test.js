@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { RULES } from "../rules-config.js";
 import { mapById } from "../maps.js";
 import {
-  newGame, applyAction, unitsOf, legalActions, reachableHexes, viewFor,
+  newGame, applyAction, unitsOf, legalActions, reachableHexes, viewFor, factoryBuilds,
 } from "../engine.js";
 import { MISSIONS, missionRules, missionsDone, missionMap } from "../campaign.js";
 import { cheapestPaths } from "../hex.js";
@@ -80,14 +80,14 @@ test("in Over the Mountains blue's home is cut off from Green by ground", () => 
   const s = missionGame(missionNamed("Over the Mountains"));
   assert.equal(groundRoute(s, s.map.factories[BLUE], s.map.factories[GREEN]), false);
   assert.ok(unitsOf(s, BLUE).some((u) => u.type === "chinook"));
-  assert.deepEqual(s.units[s.players[BLUE].factoryId].upgrades, ["airfield"]);
-  const helicopterBuilds = (state) => legalActions(state).some((a) =>
-    a.type === "build" && a.unitType === "attackHelicopter");
-  s.players[BLUE].crystals = 500;
-  assert.ok(helicopterBuilds(s), "blue's Airfield can build Attack Helicopters");
-  const green = applyAction(s, { type: "endTurn" });
-  green.players[GREEN].crystals = 500;
-  assert.equal(helicopterBuilds(green), false, "Green has no Airfield");
+  for (const p of [BLUE, GREEN]) {
+    assert.deepEqual(s.units[s.players[p].factoryId].upgrades, ["airfield"]);
+  }
+  for (const p of [BLUE, GREEN]) {
+    const factory = s.units[s.players[p].factoryId];
+    assert.ok(factoryBuilds(s, factory, "attackHelicopter"), `player ${p} builds helicopters`);
+    assert.ok(factoryBuilds(s, factory, "chinook"), `player ${p} builds Chinooks`);
+  }
 });
 
 test("in The Pass the only way through the ridge is the pass", () => {

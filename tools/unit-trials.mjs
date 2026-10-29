@@ -10,12 +10,12 @@
 // those built were lost.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "../rules-config.js?v=0.38";
-import { mapById, MAP_SHAPES, seededRandom } from "../maps.js?v=0.38";
-import { newGame, applyAction, viewFor } from "../engine.js?v=0.38";
-import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.38";
-import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.38";
-import { withOverrides } from "../sim.js?v=0.38";
+import { RULES } from "../rules-config.js?v=0.39";
+import { mapById, MAP_SHAPES, seededRandom } from "../maps.js?v=0.39";
+import { newGame, applyAction, viewFor } from "../engine.js?v=0.39";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.39";
+import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.39";
+import { withOverrides } from "../sim.js?v=0.39";
 
 const DEFAULT_GAMES = 40;
 const DEFAULT_SEED = 1;

@@ -160,7 +160,7 @@ Most missions give Green a boss: a heavy unit leading its army that the player m
 | 2 | Supply Lines | Map 8 (classic) | Harvesting, the Crystal lab | – | Bank 200 crystals |
 | 3 | First Contact | Map 5 (3-4-4-3) | Overrunning a factory | Artillery | Overrun Green's home factory |
 | 4 | Hold the Line | Map 14 (3-5-5-3) | Turrets | Heavy Cannon | Hold your home factory for 12 rounds |
-| 5 | Over the Mountains | Map 11 (3-5-5-3), home ringed by mountains | Chinook airlift | Blast Cannon | Overrun Green's home factory |
+| 5 | Over the Mountains | Map 11 (3-5-5-3), home ringed by mountains | Chinook airlift and Attack Helicopters (both sides have an Airfield) | Blast Cannon | Overrun Green's home factory |
 | 6 | Storm the Works | Map 12 (4-5-5-4) | Transporter, capturing factories | Sonic Tank | Capture 3 factories |
 | 7 | Swarm | Map 6 (3-4-4-3) | Blast Cannon against a Scout Bike swarm | Heavy Cannon | Destroy 8 Scout Bikes |
 | 8 | Sky Hunters | Map 9 (4-5-5-4), Green starts with an Airfield and helicopters | Anti-aircraft | Fighter | Shoot down 5 Attack Helicopters |

@@ -1,8 +1,16 @@
-export const VERSION = "v0.38";
+export const VERSION = "v0.39";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.39",
+    date: "2026-10-29",
+    notes: [
+      "Over the Mountains: Green starts with an Airfield too, so both sides can build " +
+        "Attack Helicopters and Chinooks.",
+    ],
+  },
   {
     version: "v0.38",
     date: "2026-10-29",
