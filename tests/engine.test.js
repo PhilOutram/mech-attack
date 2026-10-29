@@ -636,6 +636,14 @@ describe("crystals", () => {
     assert.equal(s.units.far.carrying, 40, "a unit away from the factory keeps its load");
   });
 
+  test("a unit carrying crystals unloads as soon as it arrives next to its factory", () => {
+    let s = scenario({ units: [unit("h", "lightHarvester", BLUE, "0,2", { carrying: 60 })] });
+    s = play(s, { type: "move", unitId: "h", to: "0,5" });
+    assert.equal(s.players[BLUE].crystals, 160);
+    assert.equal(s.units.h.carrying, 0);
+    assert.equal(s.units.h.acted, false, "unloading on arrival does not use the action");
+  });
+
   test("unloading next to the factory banks the load", () => {
     let s = scenario({ units: [unit("h", "lightHarvester", BLUE, "0,5", { carrying: 60 })] });
     s = play(s, { type: "unload", unitId: "h" });

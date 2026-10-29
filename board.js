@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.17";
-import { unitStats, defenceOf } from "./engine.js?v=0.17";
+import { parseKey, toPixel } from "./hex.js?v=0.18";
+import { unitStats, defenceOf } from "./engine.js?v=0.18";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -35,16 +35,23 @@ const TERRAIN_FILL = {
   plain: "#c8463c", rocky: "#a8382f", mountain: "#6e2a22", chasm: "#3a1410",
 };
 
+// Bold enough to read on a phone in daylight.
 export const OVERLAY_STYLES = {
-  move: { stroke: "#5ad8ff", fill: "rgba(90, 216, 255, 0.12)" },
-  fire: { stroke: "#ff5a4a", fill: "rgba(255, 90, 74, 0.16)" },
-  range: { stroke: "rgba(255, 90, 74, 0.45)", fill: "rgba(255, 90, 74, 0.05)" },
-  harvest: { stroke: "#7ff3ff", fill: "rgba(127, 243, 255, 0.16)" },
-  heal: { stroke: "#7dff8a", fill: "rgba(125, 255, 138, 0.14)" },
-  build: { stroke: "#ffd84a", fill: "rgba(255, 216, 74, 0.14)" },
+  move: { stroke: "#7ae4ff", fill: "rgba(90, 216, 255, 0.22)" },
+  fire: { stroke: "#ff7a66", fill: "rgba(255, 90, 74, 0.3)" },
+  range: { stroke: "rgba(255, 90, 74, 0.5)", fill: "rgba(255, 90, 74, 0.06)" },
+  harvest: { stroke: "#9ff7ff", fill: "rgba(127, 243, 255, 0.26)" },
+  heal: { stroke: "#9dffa8", fill: "rgba(125, 255, 138, 0.24)" },
+  build: { stroke: "#ffe066", fill: "rgba(255, 216, 74, 0.24)" },
   // A move that drives over crystals and destroys them.
-  crush: { stroke: "#fff04a", fill: "rgba(255, 240, 74, 0.22)" },
+  crush: { stroke: "#fff04a", fill: "rgba(255, 240, 74, 0.3)" },
 };
+const OVERLAY_WIDTH = 5;
+const OVERLAY_DASH = "12 6";
+// Face-down hexes: dark, with an outline light enough to show the size of the map.
+const UNEXPLORED_FILL = "#140806";
+const UNEXPLORED_STROKE = "#6e3c30";
+const UNEXPLORED_WIDTH = 3;
 
 const UNIT_FILES = {
   scoutBike: "scout-bike",
@@ -168,7 +175,8 @@ function drawTerrain(view) {
   for (const k in view.map.hexes) {
     const hex = view.map.hexes[k];
     if (!hex.terrain) {
-      out += polygon(k, { fill: "#140806", stroke: "#2a1410", width: 2 });
+      out += polygon(k, { fill: UNEXPLORED_FILL, stroke: UNEXPLORED_STROKE,
+        width: UNEXPLORED_WIDTH });
       continue;
     }
     const tile = tileFor(k, hex);
@@ -262,8 +270,8 @@ function drawOverlays(overlays) {
   for (const { hexes, style } of overlays) {
     const s = OVERLAY_STYLES[style];
     for (const k of hexes) {
-      out += polygon(k, { scale: OVERLAY_INSET, fill: s.fill, stroke: s.stroke, width: 3,
-        dash: "9 6" });
+      out += polygon(k, { scale: OVERLAY_INSET, fill: s.fill, stroke: s.stroke,
+        width: OVERLAY_WIDTH, dash: OVERLAY_DASH });
     }
   }
   return out;

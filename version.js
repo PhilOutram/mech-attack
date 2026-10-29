@@ -1,8 +1,17 @@
-export const VERSION = "v0.17";
+export const VERSION = "v0.18";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.18",
+    date: "2026-10-29",
+    notes: [
+      "Units unload crystals as soon as they arrive next to one of your factories.",
+      "Brighter outlines on unexplored hexes and on move and target hexes.",
+      "Unit stats run full width, so the orders stay on screen on a phone.",
+    ],
+  },
   {
     version: "v0.17",
     date: "2026-10-29",

@@ -666,7 +666,14 @@ h1 {
   color: var(--muted);
 }
 
-.panel-head .stats {
+.panel-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.unit-stats {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
   font-size: 0.72rem;
 }
 

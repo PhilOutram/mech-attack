@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.17";
+} from "./hex.js?v=0.18";
 
 // Factories, infantry and transporters (format 6):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId); bigger
@@ -754,6 +754,10 @@ function applyMove(state, { unitId, to }) {
   if (there && there !== unit) {
     if (canCapture(state, unit, there)) capture(state, unit, there);
     else board(state, unit, there);
+  } else if (unit.carrying > 0 && nextToOwnFactory(state, unit)) {
+    // Arriving next to one of its factories, a unit unloads at once, without using its
+    // action (Phil, 29 October 2026).
+    unload(state, unit, true);
   }
 }
 
@@ -923,10 +927,14 @@ function applyHarvest(state, { unitId, at }) {
 function applyUnload(state, { unitId }) {
   const unit = ownUnit(state, unitId);
   if (!canUnload(viewFor(state, state.current), unitId)) illegal(`${unitId} cannot unload`);
-  state.players[unit.owner].crystals += unit.carrying;
-  state.events.push({ type: "unload", unitId, amount: unit.carrying });
-  unit.carrying = 0;
+  unload(state, unit, false);
   finishAction(unit);
+}
+
+function unload(state, unit, automatic) {
+  state.players[unit.owner].crystals += unit.carrying;
+  state.events.push({ type: "unload", unitId: unit.id, amount: unit.carrying, automatic });
+  unit.carrying = 0;
 }
 
 // Setting up takes the unit's action for the turn, so it can fire from the next turn.
@@ -1014,11 +1022,7 @@ function factoryIncome(state, player) {
 // without needing the Unload action.
 function unloadAtFactory(state, player) {
   for (const unit of unitsOf(state, player)) {
-    if (unit.carrying <= 0 || !nextToOwnFactory(state, unit)) continue;
-    state.players[player].crystals += unit.carrying;
-    state.events.push({ type: "unload", unitId: unit.id, amount: unit.carrying,
-      automatic: true });
-    unit.carrying = 0;
+    if (unit.carrying > 0 && nextToOwnFactory(state, unit)) unload(state, unit, true);
   }
 }
 

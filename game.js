@@ -1,20 +1,20 @@
 // Game screen: you (blue) against the AI (green). Renders the engine's view of the game and
 // turns taps into engine actions. No rules here; every option shown comes from the engine.
-import { RULES } from "./rules-config.js?v=0.17";
-import { mapById, seededRandom } from "./maps.js?v=0.17";
+import { RULES } from "./rules-config.js?v=0.18";
+import { mapById, seededRandom } from "./maps.js?v=0.18";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
-  canUnload, canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
+  canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   STATE_FORMAT,
-} from "./engine.js?v=0.17";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.17";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.17";
-import { distance } from "./hex.js?v=0.17";
+} from "./engine.js?v=0.18";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.18";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.18";
+import { distance } from "./hex.js?v=0.18";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, PLAYER_COLOURS,
-} from "./board.js?v=0.17";
-import { confirmDialog } from "./dialog.js?v=0.17";
+} from "./board.js?v=0.18";
+import { confirmDialog } from "./dialog.js?v=0.18";
 
 const HUMAN = 0;
 const AI_PLAYER = 1;
@@ -25,7 +25,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.17";
+const ASSET_VERSION = "0.18";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 const EFFECT_MS = 500;
@@ -564,7 +564,7 @@ function onPanelClick(event) {
     ui.mode = "build";
     ui.buildType = type;
     render();
-  } else if (order === "unload" || order === "setUp" || order === "packUp") {
+  } else if (order === "setUp" || order === "packUp") {
     act({ type: order, unitId });
   } else if (order === "upgrade") {
     act({ type: "upgrade", factoryId: unitId, upgrade: type });
@@ -741,9 +741,10 @@ function renderPanel(view) {
   if (unit.setUp) status.push("Set up");
   if (unit.cooldown > 0) status.push("Reloading");
   const image = stats.isFactory ? "units/factory.svg" : unitImage(unit.type, unit.owner);
+  // The stats run full width under the name, so they stay on a line or two on a phone.
   const head = `<div class="panel-head"><img src="${image}" alt="">` +
-    `<div><h2>${name}</h2><p>${status.join(" · ")}</p>` +
-    `<p class="stats">${statLine(stats)}</p></div></div>`;
+    `<div><h2>${name}</h2><p>${status.join(" · ")}</p></div></div>` +
+    `<p class="unit-stats">${statLine(stats)}</p>`;
 
   if (stats.isFactory) {
     factoryPanel(view, unit, head);
@@ -762,9 +763,6 @@ function renderPanel(view) {
     if (mode === "drop" && !stats.carries) continue;
     const enabled = myTurn() && targetsFor(view, mode, unit.id).length > 0;
     orders += orderButton(mode, MODES[mode].label, enabled, ui.mode === mode);
-  }
-  if (stats.storage) {
-    orders += orderButton("unload", "Unload", myTurn() && canUnload(view, unit.id));
   }
   if (stats.needsSetup) {
     orders += unit.setUp
