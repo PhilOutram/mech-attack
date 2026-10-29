@@ -24,6 +24,8 @@ const FONT_SIZE = 15;
 export const PLAYER_COLOURS = {
   0: { name: "Blue", file: "blue", ring: "#3b8cff" },
   1: { name: "Green", file: "green", ring: "#42c25a" },
+  2: { name: "Yellow", file: "yellow", ring: "#f2c230" },
+  3: { name: "Purple", file: "purple", ring: "#a35ce0" },
 };
 // Ring round an unused factory, which belongs to nobody.
 const NEUTRAL_RING = "#b9b2a8";
@@ -33,7 +35,11 @@ const UPGRADE_BADGES = {
   airfield: "upgrade-airfield",
   heavyWorks: "upgrade-heavy-works",
   lab: "upgrade-lab",
+  comms: "upgrade-comms",
 };
+// Comms is not part of the factory tiles, so a factory with it carries its badge on the
+// board, at this share of the hex height, in its top right corner.
+const COMMS_BADGE_SCALE = 0.4;
 
 // The badge image for a factory upgrade.
 export function upgradeImage(upgrade) {
@@ -105,6 +111,18 @@ export function unitImage(type, owner) {
 // board, which is how the token art is drawn.
 const DEGREES_PER_RADIAN = 180 / Math.PI;
 const GREEN_FACING = 180;
+
+// Which way a player's units face before they move: with two sides, blue up the board and
+// green down it; with more, from their home towards the middle of the map.
+function startFacing(view, owner) {
+  const homes = view.map.factories;
+  if (homes.length <= 2) return owner === 1 ? GREEN_FACING : 0;
+  const points = homes.map(hexCentre);
+  const mx = points.reduce((t, [x]) => t + x, 0) / points.length;
+  const my = points.reduce((t, [, y]) => t + y, 0) / points.length;
+  const [hx, hy] = points[owner];
+  return Math.atan2(mx - hx, hy - my) * DEGREES_PER_RADIAN;
+}
 
 export function facingAngle(from, to) {
   const [ax, ay] = hexCentre(from);
@@ -271,8 +289,9 @@ function drawUnits(view, selectedId, facing, moving) {
     const stats = unitStats(view, unit);
     const [x, y] = hexCentre(unit.at);
     const ring = unit.owner === null ? NEUTRAL_RING : PLAYER_COLOURS[unit.owner].ring;
-    const done = unit.owner === view.viewer && view.current === view.viewer &&
-      unit.moved && unit.acted && !stats.isFactory;
+    const myTurn = view.active ? view.active.includes(view.viewer) : view.current === view.viewer;
+    const done = unit.owner === view.viewer && myTurn && unit.moved && unit.acted &&
+      !stats.isFactory;
     const opacity = done ? ` opacity="${DONE_OPACITY}"` : "";
     if (id === selectedId) {
       out += polygon(unit.at, { scale: SELECTED_INSET, stroke: "#fff", width: 4,
@@ -285,10 +304,15 @@ function drawUnits(view, selectedId, facing, moving) {
       out += image(factoryImage(unit.upgrades, unit.owner), x, y, size, size,
         'clip-path="url(#hex-clip)"');
       out += polygon(unit.at, { scale: SELECTED_INSET, stroke: ring, width: 6 });
+      if ((unit.upgrades || []).includes("comms")) {
+        const badge = HEX_HEIGHT * COMMS_BADGE_SCALE;
+        out += image(upgradeImage("comms"), x + HEX_SIZE * 0.45, y - HEX_HEIGHT * 0.28, badge,
+          badge);
+      }
     } else {
       const size = HEX_HEIGHT * UNIT_SCALE;
-      // Units face the way they last moved; before that, Green's face down the board.
-      const angle = facing[id] ?? (unit.owner === 1 ? GREEN_FACING : 0);
+      // Units face the way they last moved; before that, towards the enemy.
+      const angle = facing[id] ?? startFacing(view, unit.owner);
       const turn = angle ? ` transform="rotate(${angle.toFixed(1)} ${x} ${y})"` : "";
       out += image(unitImage(unit.type, unit.owner), x, y, size, size, `${turn}${opacity}`);
       if (unit.setUp) out += label("SET", x, y - HEX_HEIGHT * 0.36, "board-label setup-label");
