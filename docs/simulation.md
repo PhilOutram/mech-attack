@@ -85,6 +85,34 @@ Full tables in `docs/evolution.md`. Games were played on fixed map 1 and generat
 - None of them ever buys a factory upgrade or captures a factory (`captureFactories` 0). Their mix still rates the Heavy Cannon highly (hence the names), but at 110 plus a 100 upgrade it is never affordable on their terms.
 - What this says about the rules: a fast swarm of cheap light units, kept alive by medics, beats everything behind an upgrade, and spending on infantry and capture does not pay off yet. If upgrades and captures are meant to matter, the levers are cheaper upgrades, stronger heavy units, more income from a captured factory, or capture that is harder to undo (so it is worth the cost). Each can be tested in the simulator before changing the game.
 
+## Balance experiment: what makes upgrades and captures worth it? (v0.14 rules)
+
+`sh tools/balance.sh` evolves personalities under each rule variant (20 generations, 16 personalities, 8 games each, seeds 1 and 2, all map shapes); `node tools/balance-summary.mjs` gives the table. Each row covers the best 3 of each seed, benchmarked over 60 games against the hand-tuned AI. Reports per run are in `docs/balance/`.
+
+Variants:
+- **cheap-upgrades**: Heavy works and Airfield cost 50 instead of 100.
+- **strong-heavy**: Heavy Cannon 50 attack and 50 defence; Blast Cannon 50 attack and 15 defence; Sonic Tank 20 attack and 25 defence.
+- **slow-capture**: infantry must start their turn next to a factory to capture it (`capture.mustStartNextTo`).
+- **guarded-capture**: a factory with one of its owner's units next to it cannot be captured (`capture.guarded`).
+- **combined**: cheap upgrades, strong heavy units and slow capture together.
+
+| Variant | Wins vs default AI | Heavy works / game | Airfield / game | Captures / game | Patience | Capture gene | Most built |
+|---|---|---|---|---|---|---|---|
+| baseline | 81% | 0.0 | 0.0 | 0.7 | 0.1 | 0.5 | Scout Bike 37%, Light Medic 18%, Infantry 12%, Light Harvester 11% |
+| cheap-upgrades | 72% | 0.0 | 0.3 | 1.1 | 0.2 | 1.2 | Scout Bike 24%, Infantry 20%, Light Medic 16%, Anti-Aircraft Jeep 10% |
+| combined | 84% | 0.0 | 0.5 | 0.0 | 0.2 | 0.0 | Scout Bike 36%, Light Medic 20%, Tank 10%, Attack Helicopter 9% |
+| guarded-capture | 82% | 0.0 | 0.0 | 1.0 | 0.3 | 1.3 | Scout Bike 27%, Infantry 25%, Light Medic 18%, Tank 13% |
+| slow-capture | 79% | 0.0 | 0.0 | 0.0 | 0.2 | 0.0 | Light Medic 25%, Artillery 21%, Scout Bike 17%, Tank 16% |
+| strong-heavy | 87% | 0.0 | 0.0 | 0.0 | 0.1 | 0.0 | Scout Bike 42%, Light Medic 22%, Tank 12%, Light Harvester 11% |
+
+What it shows:
+- **Heavy works never pays** in any variant, even at half price with stronger heavy units. The Airfield is bought only when cheap, about once every 2–3 games.
+- **Impatience wins everywhere** (patience 0.1–0.3): buy what you can afford now. The winning army is the same each time: Scout Bikes (cheap, fast, hit ground and air), Light Medics to keep them alive, Tanks.
+- **Capturing pays a little** at the current rules (0.7 captures a game, infantry 12% of builds), more with cheap upgrades or guarded capture (about 1 a game, infantry 20–25%). Making infantry start next to the factory (slow-capture) kills capturing entirely: in the AI's hands the infantry die first.
+- So upgrade costs and heavy-unit stats are not the bottleneck. Games are short (most end around round 20 with one side out of units) and income is low, so anything costing 200 crystals all in arrives too late. Scout Bike plus Light Medic is the efficient core.
+- Levers worth testing next: a weaker or dearer Scout Bike or Light Medic; more income (bigger starting piles, faster growth or bigger harvesters); or an income bonus from a captured factory, which would make capturing worth fighting over.
+- Caveats: two seeds and 20 generations per variant, so differences of a few percent are noise; the AI's use of heavy units is simple, so a human may get more from them than it does.
+
 ## Generated maps (100 games each, current rules, `--map`)
 
 After return fire became simultaneous and the fixed map's Crystal Cave moved back to the one hex 7 moves from both factories:
