@@ -7,7 +7,7 @@ import {
   harvestTargets, defenceOf, crushingMoves, darkTargets,
 } from "../engine.js";
 import { distance } from "../hex.js";
-import { scenario } from "./helpers.js";
+import { scenario, TEST_RADIUS } from "./helpers.js";
 
 const BLUE = 0;
 const GREEN = 1;
@@ -390,6 +390,30 @@ describe("blast cannon", () => {
 });
 
 describe("combat", () => {
+  // A canyon (a row of chasm hexes) right across the middle of the board.
+  const canyon = {};
+  for (let q = -TEST_RADIUS; q <= TEST_RADIUS; q++) canyon[`${q},0`] = "chasm";
+
+  test("units see and fire across a canyon, but cannot drive into it", () => {
+    const s = scenario({
+      terrain: canyon,
+      units: [unit("a", "artillery", BLUE, "0,2", { setUp: true }),
+        unit("t", "tank", BLUE, "0,1"), unit("e", "tank", GREEN, "0,-1")],
+    });
+    const view = viewFor(s, BLUE);
+    assert.ok(attackTargets(view, "a").includes("e"), "artillery fires over the canyon");
+    assert.ok(attackTargets(view, "t").includes("e"), "a tank fires over it too");
+    assert.ok(Object.keys(reachableHexes(view, "t")).every((k) => !k.endsWith(",0") &&
+      !k.includes(",-")), "the tank cannot cross");
+  });
+
+  test("a sonic boom carries across a canyon", () => {
+    const s = scenario({
+      terrain: canyon,
+      units: [unit("s", "sonicTank", BLUE, "0,2"), unit("e", "tank", GREEN, "0,-2")],
+    });
+    assert.ok(attackTargets(viewFor(s, BLUE), "s").includes("e"));
+  });
   test("an attack below defence costs no life", () => {
     let s = scenario({
       units: [unit("a", "tank", BLUE, "0,0"), unit("e", "heavyCannon", GREEN, "0,-2")],
