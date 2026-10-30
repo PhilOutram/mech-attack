@@ -1,6 +1,7 @@
 // Writes simple placeholder tokens for units that have no artwork yet (Infantry, Transporter,
-// Chinook and Commander Jeanne), in each player's colour. Replace them with the real art when
-// it is drawn. The Turret has Phil's art (units/turret-*.svg), so it is not drawn here.
+// Chinook, Commander Jeanne, Heavy Tank and Twin Turret), in each player's colour. Replace
+// them with the real art when it is drawn. The Turret has Phil's art (units/turret-*.svg), so
+// it is not drawn here.
 // Usage: node tools/placeholder-tokens.mjs
 import { writeFileSync } from "node:fs";
 
@@ -59,8 +60,34 @@ function vip(fill, dark) {
     `<polygon points="${star}" fill="#ffd23f" stroke="#111" stroke-width="2"/>`;
 }
 
+// A heavy tank seen from above, nose up: wide tracks, a big hull and two barrels side by side.
+function heavyTank(fill, dark) {
+  const track = (x) => `<rect x="${x}" y="34" width="30" height="136" rx="8" fill="#2a2a2a"` +
+    ` stroke="#111" stroke-width="3"/>`;
+  return track(30) + track(140) +
+    `<rect x="52" y="44" width="96" height="120" rx="12" fill="${fill}" stroke="#111"` +
+    ` stroke-width="3"/>` +
+    `<rect x="80" y="10" width="12" height="76" rx="3" fill="#2a2a2a" stroke="#111"` +
+    ` stroke-width="2"/>` +
+    `<rect x="108" y="10" width="12" height="76" rx="3" fill="#2a2a2a" stroke="#111"` +
+    ` stroke-width="2"/>` +
+    `<rect x="66" y="78" width="68" height="60" rx="10" fill="${dark}" stroke="#111"` +
+    ` stroke-width="3"/>`;
+}
+
+// A twin gun emplacement seen from above: round base and two short barrels.
+function twinTurret(fill, dark) {
+  return `<circle cx="100" cy="108" r="70" fill="${dark}" stroke="#111" stroke-width="3"/>` +
+    `<rect x="76" y="30" width="14" height="60" rx="4" fill="#2a2a2a" stroke="#111"` +
+    ` stroke-width="2"/>` +
+    `<rect x="110" y="30" width="14" height="60" rx="4" fill="#2a2a2a" stroke="#111"` +
+    ` stroke-width="2"/>` +
+    `<rect x="64" y="80" width="72" height="56" rx="14" fill="${fill}" stroke="#111"` +
+    ` stroke-width="3"/>`;
+}
+
 const TOKENS = [["infantry", infantry], ["transporter", transporter], ["chinook", chinook],
-  ["vip", vip]];
+  ["vip", vip], ["heavy-tank", heavyTank], ["twin-turret", twinTurret]];
 
 for (const [colour, [fill, dark]] of Object.entries(COLOURS)) {
   for (const [name, draw] of TOKENS) {

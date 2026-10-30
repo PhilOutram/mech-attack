@@ -12,9 +12,9 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard, allied, crystalTargets,
-} from "./engine.js?v=0.56";
-import { neighbourKeys, distance } from "./hex.js?v=0.56";
-import { COUNTERS } from "./counters.js?v=0.56";
+} from "./engine.js?v=0.59";
+import { neighbourKeys, distance } from "./hex.js?v=0.59";
+import { COUNTERS } from "./counters.js?v=0.59";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
@@ -48,13 +48,19 @@ export const DEFAULT_PERSONALITY = {
   mix: {
     tank: 0.25, heavyCannon: 0.1, artillery: 0.1, blastCannon: 0.1, sonicTank: 0.1,
     scoutBike: 0.1, spotterDrone: 0.05, attackHelicopter: 0.15, fighter: 0,
-    antiAircraftJeep: 0, lightMedic: 0.05, turret: 0.05,
+    antiAircraftJeep: 0, lightMedic: 0.05, turret: 0.05, heavyTank: 0.05,
+    twinTurret: 0.05,
   },
   harvestersEarly: 2,
   harvestersMax: 3,
   // Value of counters it keeps against the enemy units it can see, as a share of their value.
   // Counters come from the measured table in counters.js (tools/matchups.mjs).
   counterWeight: 1,
+  // How strongly each kind of want competes when choosing what to build: an answer to what
+  // it sees, Infantry for capturing, its own army mix. These defaults keep that order.
+  counterPriority: 0.7,
+  capturePriority: 0.6,
+  armyPriority: 0.5,
   // Worth of one life of the enemy factory, in crystals (when factories take fire), and of
   // killing infantry about to overrun one of its own factories.
   factoryLifeValue: 200,
@@ -85,6 +91,9 @@ export const PERSONALITY_RANGES = {
   harvestersEarly: [1, 3, true],
   harvestersMax: [1, 5, true],
   counterWeight: [0, 2, false],
+  counterPriority: [0, 1, false],
+  capturePriority: [0, 1, false],
+  armyPriority: [0, 1, false],
   factoryLifeValue: [50, 400, false],
   killBonusShare: [0, 1, false],
   returnFireCaution: [0, 2, false],
@@ -543,19 +552,32 @@ function wantedUnitType(ctx, maxCost = Infinity) {
     return "lightHarvester";
   }
 
+  // Three wants compete, each with the priority its gene gives it (Phil, 29 October 2026:
+  // so evolution, not a fixed order, decides whether Tanks and heavy units get built): an
+  // answer to the enemy units it sees, Infantry (and a carrier) for capturing, and the unit
+  // its own army is shortest of.
+  const wants = [];
   const counter = counterWanted(ctx, fits);
-  if (counter) return counter;
-
-  // Infantry to capture factories, carried in a transporter if the personality likes that.
+  if (counter) wants.push([counter, p.counterPriority]);
   if (captureSites(ctx).length) {
     const carrierType = p.transportType || TRANSPORTER_TYPE;
     const carriers = army.filter((u) => isCarrier(view, u)).length;
     const infantry = infantryCount(ctx);
     if (p.transportInfantry > TRANSPORT_THRESHOLD && infantry > 0 && !carriers &&
-      fits(carrierType)) return carrierType;
-    if (infantry < p.captureFactories && fits(INFANTRY_TYPE)) return INFANTRY_TYPE;
+      fits(carrierType)) wants.push([carrierType, p.capturePriority]);
+    else if (infantry < p.captureFactories && fits(INFANTRY_TYPE)) {
+      wants.push([INFANTRY_TYPE, p.capturePriority]);
+    }
   }
+  const own = armyWanted(ctx, fits);
+  if (own) wants.push([own, p.armyPriority]);
+  // The highest priority wins; on a tie, the earlier want.
+  return wants.reduce((best, want) => (want[1] > best[1] ? want : best), [null, -Infinity])[0];
+}
 
+// The unit its own army is shortest of, against the shares of its build mix.
+function armyWanted(ctx, fits) {
+  const { army, p } = ctx;
   const fighters = army.filter((u) => isCombatUnit(p, u));
   const total = Object.values(p.mix).reduce((s, w) => s + w, 0) || 1;
   let best = null;

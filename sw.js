@@ -1,7 +1,7 @@
 // Minimal offline-first service worker.
 // Bump the version in CACHE whenever you change the cached files, and keep ASSETS
 // in sync with the files the app needs to work offline.
-const CACHE = "mech-attack-v0.56";
+const CACHE = "mech-attack-v0.59";
 const UNIT_TYPES = [
   "scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester", "light-medic",
 ];
@@ -9,6 +9,7 @@ const UNIT_TYPES = [
 const TOKEN_TYPES = [
   ...UNIT_TYPES, "spotter-drone", "blast-cannon", "sonic-tank", "anti-aircraft-jeep",
   "attack-helicopter", "fighter", "infantry", "transporter", "chinook", "turret", "vip",
+  "heavy-tank", "twin-turret",
 ];
 // Player colours (more than two in multiplayer games).
 const COLOURS = ["blue", "green", "yellow", "purple", "pink"];
@@ -22,35 +23,35 @@ const SOUND_FILES = [
 const ASSETS = [
   ".",
   "index.html",
-  "styles.css?v=0.56",
-  "app.js?v=0.56",
-  "version.js?v=0.56",
-  "units.js?v=0.56",
-  "game.js?v=0.56",
-  "dialog.js?v=0.56",
-  "board.js?v=0.56",
-  "engine.js?v=0.56",
-  "ai.js?v=0.56",
-  "hex.js?v=0.56",
-  "maps.js?v=0.56",
-  "ai-personalities.js?v=0.56",
-  "ai-personalities-multi.js?v=0.56",
-  "rules-config.js?v=0.56",
-  "sound.js?v=0.56",
-  "tips.js?v=0.56",
-  "campaign.js?v=0.56",
-  "coop-campaign.js?v=0.56",
-  "counters.js?v=0.56",
-  "difficulty.js?v=0.56",
-  "multiplayer.js?v=0.56",
-  "net.js?v=0.56",
+  "styles.css?v=0.59",
+  "app.js?v=0.59",
+  "version.js?v=0.59",
+  "units.js?v=0.59",
+  "game.js?v=0.59",
+  "dialog.js?v=0.59",
+  "board.js?v=0.59",
+  "engine.js?v=0.59",
+  "ai.js?v=0.59",
+  "hex.js?v=0.59",
+  "maps.js?v=0.59",
+  "ai-personalities.js?v=0.59",
+  "ai-personalities-multi.js?v=0.59",
+  "rules-config.js?v=0.59",
+  "sound.js?v=0.59",
+  "tips.js?v=0.59",
+  "campaign.js?v=0.59",
+  "coop-campaign.js?v=0.59",
+  "counters.js?v=0.59",
+  "difficulty.js?v=0.59",
+  "multiplayer.js?v=0.59",
+  "net.js?v=0.59",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
   "icon-maskable.png",
   "apple-touch-icon.png",
   "splash.jpg",
-  "tiles/tiles.json?v=0.56",
+  "tiles/tiles.json?v=0.59",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
   ...TOKEN_TYPES.flatMap((u) => COLOURS.map((colour) => `units/${u}-${colour}.svg`)),

@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.56";
+} from "./hex.js?v=0.59";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -615,13 +615,16 @@ function firingReach(view, unit) {
   };
 }
 
-// Enemy units the unit can fire at: ids of targets in sight.
+// Enemy units the unit can fire at: ids of targets in sight (and, for a unit with several
+// shots, not already fired at this turn).
 export function attackTargets(view, unitId) {
   const unit = view.units[unitId];
   const reach = unit && firingReach(view, unit);
   if (!reach) return [];
+  const done = unit.shotAt || [];
   return Object.values(view.units)
-    .filter((t) => view.visible[t.at] && canTarget(view, unit, t) && reach(t.at))
+    .filter((t) => view.visible[t.at] && canTarget(view, unit, t) && reach(t.at) &&
+      !done.includes(t.id))
     .map((t) => t.id);
 }
 
@@ -882,6 +885,17 @@ function finishAction(unit) {
   unit.moved = true;
 }
 
+// A shot: most units fire once and are done; a unit with stat "shots" keeps firing, each
+// time at a different target (unit.shotAt), until it has used them all. It cannot move once
+// it has fired.
+function spendShot(unit, stats, targetId = null) {
+  unit.moved = true;
+  unit.continues = false;
+  unit.shotsFired = (unit.shotsFired || 0) + 1;
+  if (targetId) unit.shotAt = [...(unit.shotAt || []), targetId];
+  if (unit.shotsFired >= (stats.shots || 1)) unit.acted = true;
+}
+
 // The path is planned on what the player knows. Walking it on the real board, a ground unit
 // stops early at anything hidden in the way: an enemy unit or impassable ground. A flying unit
 // passes over everything but cannot stop on a hex that turns out to be occupied. With
@@ -1023,7 +1037,7 @@ function applyAttack(state, { unitId, targetId, at }, actor) {
   const where = blind ? at : state.units[targetId].at;
   const found = unitAt(state, where);
   const target = found && canTarget(state, unit, found) ? found : null;
-  finishAction(unit);
+  spendShot(unit, stats, target ? target.id : null);
   if (stats.reload) unit.cooldown = stats.reload + 1;
   if (blind) {
     state.events.push({ type: "fireBlind", unitId, at: where, attack, hit: Boolean(target),
@@ -1087,7 +1101,7 @@ function applyBlast(state, { unitId, at }, actor) {
     illegal(`${unitId} cannot blow up crystals at ${at}`);
   }
   const stats = unitStats(state, unit);
-  finishAction(unit);
+  spendShot(unit, stats);
   if (stats.reload) unit.cooldown = stats.reload + 1;
   blowUp(state, unit, at);
   if (stats.splash) clusterBomb(state, unit, at);
@@ -1281,6 +1295,8 @@ function nextPhase(state) {
       unit.moveUsed = 0;
       unit.continues = false;
       unit.acted = false;
+      unit.shotsFired = 0;
+      unit.shotAt = [];
       if (unit.cooldown > 0) unit.cooldown -= 1;
     }
     return;

@@ -89,6 +89,7 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 ### Chinook and Turret (Phil, 29 October 2026)
 - The Chinook is a flying transporter. It carries 2 places of passengers: Infantry take 1, any ground vehicle 2 (unit stat `size`), so one vehicle or two Infantry. The Transporter carries Infantry only (`loads`). Like the other air units it needs an Airfield.
 - The Turret is a gun emplacement, built next to a factory like any unit, that never moves.
+- Two guns (Phil, 29 October 2026): the Twin Turret and the Heavy Tank fire twice a turn (unit stat `shots`), each shot at a different target, and only at the hexes next to them. They answer swarms of Infantry: 20 destroys an Infantry, and Infantry fire back for 10, too little to hurt them. A unit that has fired cannot move that turn. Stats provisional.
 
 | Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
 |---|---|---|---|---|---|---|---|
@@ -96,6 +97,8 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 | Transporter | 35 | 6 | 25 | – | – | 3 | Carries 2 Infantry |
 | Chinook | 55 | 5 | 15 | – | – | 3 | Flies; carries 1 vehicle or 2 Infantry |
 | Turret | 50 | 0 | 35 | 25 | 1–3 | 3 | Never moves |
+| Twin Turret | 50 | 0 | 30 | 20 × 2 | 1 | 3 | Never moves; fires twice a turn at different targets next to it |
+| Heavy Tank | 90 | 3 | 35 | 20 × 2 | 1 | 3 | Needs Heavy works; fires twice a turn at different targets next to it |
 
 All the numbers are provisional, as is everything not listed as Phil's. The Turret's stats are scaled down from the "Turret (constructed)" row of the full unit table, and the Chinook's come from its "Transport" row.
 
@@ -175,9 +178,9 @@ Most missions give Green a boss: a heavy unit leading its army that the player m
 | 1 | Landfall | Map 3 (classic) | Infantry, Scout Bike, harvesting | – | Capture the factory, build a Scout Bike, harvest and build a Tank |
 | 2 | Supply Lines | Map 8 (classic) | Harvesting, the Crystal lab | – | Bank 200 crystals |
 | 3 | First Contact | Map 5 (3-4-4-3) | Overrunning a factory | Artillery | Overrun Green's home factory |
-| 4 | Hold the Line | Map 14 (3-5-5-3) | Turrets | Heavy Cannon | Hold your home factory for 12 rounds |
+| 4 | Hold the Line | Map 14 (3-5-5-3) | Turrets and the Twin Turret | Sonic Tank | Hold your home factory for 12 rounds |
 | 5 | Over the Mountains | Map 11 (3-5-5-3), home ringed by mountains | Chinook airlift and Attack Helicopters (both sides have an Airfield); Anti-Aircraft Jeeps | Blast Cannon | Overrun Green's home factory |
-| 6 | Storm the Works | Map 12 (4-5-5-4) | Transporter, capturing factories | Sonic Tank | Capture 3 factories |
+| 6 | Storm the Works | Map 12 (4-5-5-4) | Transporter, capturing factories | Heavy Cannon | Capture 3 factories |
 | 7 | Swarm | Map 6 (3-4-4-3) | Blast Cannon against a Scout Bike swarm | Heavy Cannon | Destroy 8 Scout Bikes |
 | 8 | Sky Hunters | Map 9 (4-5-5-4), Green starts with an Airfield and helicopters | Anti-aircraft | Fighter | Shoot down 5 Attack Helicopters |
 | 9 | The Pass | Map 7 (4-5-5-4), a ridge with one pass | Sonic Tank at a choke point | Blast Cannon | Destroy 5 Tanks |

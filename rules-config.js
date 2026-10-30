@@ -72,6 +72,19 @@ export const RULES = {
       name: "Turret", cost: 50, move: 0, defence: 35, attack: 25,
       range: [1, 3], storage: 0, healing: 0, sight: 3,
     },
+    // Two guns (Phil, 29 October 2026): "shots" is how many times a unit fires in a turn,
+    // each at a different target; it cannot move once it has fired. Answers to Infantry swarms,
+    // so short range: only the hexes next to it. Stats provisional.
+    heavyTank: {
+      name: "Heavy Tank", cost: 90, move: 3, defence: 35, attack: 20,
+      range: [1, 1], storage: 0, healing: 0, sight: 3,
+      shots: 2, needs: "heavyWorks",
+    },
+    twinTurret: {
+      name: "Twin Turret", cost: 50, move: 0, defence: 30, attack: 20,
+      range: [1, 1], storage: 0, healing: 0, sight: 3,
+      shots: 2,
+    },
     // The VIP of the campaign mission "The Maid's March": tougher Infantry who can never be
     // built.
     vip: {

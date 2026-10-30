@@ -7,31 +7,31 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.56";
-import { mapById, seededRandom } from "./maps.js?v=0.56";
+import { RULES } from "./rules-config.js?v=0.59";
+import { mapById, seededRandom } from "./maps.js?v=0.59";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.56";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.56";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.56";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.56";
-import { distance } from "./hex.js?v=0.56";
+} from "./engine.js?v=0.59";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.59";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.59";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.59";
+import { distance } from "./hex.js?v=0.59";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre,
-} from "./board.js?v=0.56";
-import { confirmDialog } from "./dialog.js?v=0.56";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.56";
-import { showTip, showNote } from "./tips.js?v=0.56";
+} from "./board.js?v=0.59";
+import { confirmDialog } from "./dialog.js?v=0.59";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.59";
+import { showTip, showNote } from "./tips.js?v=0.59";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.56";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.56";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.56";
+} from "./campaign.js?v=0.59";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.59";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.59";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -43,7 +43,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.56";
+const ASSET_VERSION = "0.59";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
@@ -1572,7 +1572,8 @@ function keyStats(view, unit) {
 }
 
 function keyStatsOf(stats, bonus = 0) {
-  const attack = stats.attack ? `<span>Attack ${stats.attack}</span>` : "";
+  const shots = stats.shots > 1 ? ` \u00d7 ${stats.shots}` : "";
+  const attack = stats.attack ? `<span>Attack ${stats.attack}${shots}</span>` : "";
   const extra = bonus ? ` <small>+${bonus} rough ground</small>` : "";
   return `<p class="key-stats">${attack}<span>Defence ${stats.defence}${extra}</span></p>`;
 }
@@ -1599,6 +1600,7 @@ function statLine(stats) {
   if (stats.splash) parts.push("Cluster bomb");
   if (stats.line) parts.push("Sonic boom");
   if (stats.reload) parts.push("Fires every other turn");
+  if (stats.shots > 1) parts.push(`Fires ${stats.shots} times a turn, at different targets`);
   if (stats.storage) parts.push(`Storage ${stats.storage}`);
   if (stats.healing) parts.push(`Repair ${stats.healing}`);
   if (stats.captures) parts.push("Overruns factories");
@@ -1711,6 +1713,10 @@ function renderPanel(view) {
   if (unit.continues && mine) status.push("Can move on");
   if (unit.setUp) status.push("Set up");
   if (unit.cooldown > 0) status.push("Reloading");
+  const shotsLeft = (stats.shots || 1) - (unit.shotsFired || 0);
+  if (mine && stats.shots > 1 && unit.shotsFired && !unit.acted) {
+    status.push(`${shotsLeft} shot${shotsLeft === 1 ? "" : "s"} left`);
+  }
   const image = stats.isFactory ? factoryImage(unit.upgrades, unit.owner)
     : unitImage(unit.type, unit.owner);
   // The stats run full width under the name, so they stay on a line or two on a phone.

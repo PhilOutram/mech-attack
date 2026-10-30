@@ -1332,3 +1332,25 @@ h1 {
   margin-top: 1.2rem;
   font-size: 1rem;
 }
+
+/* Back on the units page, at the right of its header. */
+.units-back {
+  margin-left: auto;
+  margin-right: 0.75rem;
+  animation: none;
+}
+
+.help-choices {
+  margin-bottom: 0.75rem;
+}
+
+/* A menu of choices, each with a line saying what it is (Skirmish). */
+.menu-choices {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0.9rem;
+}
+
+.menu-choices .level-persona {
+  margin: 0 0 0.5rem;
+}

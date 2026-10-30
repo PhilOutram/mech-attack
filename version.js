@@ -1,8 +1,38 @@
-export const VERSION = "v0.56";
+export const VERSION = "v0.59";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.59",
+    date: "2026-10-30",
+    notes: [
+      "Co-op campaign, Red Dust: Together: five missions for 2 or 3 players at the same " +
+        "time against the AI, in the Campaign menu. The host can play any mission they " +
+        "have unlocked, and a win counts on every player's device.",
+    ],
+  },
+  {
+    version: "v0.58",
+    date: "2026-10-30",
+    notes: [
+      "Simpler main menu: Campaign, Skirmish, Join a game and Help. Skirmish offers a game " +
+        "against the AI or with other players; Help has Units, tips and About.",
+    ],
+  },
+  {
+    version: "v0.57",
+    date: "2026-10-30",
+    notes: [
+      "New units: the Twin Turret and the Heavy Tank fire twice a turn at the hexes next to " +
+        "them, an answer to Infantry swarms.",
+      "Hold the Line is winnable: you start with a Sonic Tank and a Twin Turret, Green has " +
+        "fewer crystals, and its boss is a Sonic Tank (the Heavy Cannon moves to Storm the " +
+        "Works).",
+      "Help opens a menu with Units and Show tips again; the Units page has a Back button; " +
+        "tapping outside a menu closes it.",
+    ],
+  },
   {
     version: "v0.56",
     date: "2026-10-29",

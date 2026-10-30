@@ -1,15 +1,15 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.56";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.56";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.56";
-import { confirmDialog } from "./dialog.js?v=0.56";
-import { showTip, resetTips } from "./tips.js?v=0.56";
-import { RULES } from "./rules-config.js?v=0.56";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.56";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.56";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.56";
-import { wireMultiplayer, showCoopSetup } from "./multiplayer.js?v=0.56";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.56";
+import { VERSION, CHANGELOG } from "./version.js?v=0.59";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.59";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.59";
+import { confirmDialog } from "./dialog.js?v=0.59";
+import { showTip, resetTips } from "./tips.js?v=0.59";
+import { RULES } from "./rules-config.js?v=0.59";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.59";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.59";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.59";
+import { wireMultiplayer, showCoopSetup } from "./multiplayer.js?v=0.59";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.59";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -43,6 +43,24 @@ const resume = document.getElementById("menu-resume");
 refreshMenu();
 
 const picker = document.getElementById("map-picker");
+
+// Skirmish: a one-off battle against the AI (the map picker), or with other players (the
+// multiplayer setup, multiplayer.js). Back from either returns here.
+const skirmishMenu = document.getElementById("skirmish-menu");
+document.getElementById("menu-skirmish").addEventListener("click", () => {
+  skirmishMenu.hidden = false;
+});
+document.getElementById("skirmish-cancel").addEventListener("click", () => {
+  skirmishMenu.hidden = true;
+});
+for (const id of ["menu-play", "menu-multi"]) {
+  document.getElementById(id).addEventListener("click", () => {
+    skirmishMenu.hidden = true;
+  });
+}
+document.getElementById("mp-cancel").addEventListener("click", () => {
+  skirmishMenu.hidden = false;
+});
 
 document.getElementById("menu-play").addEventListener("click", async () => {
   const replace = !hasSavedGame() || await confirmDialog({
@@ -139,12 +157,30 @@ document.getElementById("coop-list").addEventListener("click", async (e) => {
   campaignPicker.hidden = true;
   showCoopSetup(Number(button.dataset.coop));
 });
-// Help turns the tips back on: they show again as you play, starting with this one.
+// Help: the units reference, and turning the tips back on (they show again as you play,
+// starting with the welcome).
+const helpMenu = document.getElementById("help-menu");
 document.getElementById("menu-help").addEventListener("click", () => {
+  helpMenu.hidden = false;
+});
+document.getElementById("help-cancel").addEventListener("click", () => {
+  helpMenu.hidden = true;
+});
+document.getElementById("help-about").addEventListener("click", () => {
+  helpMenu.hidden = true;
+  showChangelog();
+});
+document.getElementById("help-tips").addEventListener("click", () => {
+  helpMenu.hidden = true;
   resetTips();
   showTip("welcome", RULES);
 });
 document.getElementById("home").addEventListener("click", showSplash);
+// Back from the units page returns to the Help menu it was opened from.
+document.getElementById("units-back").addEventListener("click", () => {
+  showSplash();
+  helpMenu.hidden = false;
+});
 // Multiplayer: back to the menu when a game ends, or hide it as one starts.
 wireMultiplayer({ leaveTo: (menu) => {
   if (menu) showSplash();
@@ -220,6 +256,7 @@ document.getElementById("map-new").addEventListener("click", () =>
 document.getElementById("map-fixed").addEventListener("click", () => play({ mapId: "fixed-1" }));
 document.getElementById("map-cancel").addEventListener("click", () => {
   picker.hidden = true;
+  skirmishMenu.hidden = false;
 });
 document.getElementById("map-number-form").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -230,6 +267,19 @@ document.getElementById("map-recent").addEventListener("click", (e) => {
   const button = e.target.closest("button[data-map]");
   if (button) play({ mapId: button.dataset.map });
 });
+
+// Tapping outside a menu's card does what its Back button does (Phil, 29 October 2026). The
+// hosting lobby is left out: its button cancels the game being set up, too much for a stray
+// tap. Confirmation boxes and tips already close this way (dialog.js, tips.js).
+const BACK_ON_BACKDROP = [["campaign-picker", "campaign-cancel"], ["map-picker", "map-cancel"],
+  ["mp-setup", "mp-cancel"], ["mp-join", "mp-join-cancel"], ["help-menu", "help-cancel"],
+  ["skirmish-menu", "skirmish-cancel"]];
+for (const [overlayId, backId] of BACK_ON_BACKDROP) {
+  const overlay = document.getElementById(overlayId);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) document.getElementById(backId).click();
+  });
+}
 
 function refreshMenu() {
   resume.hidden = !hasSavedGame();
@@ -253,6 +303,7 @@ function play(options) {
 }
 
 function showUnits() {
+  helpMenu.hidden = true;
   splash.hidden = true;
   units.hidden = false;
   window.scrollTo(0, 0);
