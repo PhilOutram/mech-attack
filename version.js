@@ -7,7 +7,7 @@ export const CHANGELOG = [
     version: "v0.72",
     date: "2026-10-30",
     notes: [
-      "New ground gets a flashing green line round its edge for 3 seconds, instead of a white flash.",
+      "New ground gets a green edge that flashes for 3 seconds, in place of a white flash.",
     ],
   },
   {
