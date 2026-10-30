@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.65";
+} from "./hex.js?v=0.66";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -1062,7 +1062,7 @@ function applyAttack(state, { unitId, targetId, at }, actor) {
   // Sonic boom: every other enemy along its line, up to range, is hit too.
   if (stats.line) {
     const path = boomHexes(state, unit.at, where, stats.range[1]);
-    state.events.push({ type: "boom", unitId, from: unit.at, path });
+    state.events.push({ type: "boom", unitId, from: unit.at, at: where, path });
     for (const k of path) {
       const other = unitAt(state, k);
       if (!other || other === target || !canTarget(state, unit, other)) continue;

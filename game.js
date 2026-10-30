@@ -7,31 +7,31 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.65";
-import { mapById, seededRandom } from "./maps.js?v=0.65";
+import { RULES } from "./rules-config.js?v=0.66";
+import { mapById, seededRandom } from "./maps.js?v=0.66";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.65";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.65";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.65";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.65";
-import { distance } from "./hex.js?v=0.65";
+} from "./engine.js?v=0.66";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.66";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.66";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.66";
+import { distance } from "./hex.js?v=0.66";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.65";
-import { confirmDialog } from "./dialog.js?v=0.65";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.65";
-import { showTip, showNote } from "./tips.js?v=0.65";
+} from "./board.js?v=0.66";
+import { confirmDialog } from "./dialog.js?v=0.66";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.66";
+import { showTip, showNote } from "./tips.js?v=0.66";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.65";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.65";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.65";
+} from "./campaign.js?v=0.66";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.66";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.66";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -43,7 +43,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.65";
+const ASSET_VERSION = "0.66";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
@@ -81,6 +81,8 @@ const PERCENT = 100;
 // at half volume; Infantry march; other vehicles rumble like a tank. Small guns use the
 // infantry burst, everything else the tank shot.
 const DRONE_VOLUME = 0.5;
+// How long a sonic boom's wave takes to cross each hex.
+const BOOM_STEP_MS = 180;
 const SMALL_GUNS = ["infantry", "scoutBike", "antiAircraftJeep"];
 
 // The sound a unit type makes moving, as [clip, volume].
@@ -90,6 +92,7 @@ function moveSound(type) {
 }
 
 function fireSound(type) {
+  if (RULES.units[type]?.line) return ["sonicBoom", 1];
   return [SMALL_GUNS.includes(type) ? "infantryFiring" : "tankFiring", 1];
 }
 
@@ -1128,10 +1131,11 @@ function showEvents(events, before, after) {
         : `${unitName(before, e.unitId)}: ${e.total} of ${e.defence} this turn, ` +
           "more fire this turn adds to it.");
     } else if (e.type === "boom") {
-      // A sonic boom: a shock wave along its whole line.
+      // A sonic boom: a shock wave running along its whole line.
       if (e.path.length && (seen(e.from) || e.path.some(seen))) {
         any = true;
-        effects.push({ kind: "boom", from: e.from, to: e.path[e.path.length - 1] });
+        effects.push({ kind: "boom", from: e.from, at: e.at, path: e.path,
+          ms: e.path.length * BOOM_STEP_MS });
       }
     } else if (e.type === "fireBlind" && e.seen) {
       // A sonic boom aimed at a hex with no target in sight.
@@ -1187,11 +1191,16 @@ function showEvents(events, before, after) {
       any = true;
       effects.push({ at: e.at, size: 0.9 });
       lines.push(`A crystal pile reached ${e.amount} and exploded.`);
-    } else if (e.type === "harvest" && after.units[e.unitId]?.owner === me) {
-      lines.push(`Harvested ${e.amount} crystals.`);
-    } else if (e.type === "unload" && after.units[e.unitId]?.owner === me) {
-      lines.push(`Unloaded ${e.amount} crystals${e.automatic ? " at the factory" : ""}.`);
-      unloaded += e.amount;
+    } else if (e.type === "harvest" || e.type === "unload") {
+      const harvester = after.units[e.unitId];
+      if (seen(harvester?.at)) sound(["harvest", 1]);
+      if (harvester?.owner !== me) continue;
+      if (e.type === "harvest") {
+        lines.push(`Harvested ${e.amount} crystals.`);
+      } else {
+        lines.push(`Unloaded ${e.amount} crystals${e.automatic ? " at the factory" : ""}.`);
+        unloaded += e.amount;
+      }
     } else if (e.type === "build" && (after.units[e.unitId]?.owner === me || seen(e.at))) {
       any = true;
       lines.push(`${unitName(after, e.unitId)} built.`);
@@ -1229,6 +1238,7 @@ function showEvents(events, before, after) {
     }
   }
   for (const line of lines) say(line);
+  waitForBoom(effects);
   if (effects.length) flash(effects);
   for (const [clip, volume] of sounds) playSound(clip, volume);
   if (unloaded) showBanner(`${unloaded} crystals unloaded`);
@@ -1302,14 +1312,30 @@ function showBanner(text, ms = BANNER_MS) {
   bannerTimer = setTimeout(() => { els.banner.hidden = true; }, ms);
 }
 
+// A blast on a sonic boom's line waits until the wave gets there.
+function waitForBoom(effects) {
+  for (const boom of effects.filter((effect) => effect.kind === "boom")) {
+    for (const effect of effects) {
+      const step = boom.path.indexOf(effect.at);
+      if (effect.kind || step < 0) continue;
+      effect.delay = (step + 1) * BOOM_STEP_MS;
+      effect.ms = effect.delay + EFFECT_MS;
+    }
+  }
+}
+
+// Shows the effects until the longest is over. Each remembers when it started, so a redraw
+// part-way through carries on where it was instead of starting again.
 function flash(effects) {
+  const start = performance.now();
+  for (const effect of effects) effect.start = start;
   ui.effects = effects;
   setTimeout(() => {
     if (ui.effects === effects) {
       ui.effects = [];
       render();
     }
-  }, EFFECT_MS);
+  }, Math.max(EFFECT_MS, ...effects.map((effect) => effect.ms || 0)));
 }
 
 function say(line) {

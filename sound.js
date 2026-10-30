@@ -17,6 +17,9 @@ export const SOUNDS = {
   tankFiring: { file: "audio/tank-firing.mp3", lufs: -21.5 },
   capture: { file: "audio/capture-beep.mp3", lufs: -18.5 },
   footsteps: { file: "audio/footsteps.mp3", lufs: -21.3 },
+  // Measured 30 October 2026.
+  sonicBoom: { file: "audio/sonic-boom.mp3", lufs: -18.4 },
+  harvest: { file: "audio/harvest.mp3", lufs: -21.5 },
 };
 
 let context = null;

@@ -13,3 +13,6 @@ Trimmed and faded by Phil; the game evens out their loudness (see `sound.js`).
 | `audio/helicopter.mp3` | [Sea-king Helicopter](https://freesound.org/people/Sandermotions/sounds/333505/) | Sandermotions |
 | `audio/capture-beep.mp3` | [weird cowbell 1](https://freesound.org/people/patchytherat/sounds/532806/) | patchytherat |
 | `audio/footsteps.mp3` | [Footsteps_Mountain_Boots_Wet_Sand_Sequence_Mono](https://freesound.org/people/Nox_Sound/sounds/564893/) | Nox_Sound |
+| `audio/sonic-boom.mp3` | [whatever.wav](https://freesound.org/people/aust_paul/sounds/30937/) | aust_paul |
+
+`audio/harvest.mp3` was made by Phil.

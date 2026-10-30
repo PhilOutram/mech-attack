@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.65";
-import { unitStats, defenceOf } from "./engine.js?v=0.65";
+import { parseKey, toPixel, distance } from "./hex.js?v=0.66";
+import { unitStats, defenceOf } from "./engine.js?v=0.66";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -374,17 +374,38 @@ function drawOverlays(overlays) {
 }
 
 // Short-lived explosions: a muzzle flash at the attacker and a blast at the target.
-// A sonic boom: a shock wave along its line, from the Sonic Tank to the furthest hit.
+// A sonic boom: Phil's sound-wave art runs from the Sonic Tank straight through the centre
+// of the aimed hex and on to the end of its line, over a pale band along the line.
 const BOOM_WIDTH = HEX_SIZE * 0.55;
-const BOOM_CORE_WIDTH = 6;
+const BOOM_ART = { width: HEX_HEIGHT * 0.67, height: HEX_HEIGHT * 0.8 };
 
-function drawBoom({ from, to }) {
+// The CSS that starts an effect's animation part-way through when the board is redrawn
+// after the effect began.
+function effectTiming(effect, ms) {
+  const late = effect.start ? performance.now() - effect.start : 0;
+  return `animation-delay:${Math.round((effect.delay || 0) - late)}ms;` +
+    (ms ? `animation-duration:${ms}ms;` : "");
+}
+
+function drawBoom(effect) {
+  const { from, at, path } = effect;
   const [ax, ay] = hexCentre(from);
-  const [bx, by] = hexCentre(to);
-  const ends = `x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" ` +
-    `y2="${by.toFixed(1)}"`;
-  return `<line ${ends} class="boom-wave" stroke-width="${BOOM_WIDTH}"/>` +
-    `<line ${ends} class="boom-core" stroke-width="${BOOM_CORE_WIDTH}"/>`;
+  const [tx, ty] = hexCentre(at);
+  // The line runs exactly through the aimed hex's centre: the wave stops after as many hexes
+  // as it crossed (fewer when a mountain stops it).
+  const reach = path.length / distance(from, at);
+  const bx = ax + (tx - ax) * reach;
+  const by = ay + (ty - ay) * reach;
+  // The art's waves face up the board, as token art does.
+  const turn = facingAngle(from, at);
+  const timing = effectTiming(effect, effect.ms);
+  const { width, height } = BOOM_ART;
+  return `<line x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" ` +
+    `y2="${by.toFixed(1)}" class="boom-wave" stroke-width="${BOOM_WIDTH}" ` +
+    `style="${timing}"/>` +
+    `<g class="boom" style="--ax:${ax.toFixed(1)}px;--ay:${ay.toFixed(1)}px;` +
+    `--bx:${bx.toFixed(1)}px;--by:${by.toFixed(1)}px;--turn:${turn.toFixed(1)}deg;${timing}">` +
+    image("units/sonic-boom.png", 0, 0, width, height) + "</g>";
 }
 
 function drawEffects(effects) {
@@ -396,7 +417,9 @@ function drawEffects(effects) {
     }
     const [x, y] = hexCentre(effect.at);
     const size = HEX_HEIGHT * (effect.size || 0.7);
-    out += image("units/explosion.svg", x, y, size, size, 'class="effect"');
+    const style = effect.delay ? "effect late" : "effect";
+    out += image("units/explosion.svg", x, y, size, size,
+      `class="${style}" style="${effectTiming(effect)}"`);
   }
   return out;
 }
@@ -419,7 +442,7 @@ const preloaded = [];
 
 export function preloadArt() {
   if (preloaded.length) return;
-  const files = ["units/crystals.svg", "units/explosion.svg",
+  const files = ["units/crystals.svg", "units/explosion.svg", "units/sonic-boom.png",
     ...Object.keys(UPGRADE_BADGES).map(upgradeImage)];
   // Every combination of factory upgrades, for each owner and for nobody.
   const combos = [[]];
