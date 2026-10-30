@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel, distance } from "./hex.js?v=0.67";
-import { unitStats, defenceOf } from "./engine.js?v=0.67";
+import { parseKey, toPixel, distance } from "./hex.js?v=0.68";
+import { unitStats, defenceOf } from "./engine.js?v=0.68";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -415,6 +415,12 @@ function drawEffects(effects) {
       out += drawBoom(effect);
       continue;
     }
+    // Newly turned-over ground flashes.
+    if (effect.kind === "reveal") {
+      const extra = `class="reveal-flash" style="${effectTiming(effect)}"`;
+      for (const k of effect.hexes) out += polygon(k, { fill: "#fff", extra });
+      continue;
+    }
     const [x, y] = hexCentre(effect.at);
     const size = HEX_HEIGHT * (effect.size || 0.7);
     const style = effect.delay ? "effect late" : "effect";
@@ -468,16 +474,38 @@ function drawNotes(notes) {
   }).join("");
 }
 
+// The board's layers, bottom to top.
+const LAYERS = ["terrain", "fog", "crystals", "overlays", "units", "effects", "notes", "hits"];
+// Layers the game changes directly between draws (a moving unit's token is hidden), so they
+// are always drawn afresh.
+const ALWAYS_DRAWN = ["units", "effects"];
+// The markup each layer was last drawn with.
+const drawnMarkup = new WeakMap();
+
+// Draws the board. A layer whose markup has not changed is left as it is, so the terrain
+// (by far the most work for the browser) is drawn again only when new ground is turned over.
 export function renderBoard(group, {
   view, selectedId = null, overlays = [], effects = [], notes = [], facing = {}, moving = null,
 }) {
-  group.innerHTML = HEX_CLIP +
-    `<g class="terrain">${drawTerrain(view)}</g>` +
-    `<g class="fog">${drawFog(view)}</g>` +
-    `<g class="crystals">${drawCrystals(view)}</g>` +
-    `<g class="overlays">${drawOverlays(overlays)}</g>` +
-    `<g class="units">${drawUnits(view, selectedId, facing, moving)}</g>` +
-    `<g class="effects">${drawEffects(effects)}</g>` +
-    `<g class="notes">${drawNotes(notes)}</g>` +
-    `<g class="hits">${drawHitTargets(view)}</g>`;
+  if (!group.firstChild) {
+    group.innerHTML = HEX_CLIP + LAYERS.map((name) => `<g class="${name}"></g>`).join("");
+  }
+  const markup = {
+    terrain: () => drawTerrain(view),
+    fog: () => drawFog(view),
+    crystals: () => drawCrystals(view),
+    overlays: () => drawOverlays(overlays),
+    units: () => drawUnits(view, selectedId, facing, moving),
+    effects: () => drawEffects(effects),
+    notes: () => drawNotes(notes),
+    hits: () => drawHitTargets(view),
+  };
+  for (const name of LAYERS) {
+    const layer = group.querySelector(`:scope > g.${name}`);
+    const html = markup[name]();
+    if (ALWAYS_DRAWN.includes(name) || drawnMarkup.get(layer) !== html) {
+      layer.innerHTML = html;
+      drawnMarkup.set(layer, html);
+    }
+  }
 }

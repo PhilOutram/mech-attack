@@ -659,7 +659,12 @@ h1 {
     0 calc(100% - var(--face-cut)), 0 var(--face-cut));
 }
 
+/* The whole map, drawn at the current zoom (its size is set by game.js commitView), slid
+   and scaled within the frame with a CSS transform. */
 .board {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -731,6 +736,17 @@ h1 {
 @keyframes blast {
   from { transform: scale(0.4); opacity: 1; }
   to { transform: scale(1.1); opacity: 1; }
+}
+
+/* Newly turned-over ground flashes three times (game.js REVEAL_FLASH_MS). */
+.reveal-flash {
+  opacity: 0;
+  pointer-events: none;
+  animation: reveal-flash 0.4s ease-in-out 3;
+}
+
+@keyframes reveal-flash {
+  50% { opacity: 0.55; }
 }
 
 /* A blast that waits for a sonic boom's wave: hidden until its animation starts. */
@@ -1495,8 +1511,12 @@ h1 {
 
 @media (prefers-reduced-motion: reduce) {
   .boom-wave,
-  .boom-core {
+  .reveal-flash {
     animation: none;
+  }
+
+  .boom {
+    display: none;
   }
 }
 

@@ -7,31 +7,31 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.67";
-import { mapById, seededRandom } from "./maps.js?v=0.67";
+import { RULES } from "./rules-config.js?v=0.68";
+import { mapById, seededRandom } from "./maps.js?v=0.68";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.67";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.67";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.67";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.67";
-import { distance } from "./hex.js?v=0.67";
+} from "./engine.js?v=0.68";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.68";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.68";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.68";
+import { distance } from "./hex.js?v=0.68";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.67";
-import { confirmDialog } from "./dialog.js?v=0.67";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.67";
-import { showTip, showNote } from "./tips.js?v=0.67";
+} from "./board.js?v=0.68";
+import { confirmDialog } from "./dialog.js?v=0.68";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.68";
+import { showTip, showNote } from "./tips.js?v=0.68";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.67";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.67";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.67";
+} from "./campaign.js?v=0.68";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.68";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.68";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -43,7 +43,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.67";
+const ASSET_VERSION = "0.68";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
@@ -83,6 +83,8 @@ const PERCENT = 100;
 const DRONE_VOLUME = 0.5;
 // How long a sonic boom's wave takes to cross each hex.
 const BOOM_STEP_MS = 180;
+// How long newly turned-over ground flashes (styles.css .reveal-flash: three 0.4 s flashes).
+const REVEAL_FLASH_MS = 1200;
 const SMALL_GUNS = ["infantry", "scoutBike", "antiAircraftJeep"];
 
 // The sound a unit type makes moving, as [clip, volume].
@@ -970,9 +972,8 @@ async function showMoves(events, before, after) {
 // by angle. img is the whole copy.
 function floatingToken(unit) {
   const wrap = els.svg.parentElement;
-  const box = wrap.getBoundingClientRect();
-  const toScreen = els.root.getScreenCTM();
-  const scale = Math.hypot(toScreen.a, toScreen.b);
+  // Board points to positions in the frame, for the current view.
+  const { scale, dx, dy } = layoutOf(viewBox);
   const size = tokenSize() * scale;
   const holder = document.createElement("div");
   holder.className = "moving-token";
@@ -1006,9 +1007,9 @@ function floatingToken(unit) {
   }
   wrap.appendChild(holder);
   const place = (x, y, angle) => {
-    const at = new DOMPoint(x, y).matrixTransform(toScreen);
-    holder.style.transform = `translate(${at.x - box.left - size / 2}px, ` +
-      `${at.y - box.top - size / 2}px)`;
+    const left = dx + (x - viewBox.x) * scale;
+    const top = dy + (y - viewBox.y) * scale;
+    holder.style.transform = `translate(${left - size / 2}px, ${top - size / 2}px)`;
     token.style.transform = `rotate(${angle}deg)`;
   };
   return { img: holder, place };
@@ -1236,6 +1237,13 @@ function showEvents(events, before, after) {
       const upgrade = RULES.factoryUpgrades[e.upgrade].name;
       lines.push(`${unitName(after, e.factoryId)} added ${upgrade}.`);
     }
+  }
+  // Ground turned over by these events flashes as it appears.
+  const turned = Object.keys(after.map.hexes).filter((k) =>
+    after.map.hexes[k].terrain && !before.map.hexes[k].terrain);
+  if (turned.length) {
+    any = true;
+    effects.push({ kind: "reveal", hexes: turned, ms: REVEAL_FLASH_MS });
   }
   for (const line of lines) say(line);
   waitForBoom(effects);
@@ -2049,18 +2057,23 @@ async function clientReceive(message) {
 // ---------------------------------------------------------------------------------------
 // Pan, zoom and taps
 
-// viewBox is where the player has panned and zoomed to; shown is the viewBox last written to
-// the SVG. Writing the viewBox makes the browser redraw every tile and token at the new scale,
-// which is slow on a phone, so during a drag or pinch only a CSS transform on the SVG changes
-// (the phone slides and scales the picture it has already drawn, once per frame) and the
-// viewBox is written when the gesture ends. Touch points are turned into board coordinates
-// from the SVG's box measured when the gesture starts, so no layout is forced mid-gesture.
-let shown = null;
+// viewBox is where the player has panned and zoomed to. The SVG always holds the whole map
+// (drawn, the area the board's frame shows with the map fitted to it), drawn at the current
+// zoom (drawnScale, screen pixels per board unit), so it can be bigger than the frame. A pan
+// only slides it with a CSS transform: the phone moves the picture it has already drawn and
+// nothing is redrawn, so no part of the map is missing as it slides in. A pinch or wheel zoom
+// scales the picture the same way, and the map is drawn again, sharp at the new zoom, when
+// the zoom ends. Touch points are turned into board coordinates from the frame's box measured
+// when the board is fitted, so no layout is forced mid-gesture.
+let drawn = null;
+let drawnScale = null;
 let boardBox = null;
 let frameRequest = null;
 let wheelTimer = null;
 // After the last wheel step, the zoom is committed (redrawn sharp) after this pause.
 const WHEEL_COMMIT_MS = 150;
+// Zooms closer than this ratio count as the same zoom (no redraw needed).
+const SAME_ZOOM = 1e-6;
 
 function fitBoard() {
   fitBox = boardBounds(state.map);
@@ -2068,19 +2081,30 @@ function fitBoard() {
   commitView();
 }
 
-// Writes the viewBox (the board redraws sharp) and drops the gesture transform.
+// Draws the whole map at the current zoom (sharp) and places it for the current view.
 function commitView() {
   clearTimeout(wheelTimer);
   cancelAnimationFrame(frameRequest);
   frameRequest = null;
-  shown = { ...viewBox };
-  els.svg.setAttribute("viewBox", `${shown.x} ${shown.y} ${shown.width} ${shown.height}`);
-  els.svg.style.transform = "";
-  boardBox = els.svg.getBoundingClientRect();
+  boardBox = els.svg.parentElement.getBoundingClientRect();
+  const fit = layoutOf(fitBox);
+  drawn = { x: fitBox.x - fit.dx / fit.scale, y: fitBox.y - fit.dy / fit.scale,
+    width: boardBox.width / fit.scale, height: boardBox.height / fit.scale };
+  drawnScale = layoutOf(viewBox).scale;
+  els.svg.setAttribute("viewBox", `${drawn.x} ${drawn.y} ${drawn.width} ${drawn.height}`);
+  els.svg.style.width = `${drawn.width * drawnScale}px`;
+  els.svg.style.height = `${drawn.height * drawnScale}px`;
+  els.svg.style.transform = viewTransform();
 }
 
-// How the browser lays a viewBox out in the SVG's box (preserveAspectRatio xMidYMid meet):
-// screen pixels per board unit, and where the drawing starts inside the box.
+// After a gesture: draws the map again only if the zoom changed (a pan needs no redraw).
+function settleView() {
+  if (Math.abs(layoutOf(viewBox).scale / drawnScale - 1) > SAME_ZOOM) commitView();
+}
+
+// How a box of board coordinates is laid out in the board's frame when it is fitted to it
+// (as preserveAspectRatio xMidYMid meet would): screen pixels per board unit, and where the
+// box starts inside the frame.
 function layoutOf(box) {
   const scale = Math.min(boardBox.width / box.width, boardBox.height / box.height);
   return { scale, dx: (boardBox.width - box.width * scale) / 2,
@@ -2094,17 +2118,21 @@ function toBoard(clientX, clientY) {
     viewBox.y + (clientY - boardBox.top - dy) / scale];
 }
 
-// Shows the current view as a transform of what was last drawn, on the next frame.
+// The CSS transform that shows the current view from the map as drawn.
+function viewTransform() {
+  const to = layoutOf(viewBox);
+  const k = to.scale / drawnScale;
+  const tx = to.dx + to.scale * (drawn.x - viewBox.x);
+  const ty = to.dy + to.scale * (drawn.y - viewBox.y);
+  return `translate(${tx}px, ${ty}px) scale(${k})`;
+}
+
+// Shows the current view on the next frame.
 function showView() {
   if (frameRequest) return;
   frameRequest = requestAnimationFrame(() => {
     frameRequest = null;
-    const from = layoutOf(shown);
-    const to = layoutOf(viewBox);
-    const k = to.scale / from.scale;
-    const tx = to.dx - k * from.dx + to.scale * (shown.x - viewBox.x);
-    const ty = to.dy - k * from.dy + to.scale * (shown.y - viewBox.y);
-    els.svg.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+    els.svg.style.transform = viewTransform();
   });
 }
 
@@ -2136,7 +2164,7 @@ function wireBoardInput() {
   let pinchStart = null;
 
   svg.addEventListener("pointerdown", (e) => {
-    if (!pointers.size) commitView();
+    if (!pointers.size) settleView();
     svg.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX,
       startY: e.clientY, target: e.target });
@@ -2174,8 +2202,8 @@ function wireBoardInput() {
     const p = pointers.get(e.pointerId);
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinchStart = null;
-    // The last finger up ends the gesture: draw the board sharp at its new view straight away.
-    if (!pointers.size && dragged) commitView();
+    // The last finger up ends the gesture: after a zoom, draw the board sharp straight away.
+    if (!pointers.size && dragged) settleView();
     if (!p || dragged || e.type === "pointercancel") return;
     const hex = p.target.closest && p.target.closest("[data-hex]");
     if (hex) onHexTap(hex.dataset.hex);
@@ -2187,7 +2215,7 @@ function wireBoardInput() {
     e.preventDefault();
     zoomAt(Math.exp(e.deltaY * WHEEL_ZOOM_RATE), toBoard(e.clientX, e.clientY));
     clearTimeout(wheelTimer);
-    wheelTimer = setTimeout(commitView, WHEEL_COMMIT_MS);
+    wheelTimer = setTimeout(settleView, WHEEL_COMMIT_MS);
   }, { passive: false });
 }
 

@@ -1,8 +1,17 @@
-export const VERSION = "v0.67";
+export const VERSION = "v0.68";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.68",
+    date: "2026-10-30",
+    notes: [
+      "Panning never shows black: the whole map is drawn, and a pan just slides it.",
+      "The board redraws only what changed, so the terrain is not redrawn on every tap.",
+      "Newly turned-over ground flashes three times as it appears.",
+    ],
+  },
   {
     version: "v0.67",
     date: "2026-10-30",
