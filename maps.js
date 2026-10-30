@@ -5,7 +5,7 @@
 import {
   key, parseKey, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance,
   neighbourKeys, toPixel,
-} from "./hex.js?v=0.64";
+} from "./hex.js?v=0.65";
 
 // Fixed map 1: 12 clusters, 84 hexes, about 11 hexes wide and 11 tall.
 // Paired clusters (point-reflected through the middle of the map) have the same number of

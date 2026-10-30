@@ -1115,6 +1115,25 @@ describe("live sight under thin fog", () => {
   });
 });
 
+describe("a move that gets nowhere", () => {
+  test("a drone blocked before its first step cannot try again that turn", () => {
+    // A short-sighted drone: a blind friendly scout on the first hex of its route and, out of
+    // their sight, a Green tank on the second, so it can stop on neither.
+    const shortSighted = { ...RULES.units,
+      spotterDrone: { ...RULES.units.spotterDrone, sight: 1 },
+      scoutBike: { ...RULES.units.scoutBike, sight: 0 } };
+    const s = scenario({
+      units: [unit("d", "spotterDrone", BLUE, "0,0"), unit("f", "scoutBike", BLUE, "0,-1"),
+        unit("e", "tank", GREEN, "0,-2")],
+      rules: { fog: { liveSight: true }, units: shortSighted },
+    });
+    assert.equal(viewFor(s, BLUE).units.e, undefined, "the tank is out of sight");
+    const after = play(s, { type: "move", unitId: "d", to: "0,-2" });
+    assert.equal(after.units.d.at, "0,0");
+    assert.deepEqual(reachableHexes(viewFor(after, BLUE), "d"), {});
+  });
+});
+
 describe("moving into face-down ground", () => {
   // Reveal range 1: blocks turn over only when a unit is on or next to them.
   test("a move stops where it turns over new ground, with the rest of its move left", () => {

@@ -1,8 +1,17 @@
-export const VERSION = "v0.64";
+export const VERSION = "v0.65";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.65",
+    date: "2026-10-30",
+    notes: [
+      "Commander Jeanne now wins The Maid's March by entering the far factory (it said failed).",
+      "She can no longer walk into the wrong factory.",
+      "Fixed the AI getting stuck retrying a move blocked by something hidden.",
+    ],
+  },
   {
     version: "v0.64",
     date: "2026-10-30",

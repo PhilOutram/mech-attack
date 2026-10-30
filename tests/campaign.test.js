@@ -156,3 +156,22 @@ test("units once unlocked stay available, and the campaign unlocks every unit", 
     .filter((u) => !RULES.factoryUpgrades[u].sharesVision);
   assert.deepEqual([...last.allowedUpgrades].sort(), solo.sort());
 });
+
+test("in The Maid's March, the VIP going into the far factory wins the mission", () => {
+  const m = missionNamed("The Maid's March");
+  const s = missionGame(m);
+  const target = m.target(s.map);
+  const vip = unitsOf(s, BLUE).find((u) => u.type === "vip");
+  // Put her next to the far factory at the start of a turn, with nothing else in the way.
+  const next = Object.keys(s.map.hexes).find((k) => {
+    const [q, r] = k.split(",").map(Number);
+    const [tq, tr] = target.split(",").map(Number);
+    return Math.max(Math.abs(q - tq), Math.abs(r - tr), Math.abs(q + r - tq - tr)) === 1 &&
+      s.rules.terrain[s.map.hexes[k].terrain].moveCost !== null &&
+      !Object.values(s.units).some((u) => u.at === k) && !s.crystals[k];
+  });
+  vip.at = next;
+  const after = applyAction(s, { type: "move", unitId: vip.id, to: target });
+  assert.ok(m.done(after), "the far factory is hers");
+  assert.ok(m.failed(after), "she has left the board, so the done check must come first");
+});

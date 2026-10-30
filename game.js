@@ -7,31 +7,31 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.64";
-import { mapById, seededRandom } from "./maps.js?v=0.64";
+import { RULES } from "./rules-config.js?v=0.65";
+import { mapById, seededRandom } from "./maps.js?v=0.65";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.64";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.64";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.64";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.64";
-import { distance } from "./hex.js?v=0.64";
+} from "./engine.js?v=0.65";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.65";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.65";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.65";
+import { distance } from "./hex.js?v=0.65";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.64";
-import { confirmDialog } from "./dialog.js?v=0.64";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.64";
-import { showTip, showNote } from "./tips.js?v=0.64";
+} from "./board.js?v=0.65";
+import { confirmDialog } from "./dialog.js?v=0.65";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.65";
+import { showTip, showNote } from "./tips.js?v=0.65";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.64";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.64";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.64";
+} from "./campaign.js?v=0.65";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.65";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.65";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -43,7 +43,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.64";
+const ASSET_VERSION = "0.65";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
@@ -613,11 +613,13 @@ function checkObjective() {
   }
   const m = missionOf(state);
   if (!m || state.result) return;
-  if (m.failed && m.failed(state)) {
+  // Done is checked first: the VIP who reaches the far factory goes into it and leaves the
+  // board, which must count as arriving, not falling.
+  if (m.done && m.done(state)) {
+    state = { ...state, result: { winner: HUMAN, reason: "objective", round: state.round } };
+  } else if (m.failed && m.failed(state)) {
     state = { ...state, result: { winner: AI_PLAYER, reason: "missionFailed",
       round: state.round } };
-  } else if (m.done && m.done(state)) {
-    state = { ...state, result: { winner: HUMAN, reason: "objective", round: state.round } };
   }
 }
 
@@ -1373,6 +1375,16 @@ async function onHexTap(k) {
     const unitId = ui.selectedId;
     if (ui.mode === "move" && crushingMoves(view, unitId).includes(k) &&
       !(await confirmCrush(view, unitId))) return;
+    if (ui.mode === "move" && wrongFactoryForVip(view, unitId, k)) {
+      await confirmDialog({
+        title: "Not this factory",
+        text: "Commander Jeanne must reach the far factory, marked in gold. Going into any " +
+          "other factory would end her march here.",
+        confirm: "OK",
+        cancel: null,
+      });
+      return;
+    }
     if (ui.mode === "fire" && crystalTargets(view, unitId).includes(k) &&
       !(await confirmBlast(view.crystals[k].amount))) return;
     act(actionFor(view, ui.mode, unitId, k));
@@ -1383,6 +1395,15 @@ async function onHexTap(k) {
   ui.mode = unit ? defaultMode(view, unit) : null;
   ui.buildType = null;
   render();
+}
+
+// Whether a move would take a mission's VIP into a factory other than the mission's target
+// (The Maid's March): she would go into it and leave the board.
+function wrongFactoryForVip(view, unitId, k) {
+  const m = missionOf(state);
+  if (!m || !m.target || view.units[unitId].type !== "vip") return false;
+  const there = Object.values(view.units).find((u) => u.at === k);
+  return Boolean(there && unitStats(view, there).isFactory) && k !== m.target(state.map);
 }
 
 // A move that drives over crystals destroys them; ask first, and say how to harvest instead.

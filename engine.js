@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.64";
+} from "./hex.js?v=0.65";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -967,7 +967,9 @@ function applyMove(state, { unitId, to }, actor) {
   const used = walked.reduce((sum, step) => sum + step.cost, 0);
   unit.at = path.length ? path[path.length - 1] : from;
   unit.moved = true;
-  unit.moveUsed = (unit.moveUsed || 0) + used;
+  // A move that gets nowhere (something hidden in the way) uses up the rest of the unit's
+  // move, so a unit that splits its move cannot keep trying it.
+  unit.moveUsed = path.length ? (unit.moveUsed || 0) + used : unitStats(state, unit).move;
   unit.continues = stoppedBy === "revealed" && used > 0 && unit.at !== to;
   state.events.push({ type: "move", unitId, from, to: unit.at, path, stoppedBy,
     moveLeft: unit.continues ? moveLeft(state, unit) : 0 });
