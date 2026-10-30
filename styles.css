@@ -1326,3 +1326,9 @@ h1 {
   pointer-events: none;
   will-change: transform;
 }
+
+/* The co-op missions under the solo ones in the campaign picker. */
+.coop-heading {
+  margin-top: 1.2rem;
+  font-size: 1rem;
+}

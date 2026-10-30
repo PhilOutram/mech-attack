@@ -31,6 +31,7 @@ import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
 } from "./campaign.js?v=0.56";
 import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.56";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.56";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -289,9 +290,15 @@ function seatPersonality(p) {
   const kind = levelById(seatsOf(state)[p].level).ai;
   const bred = state.players.length > 2 && MULTI_SIDE_PERSONALITIES.length
     ? MULTI_SIDE_PERSONALITIES : EVOLVED_PERSONALITIES;
-  if (kind === "default" || !bred.length) return DEFAULT_PERSONALITY;
+  if (kind === "default" || !bred.length) {
+    const mix = seatsOf(state)[p].aiMix;
+    return mix ? { ...DEFAULT_PERSONALITY, mix: { ...mix } } : DEFAULT_PERSONALITY;
+  }
   const index = kind === "best" ? 0 : (state.seed + p) % bred.length;
-  return { ...DEFAULT_PERSONALITY, ...bred[index].personality };
+  const personality = { ...DEFAULT_PERSONALITY, ...bred[index].personality };
+  // A co-op mission can set what an AI side builds.
+  const mix = seatsOf(state)[p].aiMix;
+  return mix ? { ...personality, mix: { ...mix } } : personality;
 }
 
 function personalityOf(p) {
@@ -319,8 +326,9 @@ function shapeOf(mapId) {
 // Opens the game screen: the saved game when resume is set, otherwise a new game on mapId, or
 // campaign mission number mission (0-based).
 // level: the difficulty level's id (see difficulty.js), for a game that is not a mission.
-// multiplayer: { seats, sides, phases, mapId, setup } for a multiplayer game on this device
-// (see multiplayer.js), and linkTo the link to other devices when some seats are remote.
+// multiplayer: { seats, sides, phases, mapId, setup, rules, coop } for a multiplayer game on
+// this device (see multiplayer.js; coop: { mission } for a co-op campaign mission), and
+// linkTo the link to other devices when some seats are remote.
 export async function openGame({
   resume = false, mapId = "fixed-1", mission = null, level = null, multiplayer = null,
   linkTo = null, onLeave,
@@ -330,11 +338,15 @@ export async function openGame({
   state = resume ? loadSave() : null;
   link = linkTo;
   let briefing = false;
+  let coopBriefing = false;
   if (!state && multiplayer) {
     const seed = Math.floor(Math.random() * MAX_SEED);
-    const map = mapById(multiplayer.mapId, RULES);
-    state = { ...newGame({ rules: RULES, map, seed, sides: multiplayer.sides,
+    const rules = multiplayer.rules || RULES;
+    const map = mapById(multiplayer.mapId, rules);
+    state = { ...newGame({ rules, map, seed, sides: multiplayer.sides,
       phases: multiplayer.phases, setup: multiplayer.setup || null }), seats: multiplayer.seats };
+    if (multiplayer.coop) state.coop = multiplayer.coop;
+    coopBriefing = Boolean(multiplayer.coop);
     save();
   }
   if (!state) {
@@ -363,7 +375,7 @@ export async function openGame({
   aiPersonality = isMultiplayer() ? DEFAULT_PERSONALITY : opponentPersonality(state);
   aiPersonalities = {};
   me = isMultiplayer() ? firstLocalHuman() : HUMAN;
-  els.objective.hidden = !m;
+  els.objective.hidden = !m && !coopMissionOf(state);
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
   facing = {};
@@ -403,6 +415,7 @@ export async function openGame({
     sendStart();
     link.onRejoin = (seat) => sendStart(seat);
   }
+  if (coopBriefing) await showCoopBriefing();
   render();
   nextTurn(false);
 }
@@ -424,7 +437,7 @@ export async function joinGame({ linkTo, start, onLeave }) {
   if (!wired) wire(onLeave);
   link = linkTo;
   me = start.seat;
-  state = clientState(start.view, start.seats);
+  state = clientState(start.view, start.seats, { coop: start.coop, coopSteps: start.steps });
   aiPersonality = DEFAULT_PERSONALITY;
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null,
@@ -434,7 +447,7 @@ export async function joinGame({ linkTo, start, onLeave }) {
   pendingTips = [];
   history = [];
   undosLeft = 0;
-  els.objective.hidden = true;
+  els.objective.hidden = !coopMissionOf(state);
   els.screen.hidden = false;
   els.over.hidden = true;
   preloadArt();
@@ -442,14 +455,17 @@ export async function joinGame({ linkTo, start, onLeave }) {
   fitBoard();
   link.onMessage(onLinkMessage);
   tip("welcome");
+  if (coopMissionOf(state)) await showCoopBriefing();
   render();
   nextTurn(false);
 }
 
 // A client's copy of the game: its own view, with the seats as seen from this device (every
-// other human is remote).
-function clientState(view, seats) {
-  return { ...view, seats: seats.map((seat, p) => ({ ...seat, remote: p !== me })) };
+// other human is remote), and for a co-op mission which one and how far its steps are done
+// (worked out by the host, which has the whole game).
+function clientState(view, seats, { coop = null, coopSteps = null } = {}) {
+  return { ...view, seats: seats.map((seat, p) => ({ ...seat, remote: p !== me })),
+    coop, coopSteps };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -457,6 +473,39 @@ function clientState(view, seats) {
 
 function missionOf(s) {
   return s && s.campaign ? MISSIONS[s.campaign.mission] : null;
+}
+
+// ---------------------------------------------------------------------------------------
+// Co-op campaign missions (coop-campaign.js)
+
+function coopMissionOf(s) {
+  return s && s.coop ? COOP_MISSIONS[s.coop.mission] : null;
+}
+
+const humanTeam = () => state.players.map((_, p) => p).filter((p) => !isAiSeat(p));
+const aiTeam = () => state.players.map((_, p) => p).filter(isAiSeat);
+
+// How far each step of a co-op mission is done: worked out from the whole game on the device
+// holding it, and passed on to the others.
+function coopSteps() {
+  const m = coopMissionOf(state);
+  if (!m || !m.steps) return null;
+  if (isClient()) return state.coopSteps || m.steps.map(() => false);
+  return m.steps.map((step) => step.done(state));
+}
+
+// The mission's story and objective, and who is playing, before it starts.
+function showCoopBriefing() {
+  const m = coopMissionOf(state);
+  const index = state.coop.mission;
+  const humans = humanTeam().map((p) => (p === me ? `${playerName(p)} (you)` : playerName(p)));
+  return confirmDialog({
+    title: `Co-op mission ${index + 1}: ${m.title}`,
+    text: `${m.story}\n\nObjective: ${m.objective}\n\nYour team: ${humans.join(", ")}. ` +
+      `Against you: ${namesOf(aiTeam())}.`,
+    confirm: "Start",
+    cancel: null,
+  });
 }
 
 // The mission's story and objective before it starts, with the units it brings in (the first
@@ -550,8 +599,18 @@ async function handOver(p) {
   ui.messages = [`${playerName(p)}: your turn. Tap one of your units to give it orders.`];
 }
 
-// A mission whose objective is met is won at once; one that can fail is lost at once.
+// A mission whose objective is met is won at once; one that can fail is lost at once. In a
+// co-op mission the whole team wins or loses together.
 function checkObjective() {
+  const coop = coopMissionOf(state);
+  if (coop && !state.result && !isClient()) {
+    const ended = (winners, reason) => {
+      state = { ...state, result: { winner: winners[0], winners, reason, round: state.round } };
+    };
+    if (coop.failed && coop.failed(state)) ended(aiTeam(), "missionFailed");
+    else if (coop.done && coop.done(state)) ended(humanTeam(), "objective");
+    return;
+  }
   const m = missionOf(state);
   if (!m || state.result) return;
   if (m.failed && m.failed(state)) {
@@ -564,6 +623,19 @@ function checkObjective() {
 
 // The Objective button: the mission's story and objective, with its steps ticked off.
 function showObjective() {
+  const coop = coopMissionOf(state);
+  if (coop) {
+    const done = coopSteps();
+    const steps = coop.steps ? `\n\n${coop.steps.map((step, i) =>
+      `${done[i] ? "\u2714" : "\u2022"} ${step.text}`).join("\n")}` : "";
+    confirmDialog({
+      title: `Co-op mission ${state.coop.mission + 1}: ${coop.title}`,
+      text: `Objective: ${coop.objective}${steps}\n\n${coop.story}`,
+      confirm: "OK",
+      cancel: null,
+    });
+    return;
+  }
   const m = missionOf(state);
   if (!m) return;
   const steps = m.steps ? `\n\n${m.steps.map((step) =>
@@ -1472,7 +1544,9 @@ function renderSoundButton() {
 
 function renderBar(view) {
   const m = missionOf(state);
-  const name = m ? `Mission ${state.campaign.mission + 1}: ${m.title}` : view.map.name;
+  const coop = coopMissionOf(state);
+  const name = m ? `Mission ${state.campaign.mission + 1}: ${m.title}`
+    : coop ? `Co-op ${state.coop.mission + 1}: ${coop.title}` : view.map.name;
   els.round.innerHTML = `<span class="map-name">${name} · </span>Round ${view.round}`;
   const others = view.active.filter((p) => p !== me);
   const mine = view.active.includes(me);
@@ -1595,11 +1669,12 @@ function undoButton() {
 function renderPanel(view) {
   const unit = view.units[ui.selectedId];
   if (!unit) {
-    const m = missionOf(state);
+    const m = missionOf(state) || coopMissionOf(state);
     let objective = m ? `<p class="panel-objective">Objective: ${m.objective}</p>` : "";
     if (m && m.steps) {
-      objective += `<ol class="mission-steps">${m.steps.map((step) =>
-        `<li${step.done(state) ? ' class="done"' : ""}>${step.text}</li>`).join("")}</ol>`;
+      const done = coopMissionOf(state) ? coopSteps() : m.steps.map((step) => step.done(state));
+      objective += `<ol class="mission-steps">${m.steps.map((step, i) =>
+        `<li${done[i] ? ' class="done"' : ""}>${step.text}</li>`).join("")}</ol>`;
     }
     const factory = view.players[me].factoryId !== null ? ", or your factory to build" : "";
     const others = state.active.filter((p) => p !== me);
@@ -1682,6 +1757,18 @@ function showMultiplayerOver() {
   else if (mineWon) els.overTitle.textContent = winners.length > 1 ? "Your team wins" : "You win";
   else els.overTitle.textContent = `${namesOf(winners)} ${winners.length > 1 ? "win" : "wins"}`;
   els.overText.textContent = `The last of the others: ${REASONS[reason]} (round ${round}).`;
+  // A co-op mission: won or failed together, and a win recorded on every player's device.
+  const coop = coopMissionOf(state);
+  if (coop) {
+    const won = winners.some((p) => !isAiSeat(p));
+    els.overTitle.textContent = won ? "Mission complete" : "Mission failed";
+    if (won) markCoopMissionDone(state.coop.mission);
+    els.overText.textContent = won
+      ? `Objective met (round ${round}).${state.coop.mission + 1 < COOP_MISSIONS.length
+        ? " The next co-op mission is unlocked." : " Kharon is yours."}`
+      : `${reason === "missionFailed" ? coop.failText : `Your team was beaten: ` +
+        `${REASONS[reason]}.`} (round ${round})`;
+  }
   els.again.hidden = true;
   els.newMap.hidden = true;
   els.overUnlocks.hidden = true;
@@ -1745,7 +1832,8 @@ function showGameOver() {
 function sendStart(only = null) {
   seatsOf(state).forEach((seat, p) => {
     if (seat.remote && (only === null || only === p)) {
-      link.send(p, { type: "start", seat: p, seats: seatsOf(state), view: viewFor(state, p) });
+      link.send(p, { type: "start", seat: p, seats: seatsOf(state), view: viewFor(state, p),
+        coop: state.coop || null, steps: coopSteps() });
     }
   });
 }
@@ -1759,7 +1847,7 @@ function sendUpdates(ref = null, from = null) {
     if (!seat.remote) return;
     const view = viewFor(state, p);
     link.send(p, { type: "update", view, events: visibleEvents(state.events, view),
-      ref: p === from ? ref : null });
+      ref: p === from ? ref : null, steps: coopSteps() });
   });
 }
 
@@ -1798,6 +1886,7 @@ async function hostReceive(message, from) {
       text: error.message.replace(/^Illegal action: /, "Not allowed: ") });
     return;
   }
+  checkObjective();
   sendUpdates(message.ref, from);
   const after = viewFor(state, me);
   showEvents(state.events, before, after);
@@ -1831,7 +1920,8 @@ async function clientReceive(message) {
     waiting.delete(message.ref);
   } else if (message.type === "update") {
     const before = state;
-    state = clientState(message.view, seatsOf(state));
+    state = clientState(message.view, seatsOf(state),
+      { coop: state.coop, coopSteps: message.steps });
     showEvents(message.events, before, state);
     ui.busy = true;
     await showMoves(message.events, before, state);

@@ -139,6 +139,7 @@ Settled with Phil, 29 October 2026; the plan and what is still open are in `docs
 - A player who loses while others play on is knocked out: their units go, their factories become unused with their crystals in store (shared between them; provisional: with no factory left, the crystals go to whoever overran their home), and their turns are skipped. The game ends when one team is left.
 - Players who move later than the first get extra crystals: the second-player bonus shared out by how late their turn comes (provisional).
 - Comms (see Factory upgrades) is the only way to see an ally's ground and units.
+- The co-op campaign, "Red Dust: Together" (Phil, 30 October 2026): five missions for 2 or 3 humans against the AI (Two Fronts, Supply Run, Pincer, Last Stand, Kharon Rising), with shared objectives. A win counts on every player's device; the host can start any mission they have unlocked.
 - Undo is only for games on one device (provisional). Demand surrender is offered whenever the other side is one team of AIs (Phil, 29 October 2026); the AI thinks for up to 8 seconds before answering.
 
 ### Rocky ground

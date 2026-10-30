@@ -39,6 +39,7 @@ const ASSETS = [
   "sound.js?v=0.56",
   "tips.js?v=0.56",
   "campaign.js?v=0.56",
+  "coop-campaign.js?v=0.56",
   "counters.js?v=0.56",
   "difficulty.js?v=0.56",
   "multiplayer.js?v=0.56",

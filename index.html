@@ -39,6 +39,11 @@
       </label>
       <p id="campaign-level-note" class="level-persona"></p>
       <ul id="campaign-list" class="map-recent"></ul>
+      <h2 class="coop-heading">Co-op: Red Dust: Together</h2>
+      <p class="campaign-intro">Missions for 2 or 3 players at the same time, one device each,
+        against the Consortium. The host can play any mission they have unlocked; a win
+        counts on everyone's device.</p>
+      <ul id="coop-list" class="map-recent"></ul>
       <button id="campaign-cancel" class="start-btn" type="button">Back</button>
     </div>
   </div>
@@ -63,6 +68,23 @@
       <div class="map-choices">
         <button id="mp-cancel" class="start-btn" type="button">Back</button>
         <button id="mp-start" class="start-btn confirm-yes" type="button">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="coop-setup" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="coop-title">
+      <h2 id="coop-title"></h2>
+      <p id="coop-objective" class="level-persona"></p>
+      <ul id="coop-players" class="mp-sides"></ul>
+      <div class="map-choices">
+        <button id="coop-fewer" class="start-btn" type="button">Remove a player</button>
+        <button id="coop-more" class="start-btn" type="button">Add a player</button>
+      </div>
+      <p id="coop-problem" class="mp-problem"></p>
+      <div class="map-choices">
+        <button id="coop-cancel" class="start-btn" type="button">Back</button>
+        <button id="coop-start" class="start-btn confirm-yes" type="button">Start</button>
       </div>
     </div>
   </div>

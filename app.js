@@ -8,7 +8,8 @@ import { RULES } from "./rules-config.js?v=0.56";
 import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.56";
 import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.56";
 import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.56";
-import { wireMultiplayer } from "./multiplayer.js?v=0.56";
+import { wireMultiplayer, showCoopSetup } from "./multiplayer.js?v=0.56";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.56";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -113,8 +114,31 @@ function showCampaign() {
     return `<li class="mission${i > done ? " locked" : ""}">` +
       `<span class="mission-name">${i + 1}. ${m.title}${best}</span>${action}</li>`;
   }).join("");
+  const coopDone = coopMissionsDone();
+  document.getElementById("coop-list").innerHTML = COOP_MISSIONS.map((m, i) => {
+    const action = i > coopDone ? `<span class="muted">Locked</span>`
+      : `<button type="button" class="start-btn mission-play" data-coop="${i}">` +
+        `${i < coopDone ? "Replay" : "Play"}</button>`;
+    return `<li class="mission${i > coopDone ? " locked" : ""}">` +
+      `<span class="mission-name">${i + 1}. ${m.title}</span>${action}</li>`;
+  }).join("");
   campaignPicker.hidden = false;
 }
+
+// A co-op mission: choose the players, then start or host it (multiplayer.js).
+document.getElementById("coop-list").addEventListener("click", async (e) => {
+  const button = e.target.closest("button[data-coop]");
+  if (!button) return;
+  const replace = !hasSavedGame() || await confirmDialog({
+    title: "Start this mission?",
+    text: "You have a game in progress. Starting the mission ends it.",
+    confirm: "Start",
+    cancel: "Keep it",
+  });
+  if (!replace) return;
+  campaignPicker.hidden = true;
+  showCoopSetup(Number(button.dataset.coop));
+});
 // Help turns the tips back on: they show again as you play, starting with this one.
 document.getElementById("menu-help").addEventListener("click", () => {
   resetTips();

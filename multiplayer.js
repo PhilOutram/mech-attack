@@ -12,6 +12,7 @@ import { hostGame, joinGame as joinRemote } from "./net.js?v=0.56";
 import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.56";
 import { PLAYER_COLOURS } from "./board.js?v=0.56";
 import { RULES } from "./rules-config.js?v=0.56";
+import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.56";
 
 const MIN_SIDES = 2;
 const MAX_TURN_SIDES = 4;
@@ -59,6 +60,67 @@ export function wireMultiplayer({ leaveTo }) {
     e.preventDefault();
     join($("mp-code").value);
   });
+  $("coop-cancel").addEventListener("click", () => { $("coop-setup").hidden = true; });
+  $("coop-start").addEventListener("click", startCoop);
+  $("coop-setup").addEventListener("change", (e) => {
+    const { human } = e.target.dataset;
+    if (human !== undefined) coop.where[human] = e.target.value;
+    renderCoop();
+  });
+  $("coop-more").addEventListener("click", () => {
+    coop.where.push(REMOTE);
+    renderCoop();
+  });
+  $("coop-fewer").addEventListener("click", () => {
+    coop.where.pop();
+    renderCoop();
+  });
+}
+
+// ---------------------------------------------------------------------------------------
+// A co-op campaign mission: how many humans, and where each plays
+
+const coop = { mission: 0, where: [HERE, REMOTE] };
+
+export function showCoopSetup(mission) {
+  const [fewest] = COOP_MISSIONS[mission].humans;
+  coop.mission = mission;
+  coop.where = [HERE, ...Array.from({ length: fewest - 1 }, () => REMOTE)];
+  renderCoop();
+  $("coop-setup").hidden = false;
+}
+
+function renderCoop() {
+  const m = COOP_MISSIONS[coop.mission];
+  const plan = coopPlan(coop.mission, coop.where.length);
+  $("coop-title").textContent = `Co-op mission ${coop.mission + 1}: ${m.title}`;
+  $("coop-objective").textContent = `${m.objective} Against you: ` +
+    `${plan.seats.length - coop.where.length} AI side` +
+    `${plan.seats.length - coop.where.length > 1 ? "s" : ""}.`;
+  $("coop-players").innerHTML = coop.where.map((where, p) => `<li>${colourChip(p)}` +
+    `<select data-human="${p}">${kindOptions(where, true)}</select></li>`).join("");
+  $("coop-fewer").disabled = coop.where.length <= m.humans[0];
+  $("coop-more").disabled = coop.where.length >= m.humans[1];
+  const here = coop.where.includes(HERE);
+  $("coop-problem").textContent = here ? "" : "At least one player must be on this device.";
+  $("coop-start").disabled = !here;
+  $("coop-start").textContent = coop.where.includes(REMOTE) ? "Host game" : "Start";
+}
+
+function startCoop() {
+  const plan = coopPlan(coop.mission, coop.where.length);
+  plan.seats = plan.seats.map((seat, p) => (p < coop.where.length
+    ? { kind: "human", remote: coop.where[p] === REMOTE } : seat));
+  chosen = plan;
+  $("coop-setup").hidden = true;
+  const remoteSeats = plan.seats.map((seat, s) => (seat.remote ? s : null))
+    .filter((s) => s !== null);
+  if (!remoteSeats.length) {
+    hooks.leaveTo(false);
+    openGame({ multiplayer: chosen, onLeave: () => hooks.leaveTo(true) });
+    return;
+  }
+  showLobby(remoteSeats);
 }
 
 // ---------------------------------------------------------------------------------------

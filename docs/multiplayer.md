@@ -84,9 +84,11 @@ Demand surrender is offered in any multiplayer game where the other side is one 
 
 v0.54: AI sides in games with 3 or more sides use personalities evolved in 3- and 4-sided free-for-alls (`ai-personalities-multi.js`; report in `docs/evolution-multi.md`), scored by finishing place. Against the hand-tuned AI on every other side, the best five score 48% to 65% (50% means as good) and win outright 9 to 16 times in 40 games, against about 12 by chance. All five go for the nearest and weakest opponent (targetNearness about 1.5, targetWeakness 1.1 to 1.6), with some weight on whoever threatens their factories (targetThreat 0.7 to 1.2); none chose to gang up on the strongest. They build mostly Infantry (about 4 factory captures a game), Attack Helicopters and Crystal labs. Co-op games against an AI team use the same personalities; they were not bred for that, so co-op balance needs watching.
 
-## Co-op campaigns (planned, Phil, 29 October 2026)
+## Co-op campaigns (Phil, 29 and 30 October 2026)
 
-Campaign missions for 2 or 3 humans playing at the same time against the AI. How they would work:
+Built in v0.57 as `coop-campaign.js`: "Red Dust: Together", five missions for 2 or 3 humans at the same time against the AI, listed under the solo missions in the Campaign menu. The host picks a mission (any their device has unlocked) and who plays where; the others join with the code. Each mission sets its AI sides (scaled to the number of humans, as co-op games are), any special starting units or upgrades, and its objective; the team wins or loses together, and a win is recorded on every player's device. Each mission is played on the same generated map every time for its number of sides.
+
+The plan it was built from:
 - A co-op campaign is its own list of missions, with its own progress, started from the Campaign menu. The host picks a mission; the others join with the code, as for any co-op game.
 - Each mission names its sides: the humans (each with a home and starting units), and one or more AI sides with their own homes, units, upgrades and build mix, like the solo missions' `setup`, `aiMix` and `boss`. Maps come from the 3- to 6-sided generator, reshaped where a mission needs it (as Over the Mountains and The Pass are).
 - A mission can be written for 2 humans and also allow 3; with 3, it adds starting units for the AI by the same scaling as co-op games, or adds a second AI side.
@@ -103,7 +105,7 @@ Settled with Phil (30 October 2026):
 - Each human always has their own home and crystals.
 - A human who is knocked out keeps watching (and can advise) until the mission ends.
 
-Still to decide: whose progress unlocks co-op missions. Suggested: the host can start any mission their device has unlocked, others join whatever their own progress, and a win is recorded on every player's device, so anyone can host the next mission.
+- The host can start any mission their device has unlocked, the others join whatever their own progress, and a win is recorded on every player's device, so anyone can host the next mission.
 
 ## Still to decide (provisional for now)
 
