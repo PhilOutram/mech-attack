@@ -611,6 +611,13 @@ h1 {
   color: #8a8f98;
 }
 
+/* Your turn is ended but others in your phase play on: shown pressed, and tapping it takes
+   the turn back. */
+.end-turn.ended {
+  background-color: var(--accent);
+  color: var(--bg);
+}
+
 .end-turn:disabled,
 .order:disabled {
   opacity: 0.35;

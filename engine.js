@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.68";
+} from "./hex.js?v=0.69";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -826,6 +826,7 @@ const HANDLERS = {
   build: applyBuild,
   upgrade: applyUpgrade,
   endTurn: applyEndTurn,
+  resumeTurn: applyResumeTurn,
   resign: applyResign,
 };
 
@@ -834,9 +835,12 @@ export function applyAction(state, action) {
   if (state.result) throw new Error("The game is over");
   const handler = HANDLERS[action.type];
   if (!handler) throw new Error(`Unknown action: ${action.type}`);
-  // Resigning can happen at any time; everything else only in the player's own turn.
+  // Resigning can happen at any time, and taking back an ended turn after it has ended;
+  // everything else only in the player's own turn.
   const actor = action.player ?? state.current;
-  if (action.type !== "resign" && !state.active.includes(actor)) illegal("not your turn");
+  if (!["resign", "resumeTurn"].includes(action.type) && !state.active.includes(actor)) {
+    illegal("not your turn");
+  }
 
   const next = cloneState(state);
   next.events = [];
@@ -1271,22 +1275,46 @@ function applyResign(state, { player = state.current }) {
   settle(state, [{ p: player, reason: "resigned" }]);
 }
 
-// A player ends their turn. Their units next to a factory unload and their Crystal labs pay
-// out; once everyone in the phase has ended their turn, crystals grow and the next phase
-// begins.
+// A player ends their turn. Once everyone in the phase has ended their turn, their units next
+// to a factory unload, their Crystal labs pay out, crystals grow and the next phase begins.
+// Until then a player who has ended can take it back (resumeTurn), so nothing of theirs
+// happens before the phase ends.
 function applyEndTurn(state, action, actor) {
-  unloadAtFactory(state, actor);
-  labIncome(state, actor);
   state.active = state.active.filter((p) => p !== actor);
   if (state.active.length) {
     state.current = state.active[0];
     state.events.push({ type: "endTurn", player: actor });
     return;
   }
+  for (const p of phasePlayers(state)) {
+    unloadAtFactory(state, p);
+    labIncome(state, p);
+  }
   crystalsBetweenTurns(state);
   state.hits = {};
   state.events.push({ type: "endTurn", player: actor });
   nextPhase(state);
+}
+
+// The players of the current phase still in the game.
+function phasePlayers(state) {
+  return state.phases[state.phaseIndex].filter((p) => !state.players[p].out);
+}
+
+// Whether a player has ended their turn while others in the same phase play on, so can still
+// take it back (Phil, 30 October 2026).
+export function canResumeTurn(state, player) {
+  return !state.result && state.active.length > 0 && !state.active.includes(player) &&
+    phasePlayers(state).includes(player);
+}
+
+// A player takes back their ended turn and plays on with the others in the phase. Not
+// offered by legalActions, so the AI and the simulator never choose it.
+function applyResumeTurn(state, action, actor) {
+  if (!canResumeTurn(state, actor)) illegal("your turn is not waiting on anyone");
+  state.active = phasePlayers(state).filter((p) => p === actor || state.active.includes(p));
+  state.current = state.active[0];
+  state.events.push({ type: "resumeTurn", player: actor });
 }
 
 // Starts the next phase that has a player still in the game, turning the round when the

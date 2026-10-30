@@ -1,8 +1,16 @@
-export const VERSION = "v0.68";
+export const VERSION = "v0.69";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.69",
+    date: "2026-10-30",
+    notes: [
+      "Co-op: tap Turn ended to take your turn back while the others are still playing.",
+      "Harvesters unload and labs pay out once everyone in the phase has ended.",
+    ],
+  },
   {
     version: "v0.68",
     date: "2026-10-30",

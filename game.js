@@ -7,31 +7,31 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.68";
-import { mapById, seededRandom } from "./maps.js?v=0.68";
+import { RULES } from "./rules-config.js?v=0.69";
+import { mapById, seededRandom } from "./maps.js?v=0.69";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
-  defenceOf, darkTargets, canCapture, allied, crystalTargets,
+  defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.68";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.68";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.68";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.68";
-import { distance } from "./hex.js?v=0.68";
+} from "./engine.js?v=0.69";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.69";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.69";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.69";
+import { distance } from "./hex.js?v=0.69";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.68";
-import { confirmDialog } from "./dialog.js?v=0.68";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.68";
-import { showTip, showNote } from "./tips.js?v=0.68";
+} from "./board.js?v=0.69";
+import { confirmDialog } from "./dialog.js?v=0.69";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.69";
+import { showTip, showNote } from "./tips.js?v=0.69";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.68";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.68";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.68";
+} from "./campaign.js?v=0.69";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.69";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.69";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -43,7 +43,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.68";
+const ASSET_VERSION = "0.69";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
@@ -565,7 +565,10 @@ async function nextTurn(announce = true) {
   render();
   if (!myTurn()) {
     const waiting = state.active.filter((p) => !isLocalHuman(p));
-    if (waiting.length && isMultiplayer()) say(`Waiting for ${namesOf(waiting)}.`);
+    if (waiting.length && isMultiplayer()) {
+      say(`Waiting for ${namesOf(waiting)}.` +
+        (mayResume() ? " Tap Turn ended to take your turn back." : ""));
+    }
     render();
     return;
   }
@@ -692,7 +695,13 @@ function wire(onLeave) {
     ? { mission: state.campaign.mission + 1, level: state.level, onLeave }
     : { mapId: newMapId(shapeOf(state.map.id)), level: state.level, onLeave }));
   els.objective.addEventListener("click", showObjective);
+  // End turn; in a phase shared with other players, tapping it again takes the turn back
+  // while they are still playing.
   els.endTurn.addEventListener("click", async () => {
+    if (mayResume()) {
+      await act({ type: "resumeTurn" });
+      return;
+    }
     if (!myTurn()) return;
     if (await act({ type: "endTurn" }) && !isClient()) nextTurn();
   });
@@ -718,6 +727,11 @@ function myTurn() {
     isLocalHuman(me);
 }
 
+// Whether you have ended your turn while others in your phase play on, so can take it back.
+function mayResume() {
+  return Boolean(state) && !ui.busy && isLocalHuman(me) && canResumeTurn(state, me);
+}
+
 // ---------------------------------------------------------------------------------------
 // Acting
 
@@ -735,8 +749,9 @@ async function act(request) {
   }
   checkObjective();
   sendUpdates();
-  // Undo can step back through this turn's actions; ending the turn closes them off.
-  if (action.type === "endTurn") history = [];
+  // Undo can step back through this turn's actions; ending the turn (or taking it back)
+  // closes them off.
+  if (action.type === "endTurn" || action.type === "resumeTurn") history = [];
   else history.push(previous);
   const after = viewFor(state, me);
   showEvents(state.events, before, after);
@@ -1225,6 +1240,8 @@ function showEvents(events, before, after) {
       any = true;
       lines.push(`${unitName(after, e.transporterId)} dropped off ` +
         `${RULES.units[after.units[e.unitId]?.type || "infantry"].name}.`);
+    } else if (e.type === "resumeTurn" && e.player !== me) {
+      lines.push(`${playerName(e.player)} took their turn back and is playing on.`);
     } else if (e.type === "labIncome" && e.player === me) {
       lines.push(`Crystal labs made ${e.amount} crystals.`);
     } else if (e.type === "knockedOut") {
@@ -1658,7 +1675,12 @@ function renderBar(view) {
     (u.upgrades || []).includes("lab")).length;
   els.crystals.innerHTML = `${view.players[me].crystals}` +
     (labs ? `<small class="crystal-income">+${labs * lab.income}/turn</small>` : "");
-  els.endTurn.disabled = !myTurn();
+  const resumable = mayResume();
+  els.endTurn.disabled = !myTurn() && !resumable;
+  els.endTurn.textContent = resumable ? "Turn ended" : "End turn";
+  els.endTurn.classList.toggle("ended", resumable);
+  els.endTurn.setAttribute("aria-pressed", String(resumable));
+  els.endTurn.title = resumable ? "Tap to take your turn back" : "";
 }
 
 const HITS = { ground: "ground", air: "air only", both: "ground and air" };
@@ -1956,14 +1978,17 @@ function sendUpdates(ref = null, from = null) {
   });
 }
 
+// Events every player hears about, wherever they happen.
+const EVENTS_FOR_ALL = ["endTurn", "resumeTurn", "newRound", "knockedOut", "gameOver"];
+
 // The events a player could see: those on hexes they can see, or about their own units.
 function visibleEvents(events, view) {
   const hexes = (e) => [e.at, e.from, e.to, ...(e.path || [])].filter(Boolean);
   const theirs = (id) => view.units[id] && view.units[id].owner === view.viewer;
   return events.filter((e) => e.player === view.viewer || theirs(e.unitId) ||
-    theirs(e.targetId) || hexes(e).some((k) => view.visible[k]) || e.type === "endTurn" ||
-    e.type === "newRound" || e.type === "knockedOut" || e.type === "gameOver" ||
-    (e.unitId && view.units[e.unitId]) || (e.targetId && view.units[e.targetId]));
+    theirs(e.targetId) || hexes(e).some((k) => view.visible[k]) ||
+    EVENTS_FOR_ALL.includes(e.type) || (e.unitId && view.units[e.unitId]) ||
+    (e.targetId && view.units[e.targetId]));
 }
 
 // Host: one change at a time, so actions from several devices never overlap.

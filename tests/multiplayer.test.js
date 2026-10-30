@@ -4,7 +4,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyAction, legalActions, viewFor, attackTargets, reachableHexes, upgradeOptions,
-  harvestTargets,
+  harvestTargets, canResumeTurn,
 } from "../engine.js";
 import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js";
 import { scenario, MORE_FACTORIES } from "./helpers.js";
@@ -50,6 +50,40 @@ describe("turns with more than two sides", () => {
       /not your turn/);
     s = play(s, as(BLUE, END));
     assert.equal(s.current, YELLOW);
+  });
+
+  test("a player who has ended can take it back while others in the phase play on", () => {
+    const sides = [{ team: 0 }, { team: 0 }, { team: 1 }];
+    let s = scenario({
+      sides, phases: [[BLUE, GREEN], [YELLOW]],
+      units: [unit("b", "tank", BLUE, "1,2"), unit("g", "tank", GREEN, "-1,-2")],
+    });
+    s = play(s, as(GREEN, END));
+    assert.ok(canResumeTurn(s, GREEN));
+    s = play(s, as(GREEN, { type: "resumeTurn" }));
+    assert.deepEqual(s.active, [BLUE, GREEN], "green plays on, in phase order");
+    s = play(s, as(GREEN, { type: "move", unitId: "g", to: "-1,-1" }));
+    assert.equal(s.units.g.at, "-1,-1");
+    // Blue has not ended, so has nothing to take back; once everyone has, the phase is over.
+    assert.throws(() => play(s, as(BLUE, { type: "resumeTurn" })), /not waiting/);
+    s = play(s, as(GREEN, END), as(BLUE, END));
+    assert.equal(s.current, YELLOW);
+    assert.throws(() => play(s, as(GREEN, { type: "resumeTurn" })), /not waiting/);
+  });
+
+  test("units unload and labs pay out when the whole phase ends, not at each end turn", () => {
+    const sides = [{ team: 0 }, { team: 0 }, { team: 1 }];
+    let s = scenario({
+      sides, phases: [[BLUE, GREEN], [YELLOW]],
+      units: [unit("h", "lightHarvester", GREEN, "0,-5", { carrying: 40 }),
+        unit("b", "tank", BLUE, "1,2")],
+    });
+    const start = s.players[GREEN].crystals;
+    s = play(s, as(GREEN, END));
+    assert.equal(s.units.h.carrying, 40, "nothing happens until the phase ends");
+    s = play(s, as(BLUE, END));
+    assert.equal(s.units.h.carrying, 0);
+    assert.equal(s.players[GREEN].crystals, start + 40);
   });
 
   test("first come, first served: the later of two clashing moves is refused", () => {
