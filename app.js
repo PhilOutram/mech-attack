@@ -1,17 +1,17 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.73";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.73";
-import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.73";
-import { confirmDialog } from "./dialog.js?v=0.73";
-import { showTip, resetTips } from "./tips.js?v=0.73";
-import { RULES } from "./rules-config.js?v=0.73";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.73";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.73";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.73";
+import { VERSION, CHANGELOG } from "./version.js?v=0.74";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.74";
+import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.74";
+import { confirmDialog } from "./dialog.js?v=0.74";
+import { showTip, resetTips } from "./tips.js?v=0.74";
+import { RULES } from "./rules-config.js?v=0.74";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.74";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.74";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.74";
 import {
   wireMultiplayer, showCoopSetup, rejoinGame, resumeHosted,
-} from "./multiplayer.js?v=0.73";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.73";
+} from "./multiplayer.js?v=0.74";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.74";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -182,7 +182,8 @@ function showCampaign() {
       : `<button type="button" class="start-btn mission-play" data-coop="${i}">` +
         `${i < coopDone ? "Replay" : "Play"}</button>`;
     return `<li class="mission${i > coopDone ? " locked" : ""}">` +
-      `<span class="mission-name">${i + 1}. ${m.title}</span>${action}</li>`;
+      `<span class="mission-name">${i + 1}. ${m.title}` +
+      `<span class="mission-players">${m.humans} players</span></span>${action}</li>`;
   }).join("");
   campaignPicker.hidden = false;
 }

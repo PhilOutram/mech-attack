@@ -3,8 +3,8 @@
 // crystals; the team wins or loses together, and a human who is knocked out keeps watching.
 // The host can start any mission their device has unlocked; a win is recorded on every
 // player's device, so anyone can host the next one.
-import { RULES } from "./rules-config.js?v=0.73";
-import { shapesForSides } from "./maps.js?v=0.73";
+import { RULES } from "./rules-config.js?v=0.74";
+import { shapesForSides } from "./maps.js?v=0.74";
 
 const PROGRESS_KEY = "mech-attack.coop-campaign";
 const HUMAN_TEAM = 0;
@@ -44,16 +44,18 @@ const teamCrystals = (state) => humansOf(state)
   .reduce((n, p) => n + state.players[p].crystals, 0);
 
 // An AI side scaled to the humans it faces: the usual start (with the second player's extra
-// crystals, as it moves after the humans) times the humans per AI side, a Crystal lab when
-// that is 2 or more, plus any extra units for the mission.
+// crystals, as it moves after the humans) for each human per AI side - the starting units
+// once for each whole human, the crystals for the exact share (3 humans against 2 AI sides:
+// the units once, half as many crystals again) - a Crystal lab when that is 2 or more, plus
+// any extra units for the mission.
 function scaledAi(level, humans, aiCount, { extra = [], upgrades = [], aiMix = null } = {}) {
   const { crystals, units, secondPlayerCrystals } = RULES.start;
-  const scale = Math.max(1, Math.round(humans / aiCount));
+  const share = Math.max(1, humans / aiCount);
   return {
     level,
-    units: [...Array.from({ length: scale }, () => units).flat(), ...extra],
-    crystals: (crystals + (secondPlayerCrystals || 0)) * scale,
-    upgrades: [...upgrades, ...(scale >= HUMANS_PER_AI_FOR_LAB ? ["lab"] : [])],
+    units: [...Array.from({ length: Math.floor(share) }, () => units).flat(), ...extra],
+    crystals: Math.round((crystals + (secondPlayerCrystals || 0)) * share),
+    upgrades: [...upgrades, ...(share >= HUMANS_PER_AI_FOR_LAB ? ["lab"] : [])],
     aiMix,
   };
 }
@@ -94,7 +96,7 @@ export const COOP_MISSIONS = [
   },
   {
     title: "Pincer",
-    humans: 2,
+    humans: 3,
     story: "The Consortium's forward base sits between your homes, guarded by a Heavy " +
       "Cannon. Squeeze it from every side at once, so the cannon cannot turn on any one " +
       "of you.",
@@ -124,7 +126,7 @@ export const COOP_MISSIONS = [
   },
   {
     title: "Kharon Rising",
-    humans: 2,
+    humans: 3,
     story: "The Consortium's last two strongholds stand between you and Kharon. Their best " +
       "commanders lead them, with Turrets round their factories. Take them both.",
     objective: "Overrun both Consortium home factories.",

@@ -1,8 +1,16 @@
-export const VERSION = "v0.73";
+export const VERSION = "v0.74";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.74",
+    date: "2026-10-30",
+    notes: [
+      "Co-op: Pincer and Kharon Rising are now 3-player missions.",
+      "The campaign menu keeps the same size and place on both tabs.",
+    ],
+  },
   {
     version: "v0.73",
     date: "2026-10-30",

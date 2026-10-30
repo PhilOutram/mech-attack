@@ -1443,6 +1443,23 @@ h1 {
 }
 
 /* The highest rank a campaign mission has been won at, under its name. */
+/* The campaign picker keeps one size and place whichever tab is showing: the missions
+   scroll inside it. */
+#campaign-picker .map-picker-card {
+  height: min(40rem, 100%);
+  align-content: start;
+}
+
+/* How many players a co-op mission is for, under its name. */
+.mission-players {
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
 .mission-rank {
   display: block;
   font-family: system-ui, sans-serif;
