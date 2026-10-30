@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel, distance } from "./hex.js?v=0.71";
-import { unitStats, defenceOf } from "./engine.js?v=0.71";
+import { parseKey, toPixel, distance, neighbourKeys } from "./hex.js?v=0.72";
+import { unitStats, defenceOf } from "./engine.js?v=0.72";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -408,6 +408,29 @@ function drawBoom(effect) {
     image("units/sonic-boom.png", 0, 0, width, height) + "</g>";
 }
 
+// The outside edge of a group of hexes, as SVG path data: each side of a hex in the group
+// whose neighbour is not in it. A side runs along the line halfway between the two centres.
+function outline(hexes) {
+  const inside = new Set(hexes);
+  let d = "";
+  for (const k of hexes) {
+    const [ax, ay] = hexCentre(k);
+    for (const n of neighbourKeys(k)) {
+      if (inside.has(n)) continue;
+      const [bx, by] = hexCentre(n);
+      const apart = Math.hypot(bx - ax, by - ay);
+      // Half a side (a side is as long as the hex's radius), across the line to n.
+      const sx = (-(by - ay) / apart) * HEX_SIZE / 2;
+      const sy = ((bx - ax) / apart) * HEX_SIZE / 2;
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2;
+      d += `M${(mx - sx).toFixed(1)} ${(my - sy).toFixed(1)}` +
+        `L${(mx + sx).toFixed(1)} ${(my + sy).toFixed(1)}`;
+    }
+  }
+  return d;
+}
+
 function drawEffects(effects) {
   let out = "";
   for (const effect of effects) {
@@ -415,10 +438,10 @@ function drawEffects(effects) {
       out += drawBoom(effect);
       continue;
     }
-    // Newly turned-over ground flashes.
+    // Newly turned-over ground: a flashing line round its edge.
     if (effect.kind === "reveal") {
-      const extra = `class="reveal-flash" style="${effectTiming(effect)}"`;
-      for (const k of effect.hexes) out += polygon(k, { fill: "#fff", extra });
+      out += `<path d="${outline(effect.hexes)}" class="reveal-edge" ` +
+        `style="${effectTiming(effect)}"/>`;
       continue;
     }
     const [x, y] = hexCentre(effect.at);

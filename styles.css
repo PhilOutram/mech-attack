@@ -745,15 +745,20 @@ h1 {
   to { transform: scale(1.1); opacity: 1; }
 }
 
-/* Newly turned-over ground flashes three times (game.js REVEAL_FLASH_MS). */
-.reveal-flash {
+/* The edge of newly turned-over ground flashes green six times (game.js REVEAL_FLASH_MS). */
+.reveal-edge {
+  fill: none;
+  stroke: #5dff7a;
+  stroke-width: 6px;
+  stroke-linecap: round;
   opacity: 0;
   pointer-events: none;
-  animation: reveal-flash 0.4s ease-in-out 3;
+  filter: drop-shadow(0 0 4px rgba(93, 255, 122, 0.8));
+  animation: reveal-edge 0.5s ease-in-out 6;
 }
 
-@keyframes reveal-flash {
-  50% { opacity: 0.55; }
+@keyframes reveal-edge {
+  50% { opacity: 1; }
 }
 
 /* A blast that waits for a sonic boom's wave: hidden until its animation starts. */
@@ -1518,8 +1523,13 @@ h1 {
 
 @media (prefers-reduced-motion: reduce) {
   .boom-wave,
-  .reveal-flash {
+  .reveal-edge {
     animation: none;
+  }
+
+  /* Without the flashing, the edge of new ground shows steadily instead. */
+  .reveal-edge {
+    opacity: 1;
   }
 
   .boom {
