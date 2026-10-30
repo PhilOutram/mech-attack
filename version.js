@@ -1,8 +1,16 @@
-export const VERSION = "v0.61";
+export const VERSION = "v0.62";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.62",
+    date: "2026-10-30",
+    notes: [
+      "The Turret and Twin Turret have bold black outlines, so they read clearly at board " +
+        "size, and sharper art at twice the resolution.",
+    ],
+  },
   {
     version: "v0.61",
     date: "2026-10-30",
