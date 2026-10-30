@@ -3,8 +3,8 @@
 // crystals; the team wins or loses together, and a human who is knocked out keeps watching.
 // The host can start any mission their device has unlocked; a win is recorded on every
 // player's device, so anyone can host the next one.
-import { RULES } from "./rules-config.js?v=0.72";
-import { shapesForSides } from "./maps.js?v=0.72";
+import { RULES } from "./rules-config.js?v=0.73";
+import { shapesForSides } from "./maps.js?v=0.73";
 
 const PROGRESS_KEY = "mech-attack.coop-campaign";
 const HUMAN_TEAM = 0;
@@ -23,7 +23,7 @@ const HUMANS_PER_AI_FOR_LAB = 2;
 
 // Mission fields:
 // - title, story, objective, failText (shown if failed() ends it).
-// - humans: [fewest, most] humans who can play it.
+// - humans: how many humans play it (Phil, 30 October 2026: set by the mission, not chosen).
 // - ais(humans): the AI sides, each { level, units, crystals, upgrades, aiMix }.
 // - start(humans, i) (optional): human i's starting { units, crystals, upgrades }.
 // - rules: rule changes.
@@ -61,7 +61,7 @@ function scaledAi(level, humans, aiCount, { extra = [], upgrades = [], aiMix = n
 export const COOP_MISSIONS = [
   {
     title: "Two Fronts",
-    humans: [2, 3],
+    humans: 2,
     story: "The Consortium has found your new bases and is striking at all of them at once. " +
       "Hold your own ground and send help where it is needed. Buy Comms in your factories " +
       "and you will see what your partners see.",
@@ -76,7 +76,7 @@ export const COOP_MISSIONS = [
   },
   {
     title: "Supply Run",
-    humans: [2, 3],
+    humans: 2,
     story: "Only Blue's factory has an Airfield, and a Chinook to go with it. The others sit " +
       "on rich crystal fields with nothing to fly. Work together: ferry units where they are " +
       "needed and keep the harvesters safe.",
@@ -94,7 +94,7 @@ export const COOP_MISSIONS = [
   },
   {
     title: "Pincer",
-    humans: [2, 3],
+    humans: 2,
     story: "The Consortium's forward base sits between your homes, guarded by a Heavy " +
       "Cannon. Squeeze it from every side at once, so the cannon cannot turn on any one " +
       "of you.",
@@ -110,7 +110,7 @@ export const COOP_MISSIONS = [
   },
   {
     title: "Last Stand",
-    humans: [2, 3],
+    humans: 2,
     story: "Two Consortium armies are converging on your colony. There is nowhere to fall " +
       "back to. Every factory must hold until help arrives.",
     objective: `Hold every one of your home factories for ${LAST_STAND_ROUNDS} rounds ` +
@@ -124,7 +124,7 @@ export const COOP_MISSIONS = [
   },
   {
     title: "Kharon Rising",
-    humans: [2, 3],
+    humans: 2,
     story: "The Consortium's last two strongholds stand between you and Kharon. Their best " +
       "commanders lead them, with Turrets round their factories. Take them both.",
     objective: "Overrun both Consortium home factories.",

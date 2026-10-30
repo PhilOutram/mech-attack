@@ -86,7 +86,7 @@ v0.54: AI sides in games with 3 or more sides use personalities evolved in 3- an
 
 ## Co-op campaigns (Phil, 29 and 30 October 2026)
 
-Built in v0.57 as `coop-campaign.js`: "Red Dust: Together", five missions for 2 or 3 humans at the same time against the AI, listed under the solo missions in the Campaign menu. The host picks a mission (any their device has unlocked) and who plays where; the others join with the code. Each mission sets its AI sides (scaled to the number of humans, as co-op games are), any special starting units or upgrades, and its objective; the team wins or loses together, and a win is recorded on every player's device. Each mission is played on the same generated map every time for its number of sides.
+Built in v0.57 as `coop-campaign.js`: "Red Dust: Together", five missions for 2 humans at the same time against the AI, on the Multi-player tab of the Campaign menu. Each mission sets how many humans play it (Phil, 30 October 2026: the number is not chosen). The host picks a mission (any their device has unlocked) and who plays where; the others join with the code. Each mission sets its AI sides (scaled to the number of humans, as co-op games are), any special starting units or upgrades, and its objective; the team wins or loses together, and a win is recorded on every player's device. Each mission is played on the same generated map every time for its number of sides.
 
 The plan it was built from:
 - A co-op campaign is its own list of missions, with its own progress, started from the Campaign menu. The host picks a mission; the others join with the code, as for any co-op game.
@@ -97,9 +97,9 @@ The plan it was built from:
 Mission ideas, each built round working together:
 1. **Two Fronts** (2 humans, 1 AI): Green attacks both homes at once; each human must hold while sending help to the other. Teaches Comms: buy it to see where the attack is coming.
 2. **Supply Run** (2 humans): one player has the only factory with an Airfield, the other the crystals; Chinooks ferry units and harvested crystals between them.
-3. **Pincer** (2 or 3 humans, 1 AI): the AI's base sits between the humans' homes; overrun it from two sides before its boss (a Heavy Cannon) can turn on either.
+3. **Pincer** (2 humans, 1 AI): the AI's base sits between the humans' homes; overrun it from two sides before its boss (a Heavy Cannon) can turn on either.
 4. **Last Stand** (3 humans, 2 AIs): hold three factories for 15 rounds against two AI armies; any one factory lost loses the mission.
-5. **Kharon Rising** (2 or 3 humans, 2 AIs): the finale, all units, the two strongest AI personalities.
+5. **Kharon Rising** (2 humans, 2 AIs): the finale, all units, the two strongest AI personalities.
 
 Settled with Phil (30 October 2026):
 - Each human always has their own home and crystals.

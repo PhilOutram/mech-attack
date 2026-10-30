@@ -1,8 +1,16 @@
-export const VERSION = "v0.72";
+export const VERSION = "v0.73";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.73",
+    date: "2026-10-30",
+    notes: [
+      "Campaign menu: Solo and Multi-player tabs instead of one long list.",
+      "Co-op missions are for 2 players; the number of players is no longer chosen.",
+    ],
+  },
   {
     version: "v0.72",
     date: "2026-10-30",

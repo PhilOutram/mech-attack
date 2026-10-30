@@ -6,13 +6,13 @@
 // - Same time (co-op): 2 to 4 humans, one device each, on one team against one or two AI sides.
 //   The humans play at the same time; then the AI team takes its turn. The AI starts with more
 //   for each human it faces (see coopSetup).
-import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.72";
-import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.72";
-import { hostGame, joinGame as joinRemote } from "./net.js?v=0.72";
-import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.72";
-import { PLAYER_COLOURS } from "./board.js?v=0.72";
-import { RULES } from "./rules-config.js?v=0.72";
-import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.72";
+import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.73";
+import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.73";
+import { hostGame, joinGame as joinRemote } from "./net.js?v=0.73";
+import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.73";
+import { PLAYER_COLOURS } from "./board.js?v=0.73";
+import { RULES } from "./rules-config.js?v=0.73";
+import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.73";
 
 const MIN_SIDES = 2;
 const MAX_TURN_SIDES = 4;
@@ -67,25 +67,17 @@ export function wireMultiplayer({ leaveTo }) {
     if (human !== undefined) coop.where[human] = e.target.value;
     renderCoop();
   });
-  $("coop-more").addEventListener("click", () => {
-    coop.where.push(REMOTE);
-    renderCoop();
-  });
-  $("coop-fewer").addEventListener("click", () => {
-    coop.where.pop();
-    renderCoop();
-  });
 }
 
 // ---------------------------------------------------------------------------------------
-// A co-op campaign mission: how many humans, and where each plays
+// A co-op campaign mission: where each of its humans plays (the mission sets how many)
 
 const coop = { mission: 0, where: [HERE, REMOTE] };
 
 export function showCoopSetup(mission) {
-  const [fewest] = COOP_MISSIONS[mission].humans;
   coop.mission = mission;
-  coop.where = [HERE, ...Array.from({ length: fewest - 1 }, () => REMOTE)];
+  coop.where = [HERE, ...Array.from({ length: COOP_MISSIONS[mission].humans - 1 },
+    () => REMOTE)];
   renderCoop();
   $("coop-setup").hidden = false;
 }
@@ -99,8 +91,6 @@ function renderCoop() {
     `${plan.seats.length - coop.where.length > 1 ? "s" : ""}.`;
   $("coop-players").innerHTML = coop.where.map((where, p) => `<li>${colourChip(p)}` +
     `<select data-human="${p}">${kindOptions(where, true)}</select></li>`).join("");
-  $("coop-fewer").disabled = coop.where.length <= m.humans[0];
-  $("coop-more").disabled = coop.where.length >= m.humans[1];
   const here = coop.where.includes(HERE);
   $("coop-problem").textContent = here ? "" : "At least one player must be on this device.";
   $("coop-start").disabled = !here;

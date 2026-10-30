@@ -16,9 +16,9 @@ function missionGame(index, humans) {
     phases: plan.phases, setup: plan.setup }) };
 }
 
-test("every co-op mission sets up for each number of humans it allows", () => {
+test("every co-op mission sets up for its number of humans", () => {
   COOP_MISSIONS.forEach((m, index) => {
-    for (let humans = m.humans[0]; humans <= m.humans[1]; humans++) {
+    for (const humans of [m.humans]) {
       const { plan, state } = missionGame(index, humans);
       const name = `${m.title}, ${humans} humans`;
       assert.equal(state.players.length, plan.seats.length, name);

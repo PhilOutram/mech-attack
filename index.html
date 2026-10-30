@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.72" />
+  <link rel="stylesheet" href="styles.css?v=0.73" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -57,18 +57,28 @@
 
   <div id="campaign-picker" class="map-picker" hidden>
     <div class="map-picker-card" role="dialog" aria-labelledby="campaign-title">
-      <h2 id="campaign-title">Campaign: Red Dust</h2>
-      <p id="campaign-intro" class="campaign-intro"></p>
-      <label class="map-shape level-pick">Your rank
-        <select id="campaign-level"></select>
-      </label>
-      <p id="campaign-level-note" class="level-persona"></p>
-      <ul id="campaign-list" class="map-recent"></ul>
-      <h2 class="coop-heading">Co-op: Red Dust: Together</h2>
-      <p class="campaign-intro">Missions for 2 or 3 players at the same time, one device each,
-        against the Consortium. The host can play any mission they have unlocked; a win
-        counts on everyone's device.</p>
-      <ul id="coop-list" class="map-recent"></ul>
+      <div class="campaign-tabs" role="tablist">
+        <button id="campaign-tab-solo" class="campaign-tab" type="button" role="tab"
+          data-campaign-tab="solo">Solo</button>
+        <button id="campaign-tab-coop" class="campaign-tab" type="button" role="tab"
+          data-campaign-tab="coop">Multi-player</button>
+      </div>
+      <section id="campaign-solo" class="campaign-section" role="tabpanel">
+        <h2 id="campaign-title">Campaign: Red Dust</h2>
+        <p id="campaign-intro" class="campaign-intro"></p>
+        <label class="map-shape level-pick">Your rank
+          <select id="campaign-level"></select>
+        </label>
+        <p id="campaign-level-note" class="level-persona"></p>
+        <ul id="campaign-list" class="map-recent"></ul>
+      </section>
+      <section id="campaign-coop" class="campaign-section" role="tabpanel" hidden>
+        <h2>Co-op: Red Dust: Together</h2>
+        <p class="campaign-intro">Missions for 2 players at the same time, one device each,
+          against the Consortium. The host can play any mission they have unlocked; a win
+          counts on everyone's device.</p>
+        <ul id="coop-list" class="map-recent"></ul>
+      </section>
       <button id="campaign-cancel" class="start-btn" type="button">Back</button>
     </div>
   </div>
@@ -102,10 +112,6 @@
       <h2 id="coop-title"></h2>
       <p id="coop-objective" class="level-persona"></p>
       <ul id="coop-players" class="mp-sides"></ul>
-      <div class="map-choices">
-        <button id="coop-fewer" class="start-btn" type="button">Remove a player</button>
-        <button id="coop-more" class="start-btn" type="button">Add a player</button>
-      </div>
       <p id="coop-problem" class="mp-problem"></p>
       <div class="map-choices">
         <button id="coop-cancel" class="start-btn" type="button">Back</button>
@@ -271,6 +277,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.72" type="module"></script>
+  <script src="app.js?v=0.73" type="module"></script>
 </body>
 </html>

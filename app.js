@@ -1,17 +1,17 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.72";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.72";
-import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.72";
-import { confirmDialog } from "./dialog.js?v=0.72";
-import { showTip, resetTips } from "./tips.js?v=0.72";
-import { RULES } from "./rules-config.js?v=0.72";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.72";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.72";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.72";
+import { VERSION, CHANGELOG } from "./version.js?v=0.73";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.73";
+import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.73";
+import { confirmDialog } from "./dialog.js?v=0.73";
+import { showTip, resetTips } from "./tips.js?v=0.73";
+import { RULES } from "./rules-config.js?v=0.73";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.73";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.73";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.73";
 import {
   wireMultiplayer, showCoopSetup, rejoinGame, resumeHosted,
-} from "./multiplayer.js?v=0.72";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.72";
+} from "./multiplayer.js?v=0.73";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.73";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -128,7 +128,37 @@ function showCampaignNote() {
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight",
   "nine", "ten", "eleven", "twelve"];
 
+// The campaign picker's tabs: the solo missions or the co-op ones. The tab last shown is
+// remembered on this device.
+const CAMPAIGN_TAB_KEY = "mech-attack.campaign-tab";
+
+function showCampaignTab(tab) {
+  for (const name of ["solo", "coop"]) {
+    document.getElementById(`campaign-${name}`).hidden = name !== tab;
+    document.getElementById(`campaign-tab-${name}`).setAttribute("aria-selected",
+      String(name === tab));
+  }
+  try {
+    localStorage.setItem(CAMPAIGN_TAB_KEY, tab);
+  } catch {
+    // Not remembered; the tab still shows.
+  }
+}
+
+function storedCampaignTab() {
+  try {
+    return localStorage.getItem(CAMPAIGN_TAB_KEY) === "coop" ? "coop" : "solo";
+  } catch {
+    return "solo";
+  }
+}
+
+for (const button of document.querySelectorAll("[data-campaign-tab]")) {
+  button.addEventListener("click", () => showCampaignTab(button.dataset.campaignTab));
+}
+
 function showCampaign() {
+  showCampaignTab(storedCampaignTab());
   const done = missionsDone();
   const ranks = missionRanks();
   campaignLevel.value = storedLevel();
