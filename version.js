@@ -1,8 +1,19 @@
-export const VERSION = "v0.62";
+export const VERSION = "v0.63";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.63",
+    date: "2026-10-30",
+    notes: [
+      "The Sonic Tank aims at any hex within 4 (was 5, along six lines only): its boom hits " +
+        "every enemy on the line through that hex and on to range 4, shown as a shock wave.",
+      "A moving unit takes its damage badge and labels with it; a move pauses at every new " +
+        "block it turns over, and only offers the rest of the move if it can go somewhere.",
+      "Hold the Line: you start with two Sonic Tanks and a Twin Turret.",
+    ],
+  },
   {
     version: "v0.62",
     date: "2026-10-30",

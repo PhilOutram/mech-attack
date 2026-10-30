@@ -7,31 +7,31 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.62";
-import { mapById, seededRandom } from "./maps.js?v=0.62";
+import { RULES } from "./rules-config.js?v=0.63";
+import { mapById, seededRandom } from "./maps.js?v=0.63";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.62";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.62";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.62";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.62";
-import { distance } from "./hex.js?v=0.62";
+} from "./engine.js?v=0.63";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.63";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.63";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.63";
+import { distance } from "./hex.js?v=0.63";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
-  upgradeImage, factoryImage, tokenSize, hexCentre,
-} from "./board.js?v=0.62";
-import { confirmDialog } from "./dialog.js?v=0.62";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.62";
-import { showTip, showNote } from "./tips.js?v=0.62";
+  upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
+} from "./board.js?v=0.63";
+import { confirmDialog } from "./dialog.js?v=0.63";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.63";
+import { showTip, showNote } from "./tips.js?v=0.63";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.62";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.62";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.62";
+} from "./campaign.js?v=0.63";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.63";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.63";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -43,7 +43,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.62";
+const ASSET_VERSION = "0.63";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
@@ -959,26 +959,54 @@ async function showMoves(events, before, after) {
   }
 }
 
-// A copy of a unit's token over the board, as a plain image positioned with a CSS transform:
-// place(x, y, angle) puts its centre on board point (x, y), turned by angle.
+// A copy of a unit's token over the board, positioned with a CSS transform, with its damage
+// badge and the label under it (crystals carried, passengers) as on the board: place(x, y,
+// angle) puts its centre on board point (x, y) and turns the token (not the badge or label)
+// by angle. img is the whole copy.
 function floatingToken(unit) {
   const wrap = els.svg.parentElement;
   const box = wrap.getBoundingClientRect();
   const toScreen = els.root.getScreenCTM();
-  const size = tokenSize() * Math.hypot(toScreen.a, toScreen.b);
-  const img = document.createElement("img");
-  img.src = unitImage(unit.type, unit.owner);
-  img.alt = "";
-  img.className = "moving-token";
-  img.style.width = `${size}px`;
-  img.style.height = `${size}px`;
-  wrap.appendChild(img);
+  const scale = Math.hypot(toScreen.a, toScreen.b);
+  const size = tokenSize() * scale;
+  const holder = document.createElement("div");
+  holder.className = "moving-token";
+  holder.style.width = `${size}px`;
+  holder.style.height = `${size}px`;
+  const token = document.createElement("img");
+  token.src = unitImage(unit.type, unit.owner);
+  token.alt = "";
+  holder.appendChild(token);
+  // Positions inside the copy are from its top-left corner, in screen pixels.
+  const fromCentre = (dx, dy) => [size / 2 + dx * scale, size / 2 + dy * scale];
+  if (unit.lives < state.rules.lives) {
+    const badge = document.createElement("img");
+    badge.src = "units/explosion.svg";
+    badge.alt = "";
+    badge.className = "moving-badge";
+    const badgeSize = DAMAGE_BADGE.size * scale;
+    const [bx, by] = fromCentre(DAMAGE_BADGE.dx, DAMAGE_BADGE.dy);
+    Object.assign(badge.style, { width: `${badgeSize}px`, height: `${badgeSize}px`,
+      left: `${bx - badgeSize / 2}px`, top: `${by - badgeSize / 2}px` });
+    holder.appendChild(badge);
+  }
+  const below = unitLabel(unit);
+  if (below) {
+    const text = document.createElement("span");
+    text.className = `moving-label ${below.style}`;
+    text.textContent = below.text;
+    const [lx, ly] = fromCentre(0, UNIT_LABEL_DY);
+    Object.assign(text.style, { left: `${lx}px`, top: `${ly}px` });
+    holder.appendChild(text);
+  }
+  wrap.appendChild(holder);
   const place = (x, y, angle) => {
     const at = new DOMPoint(x, y).matrixTransform(toScreen);
-    img.style.transform = `translate(${at.x - box.left - size / 2}px, ` +
-      `${at.y - box.top - size / 2}px) rotate(${angle}deg)`;
+    holder.style.transform = `translate(${at.x - box.left - size / 2}px, ` +
+      `${at.y - box.top - size / 2}px)`;
+    token.style.transform = `rotate(${angle}deg)`;
   };
-  return { img, place };
+  return { img: holder, place };
 }
 
 function prefersReducedMotion() {
@@ -1075,6 +1103,7 @@ function showEvents(events, before, after) {
       if (e.type === "fire" || e.type === "returnFire") sound(fireSound(typeOf(e.unitId)));
       if (from && seen(from)) effects.push({ at: from, size: 0.42 });
       if (to && seen(to)) effects.push({ at: to, size: 0.75 });
+
       const verb = { fire: "fired on", returnFire: "returned fire on",
         splash: "caught in the blast:", lineHit: "also hit by the sonic boom:" }[e.type];
       lines.push(e.type === "splash" || e.type === "lineHit"
@@ -1096,6 +1125,18 @@ function showEvents(events, before, after) {
         ? `${unitName(before, e.unitId)} lost a life.`
         : `${unitName(before, e.unitId)}: ${e.total} of ${e.defence} this turn, ` +
           "more fire this turn adds to it.");
+    } else if (e.type === "boom") {
+      // A sonic boom: a shock wave along its whole line.
+      if (e.path.length && (seen(e.from) || e.path.some(seen))) {
+        any = true;
+        effects.push({ kind: "boom", from: e.from, to: e.path[e.path.length - 1] });
+      }
+    } else if (e.type === "fireBlind" && e.seen) {
+      // A sonic boom aimed at a hex with no target in sight.
+      any = true;
+      shooter = typeOf(e.unitId);
+      sound(fireSound(typeOf(e.unitId)));
+      lines.push(`${unitName(before, e.unitId)} fired a sonic boom.`);
     } else if (e.type === "fireBlind") {
       if (after.units[e.unitId]?.owner !== me && before.units[e.unitId]?.owner !== me) {
         continue;
@@ -1125,8 +1166,11 @@ function showEvents(events, before, after) {
         lines.push("Something hidden blocked the way.");
       }
       if (e.stoppedBy === "revealed" && after.units[e.unitId]?.owner === me) {
-        lines.push(`New ground turned over. ${e.moveLeft} move point` +
-          `${e.moveLeft === 1 ? "" : "s"} left: tap where to go next.`);
+        // Only offer the rest of the move if it reaches somewhere (rough ground costs 2).
+        const onward = Object.keys(reachableHexes(after, e.unitId)).length > 0;
+        lines.push(onward ? `New ground turned over. ${e.moveLeft} move point` +
+          `${e.moveLeft === 1 ? "" : "s"} left: tap where to go next.`
+          : "New ground turned over. Not enough move left to go further this turn.");
         tip("newGround");
       }
     } else if (e.type === "crushed" && seen(e.at)) {

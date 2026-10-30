@@ -103,7 +103,7 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 All the numbers are provisional, as is everything not listed as Phil's. The Turret's stats are scaled down from the "Turret (constructed)" row of the full unit table, and the Chinook's come from its "Transport" row.
 
 ### Moving into face-down ground
-A move that turns over new blocks stops there if the rest of its route runs onto ground that was face down when you planned it (`fog.stopOnReveal`; Phil, 29 October 2026). The unit keeps the move points it has not used, so you can see what is there and then carry on, fire, or stop. So you can tap a face-down hex far away and the unit goes as far as the edge first.
+A move that turns over a new block stops there, unless it has arrived (`fog.stopOnReveal`; Phil, 29 October 2026; on 30 October changed to stop on every new block, so the unit is always next to what just turned over). The unit keeps the move points it has not used, so you can see what is there and then carry on, fire, or stop. So you can tap a face-down hex far away and the unit goes as far as the edge first.
 
 ### Firing blind
 A unit can fire into any hex in range that its player cannot see (Phil, 29 October 2026). An enemy there is hit as normal; an empty hex wastes the shot. You are told whether you hit something, not what. A unit fired on blind does not fire back. The AI does not fire blind.

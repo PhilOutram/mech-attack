@@ -14,8 +14,8 @@
 // - "sight": each player sees only what their units can see now, and remembers terrain and
 //   crystals they have seen before.
 import {
-  neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.62";
+  neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
+} from "./hex.js?v=0.63";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -575,30 +575,6 @@ export function canHit(state, attacker, target) {
   return hits === "both" || hits === layer;
 }
 
-// The hexes along one of the six straight lines from a hex, up to range, stopping before
-// terrain that blocks sight (a mountain stops a sonic boom).
-function lineHexes(state, from, direction, range) {
-  const [q, r] = parseKey(from);
-  const [dq, dr] = direction;
-  const blocks = blocksSight(state);
-  const out = [];
-  for (let step = 1; step <= range; step++) {
-    const k = key(q + dq * step, r + dr * step);
-    if (!state.map.hexes[k] || blocks(k)) break;
-    out.push(k);
-  }
-  return out;
-}
-
-// The straight-line direction from one hex to another, or null if they are not in line.
-function lineDirection(from, to) {
-  const [fq, fr] = parseKey(from);
-  const [tq, tr] = parseKey(to);
-  const n = distance(from, to);
-  if (!n) return null;
-  return DIRECTIONS.find(([dq, dr]) => fq + dq * n === tq && fr + dr * n === tr) || null;
-}
-
 // Whether a unit can fire on another: an enemy its attack can hit, and not a factory unless
 // factories take fire. Works on a view too.
 function canTarget(state, unit, target) {
@@ -616,8 +592,11 @@ function firingReach(view, unit) {
   if (stats.needsSetup && !unit.setUp) return null;
   const [minRange, maxRange] = stats.range;
   if (stats.line) {
-    const reach = new Set(DIRECTIONS.flatMap((d) => lineHexes(view, unit.at, d, maxRange)));
-    return (k) => reach.has(k) && distance(unit.at, k) >= minRange;
+    // A sonic boom can be aimed at any hex in range that it reaches before a mountain.
+    return (k) => {
+      const d = distance(unit.at, k);
+      return d >= minRange && d <= maxRange && boomHexes(view, unit.at, k, d).includes(k);
+    };
   }
   // Indirect fire (Artillery) goes over mountains.
   const blocks = stats.indirect ? () => false : blocksSight(view);
@@ -656,11 +635,31 @@ export function crystalTargets(view, unitId) {
 
 // Hexes the unit can fire into blind (Phil, 29 October 2026): hexes in range that the player
 // cannot see. Whatever is there, if anything, is hit.
+// A sonic boom can also be aimed at any hex in range, seen or not, without a target there:
+// it runs on along the line and hits whatever enemies are on it.
 export function darkTargets(view, unitId) {
   const unit = view.units[unitId];
   const reach = unit && firingReach(view, unit);
   if (!reach) return [];
+  if (unitStats(view, unit).line) {
+    const targets = new Set(attackTargets(view, unitId).map((id) => view.units[id].at));
+    return Object.keys(view.map.hexes).filter((k) => reach(k) && !targets.has(k));
+  }
   return Object.keys(view.map.hexes).filter((k) => !view.visible[k] && reach(k));
+}
+
+// The hexes a sonic boom crosses, aimed from one hex at another (Phil, 30 October 2026): the
+// straight line from the unit through the aimed hex and on, out to range, one hex a step
+// (the hex the line runs through most). It stops before terrain that blocks sight and at the
+// edge of the map. Works on a view too.
+export function boomHexes(state, from, toward, range) {
+  const blocks = blocksSight(state);
+  const out = [];
+  for (const k of ray(from, toward, range)) {
+    if (!state.map.hexes[k] || blocks(k)) break;
+    out.push(k);
+  }
+  return out;
 }
 
 export function healTargets(view, unitId) {
@@ -911,10 +910,10 @@ function spendShot(unit, stats, targetId = null) {
 // The path is planned on what the player knows. Walking it on the real board, a ground unit
 // stops early at anything hidden in the way: an enemy unit or impassable ground. A flying unit
 // passes over everything but cannot stop on a hex that turns out to be occupied. With
-// rules.fog.stopOnReveal, a move that turns over new blocks stops there if the rest of the
-// path runs onto ground that was face down when the move was planned; the unit can use the
-// rest of its move afterwards. A move into a factory captures it; a move onto a transporter
-// boards it.
+// rules.fog.stopOnReveal, a move that turns over a new block stops there, unless it has
+// arrived, so the player always sees what turned over next to the unit (Phil, 30 October
+// 2026); the unit can use the rest of its move afterwards. A move into a factory captures it;
+// a move onto a transporter boards it.
 function applyMove(state, { unitId, to }, actor) {
   const unit = ownUnit(state, unitId, actor);
   const view = viewFor(state, actor);
@@ -927,7 +926,6 @@ function applyMove(state, { unitId, to }, actor) {
   const allowance = moveLeft(state, unit);
   const flies = Boolean(unitStats(state, unit).air);
   const player = state.players[unit.owner];
-  const unknown = (k) => !player.explored[k];
   const stopOnReveal = tilesFog(state) && state.rules.fog.stopOnReveal;
   const from = unit.at;
   // Each hex walked, with the move points it took.
@@ -953,7 +951,7 @@ function applyMove(state, { unitId, to }, actor) {
     const before = Object.keys(player.revealed).length;
     revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
     const turned = Object.keys(player.revealed).length > before;
-    if (stopOnReveal && turned && route.path.slice(i + 1).some(unknown)) {
+    if (stopOnReveal && turned && i < route.path.length - 1) {
       stoppedBy = "revealed";
       break;
     }
@@ -1053,16 +1051,17 @@ function applyAttack(state, { unitId, targetId, at }, actor) {
   if (stats.reload) unit.cooldown = stats.reload + 1;
   if (blind) {
     state.events.push({ type: "fireBlind", unitId, at: where, attack, hit: Boolean(target),
-      targetId: target ? target.id : null });
+      targetId: target ? target.id : null, seen: Boolean(view.visible[where]) });
   } else {
     state.events.push({ type: "fire", unitId, targetId, attack });
   }
   if (target) hit(state, target, attack);
 
-  // Sonic boom: every other enemy along the same line, up to range, is hit too.
+  // Sonic boom: every other enemy along its line, up to range, is hit too.
   if (stats.line) {
-    const direction = lineDirection(unit.at, where);
-    for (const k of lineHexes(state, unit.at, direction, stats.range[1])) {
+    const path = boomHexes(state, unit.at, where, stats.range[1]);
+    state.events.push({ type: "boom", unitId, from: unit.at, path });
+    for (const k of path) {
       const other = unitAt(state, k);
       if (!other || other === target || !canTarget(state, unit, other)) continue;
       state.events.push({ type: "lineHit", unitId, targetId: other.id, attack });

@@ -49,33 +49,32 @@
      "default"
     ]
    },
-   "actions": 150,
-   "actionsHash": "bef8abeb9c77b438f74a6766360587c395f673c5",
+   "actions": 135,
+   "actionsHash": "45c516e2735de969b30d12e38ef1650b08a7fe69",
    "end": {
-    "round": 20,
+    "round": 17,
     "result": {
      "winner": 0,
      "reason": "factoryCaptured",
-     "round": 20
+     "round": 17
     },
     "crystals": [
-     55,
-     25
+     60,
+     30
     ],
     "units": [
      "u1 factory 0 -2,6 2",
-     "u11 lightHarvester 0 -3,6 2",
-     "u12 attackHelicopter 0 2,-3 2",
-     "u18 fighter 0 1,-2 2",
-     "u2 lightHarvester 0 1,0 2",
-     "u4 tank 0 2,-4 2",
+     "u11 lightHarvester 0 -1,6 2",
+     "u14 attackHelicopter 0 2,-3 2",
+     "u15 attackHelicopter 0 2,-4 2",
+     "u2 lightHarvester 0 -1,5 2",
      "u5 factory 0 4,-5 2",
-     "u9 lightHarvester 0 1,-1 1"
+     "u9 lightHarvester 0 -2,5 1"
     ],
     "piles": [
-     "3,2 50",
-     "4,-1 30",
-     "4,1 80"
+     "-1,-2 50",
+     "4,1 55",
+     "5,1 20"
     ]
    }
   },
@@ -89,8 +88,8 @@
      "default"
     ]
    },
-   "actions": 126,
-   "actionsHash": "3a14e323f74d58f99b2ed6a27fbc7d629a56599d",
+   "actions": 128,
+   "actionsHash": "2ad50e6a0f99cdf85f4af581ab03c349d03b85aa",
    "end": {
     "round": 10,
     "result": {
@@ -129,8 +128,8 @@
      "evolved"
     ]
    },
-   "actions": 571,
-   "actionsHash": "ca0a0d25805826d1d174743d512b3da03784e336",
+   "actions": 555,
+   "actionsHash": "aceea55c9464734dc1baad796f47880e8bf671f9",
    "end": {
     "round": 41,
     "result": {
@@ -139,37 +138,42 @@
      "round": 41
     },
     "crystals": [
-     10,
-     30
+     30,
+     20
     ],
     "units": [
      "u1 factory 0 2,-6 2",
      "u10 factory 1 -6,3 2",
      "u11 factory 0 -3,-2 2",
      "u12 factory 1 1,1 2",
-     "u24 antiAircraftJeep 0 -1,-3 2",
+     "u23 artillery 0 2,-4 2",
+     "u24 antiAircraftJeep 0 3,-5 2",
+     "u27 antiAircraftJeep 1 -8,3 2",
      "u28 turret 1 -7,3 2",
      "u5 factory 1 -4,5 2",
-     "u51 lightHarvester 0 -1,3 1",
-     "u61 artillery 0 -1,-2 2",
-     "u62 turret 0 -2,-3 2",
-     "u82 lightHarvester 0 -4,-2 2",
-     "u88 attackHelicopter 0 -4,2 2",
-     "u89 attackHelicopter 0 -5,1 2",
+     "u68 scoutBike 0 -1,-1 2",
+     "u75 scoutBike 0 5,-3 2",
+     "u78 antiAircraftJeep 0 -4,-3 2",
+     "u80 scoutBike 0 -4,-2 2",
+     "u84 lightMedic 0 -5,-1 2",
+     "u85 antiAircraftJeep 0 1,-3 2",
+     "u86 lightMedic 0 4,-6 2",
+     "u89 infantry 0 -5,0 2",
      "u9 factory 0 4,-4 2",
-     "u92 tank 0 3,0 2",
-     "u96 infantry 0 -5,0 2",
-     "u97 infantry 0 -4,-1 2",
-     "u98 scoutBike 0 4,-3 2",
-     "u99 fighter 0 2,-5 2"
+     "u90 lightMedic 0 3,-2 1",
+     "u91 scoutBike 0 4,-2 2",
+     "u92 infantry 0 -4,-1 2"
     ],
     "piles": [
+     "-1,4 35",
+     "-2,2 30",
      "-8,0 50",
-     "4,-1 25",
-     "5,-1 55",
-     "5,-2 10",
+     "4,-1 10",
+     "5,-1 75",
+     "5,-2 15",
      "6,-2 20",
-     "6,-3 75"
+     "6,-3 15",
+     "7,-4 70"
     ]
    }
   },
@@ -183,48 +187,45 @@
      "evolved"
     ]
    },
-   "actions": 201,
-   "actionsHash": "c4c5a6d3c0ad4ddf6a4e6ea9bbb09d8ffa7e0edc",
+   "actions": 224,
+   "actionsHash": "e3e5952f2ace1d8f4f32d24af55b8904812d6c02",
    "end": {
-    "round": 11,
+    "round": 13,
     "result": {
      "winner": 1,
-     "reason": "noUnits",
-     "round": 11
+     "reason": "factoryCaptured",
+     "round": 13
     },
     "crystals": [
-     10,
+     25,
      0
     ],
     "units": [
-     "u1 factory 0 4,2 2",
+     "u1 factory 1 4,2 2",
      "u10 factory 1 -2,0 2",
      "u11 factory 1 6,-4 2",
      "u12 factory 1 -8,6 2",
-     "u14 lightHarvester 1 -6,5 1",
-     "u19 antiAircraftJeep 1 -1,1 2",
+     "u14 lightHarvester 1 -6,9 2",
+     "u19 antiAircraftJeep 1 -1,2 2",
      "u21 artillery 1 0,1 2",
-     "u26 antiAircraftJeep 1 4,-1 2",
-     "u27 infantry 1 5,-4 2",
-     "u31 fighter 1 -2,-3 2",
-     "u32 scoutBike 1 5,-5 2",
-     "u33 attackHelicopter 1 4,-5 2",
-     "u34 lightMedic 1 0,0 2",
-     "u36 infantry 1 3,-1 2",
-     "u37 scoutBike 1 2,0 2",
+     "u22 scoutBike 1 4,0 2",
+     "u25 antiAircraftJeep 1 -1,1 2",
+     "u26 infantry 1 5,-1 2",
+     "u29 attackHelicopter 1 4,-1 2",
+     "u30 lightMedic 1 0,0 2",
+     "u31 fighter 1 4,-2 2",
+     "u32 scoutBike 1 3,1 2",
+     "u35 scoutBike 1 3,0 2",
+     "u37 artillery 1 3,-1 2",
      "u5 factory 1 -7,0 2",
-     "u6 lightHarvester 1 -2,6 2",
-     "u8 tank 1 4,-2 2",
+     "u6 lightHarvester 1 -7,6 2",
+     "u8 tank 1 5,0 2",
      "u9 factory 1 2,-1 2"
     ],
     "piles": [
-     "-1,-5 45",
-     "-4,5 35",
-     "-5,7 65",
-     "-6,7 45",
-     "0,5 25",
-     "1,4 30",
-     "1,5 75"
+     "-1,-5 65",
+     "-9,4 20",
+     "1,-3 10"
     ]
    }
   },
@@ -238,8 +239,8 @@
      "default"
     ]
    },
-   "actions": 272,
-   "actionsHash": "582fc20dc7b38865de82fd0d6a8ad04ca37a5016",
+   "actions": 264,
+   "actionsHash": "d54a87400edfb8872b607d9f52e91640623bbcf1",
    "end": {
     "round": 41,
     "result": {
@@ -249,7 +250,7 @@
     },
     "crystals": [
      15,
-     190
+     90
     ],
     "units": [
      "u1 factory 0 2,-6 2",
@@ -258,7 +259,7 @@
      "u13 antiAircraftJeep 1 0,-2 2",
      "u14 factory 1 4,-4 2",
      "u15 factory 1 1,2 2",
-     "u17 lightHarvester 1 -4,3 2",
+     "u17 lightHarvester 1 -3,3 2",
      "u18 attackHelicopter 1 2,-4 2",
      "u20 artillery 0 3,-7 2",
      "u21 lightHarvester 1 -5,4 2",
@@ -267,28 +268,33 @@
      "u25 attackHelicopter 1 -4,4 2",
      "u26 attackHelicopter 1 -4,6 2",
      "u27 attackHelicopter 1 -5,6 2",
-     "u29 attackHelicopter 1 -5,5 2",
-     "u31 tank 1 2,1 2",
-     "u32 artillery 1 0,0 2",
-     "u34 infantry 1 3,-3 2",
-     "u35 scoutBike 1 5,-4 2",
-     "u37 tank 1 4,-3 2",
-     "u39 lightMedic 1 1,0 2",
+     "u30 tank 1 1,1 2",
+     "u31 artillery 1 0,0 2",
+     "u32 scoutBike 1 0,3 2",
+     "u33 infantry 1 3,-3 2",
+     "u34 tank 1 5,-4 2",
+     "u37 lightMedic 1 5,-3 2",
+     "u39 turret 1 4,-3 2",
      "u4 infantry 0 1,-6 2",
-     "u41 turret 1 1,1 2",
-     "u42 twinTurret 1 0,3 2",
-     "u44 tank 1 0,2 2",
+     "u41 twinTurret 1 2,1 2",
+     "u43 tank 1 -5,5 2",
+     "u46 artillery 1 4,-2 2",
+     "u47 scoutBike 1 0,2 2",
      "u5 chinook 0 0,-5 2",
      "u6 factory 1 -4,5 2",
      "u7 blastCannon 1 3,-2 2",
-     "u8 lightHarvester 1 -1,2 2"
+     "u8 lightHarvester 1 -4,3 2"
     ],
     "piles": [
-     "-2,-4 20",
-     "-5,0 30",
-     "-5,1 80",
-     "-7,2 25",
-     "-8,2 35"
+     "-1,1 75",
+     "-2,0 60",
+     "-3,1 65",
+     "-4,-1 20",
+     "-5,0 80",
+     "-8,2 35",
+     "-8,3 25",
+     "-9,3 30",
+     "1,-2 70"
     ]
    }
   },
@@ -302,8 +308,8 @@
      "default"
     ]
    },
-   "actions": 319,
-   "actionsHash": "9fcee8bf85a667029e0399c5d5c971f6f2d2103a",
+   "actions": 331,
+   "actionsHash": "dcfdad07e94d7d96fac11735365d44c296935661",
    "end": {
     "round": 41,
     "result": {
@@ -313,7 +319,7 @@
     },
     "crystals": [
      0,
-     25
+     20
     ],
     "units": [
      "u1 vip 0 -2,1 2",
@@ -327,26 +333,28 @@
      "u19 lightHarvester 1 1,-6 2",
      "u21 artillery 1 -6,3 2",
      "u22 blastCannon 1 -5,2 2",
-     "u23 sonicTank 1 -7,1 2",
+     "u23 sonicTank 1 -5,0 2",
      "u25 scoutBike 1 -3,2 2",
      "u26 spotterDrone 1 5,-1 2",
      "u28 lightMedic 1 -1,1 2",
      "u29 turret 1 1,-2 2",
-     "u31 heavyTank 1 -9,5 2",
+     "u31 heavyTank 1 -7,1 2",
      "u32 tank 1 -4,1 2",
      "u33 attackHelicopter 1 -4,2 2",
      "u34 twinTurret 1 0,-2 2",
      "u35 artillery 1 4,-7 2",
      "u36 tank 1 2,-2 2",
-     "u37 blastCannon 1 -5,0 2",
+     "u37 blastCannon 1 -9,5 2",
      "u38 sonicTank 1 -6,4 2",
      "u39 scoutBike 1 -1,3 2",
      "u40 attackHelicopter 1 -2,3 2",
      "u41 tank 1 1,0 2",
      "u42 spotterDrone 1 4,-5 2",
-     "u43 artillery 1 1,-1 2",
-     "u44 tank 1 -4,0 2",
+     "u43 artillery 1 0,0 2",
+     "u44 tank 1 1,-3 2",
      "u45 attackHelicopter 1 -5,1 2",
+     "u46 blastCannon 1 -3,-1 2",
+     "u47 sonicTank 1 -6,-1 2",
      "u6 factory 1 -8,3 2",
      "u7 lightHarvester 1 1,1 2",
      "u8 tank 1 -2,0 1",

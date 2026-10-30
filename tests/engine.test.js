@@ -5,6 +5,7 @@ import { FIXED_MAP_1, buildMap } from "../maps.js";
 import {
   newGame, applyAction, legalActions, viewFor, reachableHexes, attackTargets, healTargets,
   harvestTargets, defenceOf, crushingMoves, darkTargets, crystalTargets, refreshKnowledge,
+  boomHexes,
 } from "../engine.js";
 import { distance } from "../hex.js";
 import { scenario, TEST_RADIUS } from "./helpers.js";
@@ -354,12 +355,40 @@ describe("sonic tank", () => {
     assert.deepEqual(attackTargets(viewFor(s, BLUE), "s"), []);
   });
 
-  test("it can only aim along the six straight lines", () => {
+  test("it can aim at any hex in range, and the boom runs on to range 4", () => {
+    const base = scenario({ units: [unit("s", "sonicTank", BLUE, "0,0")] });
+    // Aimed off the six straight lines, at 1,-2: the line runs on through four hexes.
+    const path = boomHexes(viewFor(base, BLUE), "0,0", "1,-2", RULES.units.sonicTank.range[1]);
+    assert.equal(path.length, 4);
+    assert.ok(path.includes("1,-2"));
+    const [first, , , last] = path;
+    let s = scenario({
+      units: [unit("s", "sonicTank", BLUE, "0,0"), unit("a", "scoutBike", GREEN, first),
+        unit("e", "scoutBike", GREEN, "1,-2"), unit("z", "scoutBike", GREEN, last),
+        unit("g", "tank", GREEN, "3,-6")],
+    });
+    assert.ok(attackTargets(viewFor(s, BLUE), "s").includes("e"));
+    s = play(s, attack("s", "e"));
+    for (const id of ["a", "e", "z"]) assert.equal(s.units[id].lives, 1, `${id} is on the line`);
+  });
+
+  test("its range is 4", () => {
     const s = scenario({
-      units: [unit("s", "sonicTank", BLUE, "0,0"), unit("e", "scoutBike", GREEN, "1,-2"),
+      units: [unit("s", "sonicTank", BLUE, "0,0"), unit("e", "scoutBike", GREEN, "0,-5"),
         unit("g", "tank", GREEN, "3,-6")],
     });
     assert.deepEqual(attackTargets(viewFor(s, BLUE), "s"), []);
+  });
+
+  test("it can be aimed at an empty hex and hits what is on the line", () => {
+    let s = scenario({
+      units: [unit("s", "sonicTank", BLUE, "0,0"), unit("e", "scoutBike", GREEN, "0,-3"),
+        unit("g", "tank", GREEN, "3,-6")],
+    });
+    assert.ok(darkTargets(viewFor(s, BLUE), "s").includes("0,-1"), "an empty hex in sight");
+    s = play(s, { type: "attack", unitId: "s", at: "0,-1" });
+    assert.equal(s.units.e.lives, 1);
+    assert.ok(s.events.some((e) => e.type === "boom" && e.path.includes("0,-3")));
   });
 });
 
@@ -1009,7 +1038,8 @@ describe("fog of war by map blocks", () => {
   test("everything on a turned-over block stays visible", () => {
     let s = scenario({
       units: [unit("s", "scoutBike", BLUE, "0,0"), unit("e", "tank", GREEN, "0,-3")],
-      explored: false, rules: blindFactories,
+      explored: false,
+      rules: { ...blindFactories, fog: { revealRange: null, stopOnReveal: false } },
     });
     s = play(s, { type: "move", unitId: "s", to: "0,5" });
     assert.ok(distance(s.units.s.at, "0,-3") > RULES.units.scoutBike.sight);
@@ -1114,6 +1144,15 @@ describe("moving into face-down ground", () => {
     assert.ok(s.units.t.moveUsed <= RULES.units.tank.move);
     s = play(s, END, END);
     assert.equal(s.units.t.continues, false, "a new turn starts afresh");
+  });
+
+  test("a move stops at every new block, even when the rest of the route is known", () => {
+    let s = scenario({ units: [unit("t", "tank", BLUE, "0,0")], explored: false });
+    // Blue knows the terrain along the route but has not turned its blocks over.
+    for (const k in s.map.hexes) s.players[BLUE].explored[k] = true;
+    s = play(s, { type: "move", unitId: "t", to: "0,-4" });
+    assert.equal(s.events.find((e) => e.type === "move").stoppedBy, "revealed");
+    assert.ok(s.units.t.continues);
   });
 
   test("a move through ground already face up is not cut short", () => {

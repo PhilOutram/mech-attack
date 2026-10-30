@@ -11,10 +11,10 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
-  canBoard, allied, crystalTargets,
-} from "./engine.js?v=0.62";
-import { neighbourKeys, distance } from "./hex.js?v=0.62";
-import { COUNTERS } from "./counters.js?v=0.62";
+  canBoard, allied, crystalTargets, boomHexes,
+} from "./engine.js?v=0.63";
+import { neighbourKeys, distance } from "./hex.js?v=0.63";
+import { COUNTERS } from "./counters.js?v=0.63";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
@@ -355,26 +355,10 @@ function alsoHit(ctx, unit, target) {
       .map((e) => [e, amount]);
   }
   if (stats.line) {
-    return ctx.enemies.filter((e) => hit(e) && inLine(unit.at, target.at, e.at) &&
-      distance(unit.at, e.at) <= stats.range[1]).map((e) => [e, stats.attack]);
+    const path = new Set(boomHexes(view, unit.at, target.at, stats.range[1]));
+    return ctx.enemies.filter((e) => hit(e) && path.has(e.at)).map((e) => [e, stats.attack]);
   }
   return [];
-}
-
-// The straight-line direction from hex a to hex b, as "dq,dr", or null if they are not on one
-// of the six straight lines.
-function rayDirection(a, b) {
-  const [aq, ar] = a.split(",").map(Number);
-  const [bq, br] = b.split(",").map(Number);
-  const n = distance(a, b);
-  const [dq, dr] = [(bq - aq) / n, (br - ar) / n];
-  return n && Number.isInteger(dq) && Number.isInteger(dr) ? `${dq},${dr}` : null;
-}
-
-// Whether c lies on the straight line from a through b, beyond a.
-function inLine(a, b, c) {
-  const direction = rayDirection(a, b);
-  return direction !== null && rayDirection(a, c) === direction;
 }
 
 function threatensFactory(ctx, unit) {

@@ -104,10 +104,12 @@ export const RULES = {
       range: [2, 4], storage: 0, healing: 0, sight: 3,
       splash: 0.5, reload: 1, needs: "heavyWorks",
     },
-    // Sonic Tank: sonic boom hits every enemy on a straight line up to range 5, ground and air.
+    // Sonic Tank: its sonic boom can be aimed at any hex in range and hits every enemy, ground
+    // and air, on the straight line from the tank through that hex and on to range 4 (Phil, 30
+    // October 2026: range 5 was too strong, and it could only fire along six directions).
     sonicTank: {
       name: "Sonic Tank", cost: 60, move: 4, defence: 20, attack: 15,
-      range: [1, 5], storage: 0, healing: 0, sight: 4,
+      range: [1, 4], storage: 0, healing: 0, sight: 4,
       hits: "both", line: true, needs: "heavyWorks",
     },
     antiAircraftJeep: {
@@ -243,9 +245,8 @@ export const RULES = {
   // revealRange (tiles mode only): how close a unit must be to a block to turn it over.
   // null = within the unit's sight range; 1 = only blocks it is on or next to (Phil's choice,
   // 28 October 2026).
-  // stopOnReveal: a move that turns over new blocks stops there, before going on into ground
-  // that was face down when it was planned; the unit keeps its unused move points (Phil, 29
-  // October 2026).
+  // stopOnReveal: a move that turns over a new block stops there, unless it has arrived; the
+  // unit keeps its unused move points (Phil, 29 and 30 October 2026).
   // liveSight (Phil, 30 October 2026): in fog mode "tiles", a turned-over block shows its
   // terrain for good, but only hexes a unit can see now (within sight, not behind mountains)
   // show what is on them; the rest of the explored ground is under a thin fog that hides

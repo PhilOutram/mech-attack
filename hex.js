@@ -69,6 +69,21 @@ export function line(a, b, nudge = LINE_NUDGE) {
   return out;
 }
 
+// Hexes along a straight line from hex a through hex toward and on beyond it, one a step for
+// steps steps (a itself left out): at each step, the hex the line runs through most.
+export function ray(a, toward, steps, nudge = LINE_NUDGE) {
+  const [aq, ar] = Array.isArray(a) ? a : parseKey(a);
+  const [bq, br] = Array.isArray(toward) ? toward : parseKey(toward);
+  const n = distance([aq, ar], [bq, br]);
+  if (!n) return [];
+  const out = [];
+  for (let i = 1; i <= steps; i++) {
+    const t = i / n;
+    out.push(key(...roundHex(aq + nudge + (bq - aq) * t, ar + nudge + (br - ar) * t)));
+  }
+  return out;
+}
+
 // True when nothing between a and b blocks sight. blocks(key) says whether a hex blocks.
 // A line that runs exactly along an edge is checked both ways and counts as clear if
 // either side is clear.

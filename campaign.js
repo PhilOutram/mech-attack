@@ -3,10 +3,10 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.62";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.62";
-import { distance, cheapestPaths } from "./hex.js?v=0.62";
-import { LEVELS } from "./difficulty.js?v=0.62";
+import { RULES } from "./rules-config.js?v=0.63";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.63";
+import { distance, cheapestPaths } from "./hex.js?v=0.63";
+import { LEVELS } from "./difficulty.js?v=0.63";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 // The highest rank each mission has been won at: { mission index: rank id }.
@@ -215,14 +215,14 @@ const MISSION_LIST = [
     title: "Hold the Line",
     mapId: "map-14-3-5-5-3",
     story: "A Consortium strike force is heading for your factory, and it is bigger than " +
-      "anything you can field. Your engineers have built two Turrets beside the factory, " +
-      "guns that never move but hit hard, and a Twin Turret that fires twice at anything " +
-      "right next to it. Command has sent a Sonic Tank too: its boom hits every enemy in a " +
-      "straight line, so catch them coming up the straight. Keep Green's Infantry out.",
+      "anything you can field. Your engineers have built a Twin Turret beside the factory, a " +
+      "fixed gun that fires twice at anything right next to it, and Command has sent two " +
+      "Sonic Tanks: a sonic boom hits every enemy along a straight line, so catch them " +
+      "coming up the straight. Build Turrets if you need them, and keep Green's Infantry out.",
     objective: `Hold your home factory for ${HOLD_ROUNDS} rounds.`,
     boss: "sonicTank",
     goal: `Hold your home factory for ${HOLD_ROUNDS} rounds`,
-    setup: { units: [["lightHarvester", "tank", "sonicTank", "turret", "turret", "twinTurret"],
+    setup: { units: [["lightHarvester", "tank", "sonicTank", "sonicTank", "twinTurret"],
       ["lightHarvester", "tank", "tank", "scoutBike", "scoutBike", "infantry", "infantry",
         "transporter"]], crystals: [120, 120] },
     newUnits: ["turret", "twinTurret"],

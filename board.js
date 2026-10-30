@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel } from "./hex.js?v=0.62";
-import { unitStats, defenceOf } from "./engine.js?v=0.62";
+import { parseKey, toPixel } from "./hex.js?v=0.63";
+import { unitStats, defenceOf } from "./engine.js?v=0.63";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -307,6 +307,8 @@ function drawUnits(view, selectedId, facing, moving) {
       out += polygon(unit.at, { scale: SELECTED_INSET, stroke: "#fff", width: 4,
         fill: "rgba(255, 255, 255, 0.12)" });
     }
+    // Everything drawn for the unit is grouped, so a move can hide all of it at once.
+    out += `<g data-unit="${id}">`;
     if (stats.isFactory) {
       // The factory art is square, in the owner's colour and showing its upgrades; it is
       // clipped to the hex and ringed in the owner's colour.
@@ -324,22 +326,14 @@ function drawUnits(view, selectedId, facing, moving) {
       // Units face the way they last moved; before that, towards the enemy.
       const angle = facing[id] ?? startFacing(view, unit.owner);
       const turn = angle ? ` transform="rotate(${angle.toFixed(1)} ${x} ${y})"` : "";
-      out += image(unitImage(unit.type, unit.owner), x, y, size, size,
-        `${turn}${opacity} data-unit="${id}"`);
+      out += image(unitImage(unit.type, unit.owner), x, y, size, size, `${turn}${opacity}`);
       if (unit.setUp) out += label("SET", x, y - HEX_HEIGHT * 0.36, "board-label setup-label");
-      if (unit.carrying > 0) {
-        out += label(unit.carrying, x, y + HEX_HEIGHT * 0.42, "board-label crystal-label");
-      }
-      // Infantry on board a transporter.
-      if (unit.cargo && unit.cargo.length) {
-        out += label(`+${unit.cargo.length}`, x, y + HEX_HEIGHT * 0.42,
-          "board-label cargo-label");
-      }
+      const below = unitLabel(unit);
+      if (below) out += label(below.text, x, y + UNIT_LABEL_DY, `board-label ${below.style}`);
     }
     if (unit.lives < view.rules.lives) {
-      const badge = HEX_HEIGHT * DAMAGE_BADGE_SCALE;
-      out += image("units/explosion.svg", x + HEX_SIZE * 0.45, y - HEX_HEIGHT * 0.28, badge,
-        badge);
+      const { dx, dy, size } = DAMAGE_BADGE;
+      out += image("units/explosion.svg", x + dx, y + dy, size, size);
     }
     // Damage taken so far this turn against its defence: further shots this turn add to it.
     const hits = view.hits[id];
@@ -347,8 +341,24 @@ function drawUnits(view, selectedId, facing, moving) {
       out += label(`${hits.total}/${defenceOf(view, unit)}`, x, y - HEX_HEIGHT * 0.36,
         "board-label hit-label");
     }
+    out += "</g>";
   }
   return out;
+}
+
+// The damage badge on a damaged unit, relative to the unit's centre, in board units.
+export const DAMAGE_BADGE = { dx: HEX_SIZE * 0.45, dy: -HEX_HEIGHT * 0.28,
+  size: HEX_HEIGHT * DAMAGE_BADGE_SCALE };
+// The label under a unit (crystals carried, passengers aboard), this far below its centre.
+export const UNIT_LABEL_DY = HEX_HEIGHT * 0.42;
+
+// The label under a unit, { text, style }, or null: crystals it carries, or passengers.
+export function unitLabel(unit) {
+  if (unit.carrying > 0) return { text: unit.carrying, style: "crystal-label" };
+  if (unit.cargo && unit.cargo.length) {
+    return { text: `+${unit.cargo.length}`, style: "cargo-label" };
+  }
+  return null;
 }
 
 function drawOverlays(overlays) {
@@ -364,9 +374,26 @@ function drawOverlays(overlays) {
 }
 
 // Short-lived explosions: a muzzle flash at the attacker and a blast at the target.
+// A sonic boom: a shock wave along its line, from the Sonic Tank to the furthest hit.
+const BOOM_WIDTH = HEX_SIZE * 0.55;
+const BOOM_CORE_WIDTH = 6;
+
+function drawBoom({ from, to }) {
+  const [ax, ay] = hexCentre(from);
+  const [bx, by] = hexCentre(to);
+  const ends = `x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" ` +
+    `y2="${by.toFixed(1)}"`;
+  return `<line ${ends} class="boom-wave" stroke-width="${BOOM_WIDTH}"/>` +
+    `<line ${ends} class="boom-core" stroke-width="${BOOM_CORE_WIDTH}"/>`;
+}
+
 function drawEffects(effects) {
   let out = "";
   for (const effect of effects) {
+    if (effect.kind === "boom") {
+      out += drawBoom(effect);
+      continue;
+    }
     const [x, y] = hexCentre(effect.at);
     const size = HEX_HEIGHT * (effect.size || 0.7);
     out += image("units/explosion.svg", x, y, size, size, 'class="effect"');
