@@ -64,9 +64,9 @@ const TIPS = {
   }),
   mountain: () => ({
     title: "Mountains and chasms",
-    text: "Ground units cannot enter mountains or chasms. Mountains also block line of sight, " +
-      "so nobody can fire through them (a sonic boom stops at them too). Air units fly over " +
-      "both.",
+    text: "Ground units cannot enter mountains or chasms. Mountains also block line of sight: " +
+      "most units cannot see or fire past them, and a sonic boom stops at them. Artillery " +
+      "fires over them, at anything one of your units can see. Air units fly over both.",
   }),
   newGround: () => ({
     title: "New ground",
@@ -239,7 +239,8 @@ function next(rules) {
   document.getElementById("tip-title").textContent = title;
   document.getElementById("tip-text").textContent = text;
   overlay.hidden = false;
-  ok.focus();
+  overlay.querySelector(".map-picker-card").scrollTop = 0;
+  ok.focus({ preventScroll: true });
 
   const close = (hideAll) => {
     overlay.hidden = true;

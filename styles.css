@@ -1138,7 +1138,7 @@ h1 {
 /* Units a campaign mission unlocks: in its briefing and on the card after winning the one
    before. */
 .unlock-heading {
-  margin: 0.6rem 0 0.4rem;
+  margin: 0.6rem 0 0.75rem;
   font-family: var(--title-font);
   font-size: 0.85rem;
   color: #ffd23f;
@@ -1353,4 +1353,17 @@ h1 {
 
 .menu-choices .level-persona {
   margin: 0 0 0.5rem;
+}
+
+/* On a wide screen (a computer, or a phone on its side) briefings, tips and confirmations use
+   the width instead of running to a tall, thin strip, and unlocked units sit side by side. */
+@media (min-width: 700px) {
+  #confirm-dialog .map-picker-card,
+  .tip-dialog .map-picker-card {
+    max-width: 44rem;
+  }
+
+  #confirm-dialog .unlocks {
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  }
 }

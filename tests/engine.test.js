@@ -4,7 +4,7 @@ import { RULES } from "../rules-config.js";
 import { FIXED_MAP_1, buildMap } from "../maps.js";
 import {
   newGame, applyAction, legalActions, viewFor, reachableHexes, attackTargets, healTargets,
-  harvestTargets, defenceOf, crushingMoves, darkTargets, crystalTargets,
+  harvestTargets, defenceOf, crushingMoves, darkTargets, crystalTargets, refreshKnowledge,
 } from "../engine.js";
 import { distance } from "../hex.js";
 import { scenario, TEST_RADIUS } from "./helpers.js";
@@ -1027,6 +1027,61 @@ describe("fog of war by map blocks", () => {
     assert.equal(viewFor(s, BLUE).map.hexes["0,2"].terrain, null);
     s = play(s, { type: "move", unitId: "h", to: "3,0" });
     assert.equal(viewFor(s, BLUE).map.hexes["0,2"].terrain, "plain");
+  });
+});
+
+describe("live sight under thin fog", () => {
+  const LIVE = { fog: { liveSight: true } };
+
+  test("only hexes a unit can see now show what is on them", () => {
+    const s = scenario({
+      units: [unit("s", "scoutBike", BLUE, "0,3"), unit("e", "tank", GREEN, "0,-4")],
+      rules: LIVE,
+    });
+    const view = viewFor(s, BLUE);
+    assert.equal(view.map.hexes["0,-4"].terrain, "plain", "the ground is known");
+    assert.equal(view.visible["0,-4"], undefined, "but out of sight");
+    assert.equal(view.units.e, undefined, "so the tank is hidden");
+    assert.ok(view.visible["0,0"], "the scout sees 3 hexes");
+  });
+
+  test("a block turned over shows its crystals; out of sight they show as last seen", () => {
+    let s = scenario({
+      units: [unit("s", "scoutBike", BLUE, "0,3")], crystals: { "0,-4": { amount: 30 } },
+      rules: LIVE, explored: false,
+    });
+    // The pile's block is turned over far from the scout's sight.
+    s.players[BLUE].revealed[s.map.hexes["0,-4"].cluster] = true;
+    refreshKnowledge(s);
+    assert.equal(viewFor(s, BLUE).visible["0,-4"], undefined);
+    assert.equal(viewFor(s, BLUE).crystals["0,-4"].amount, 30);
+    s = play(s, END, END);
+    assert.equal(viewFor(s, BLUE).crystals["0,-4"].amount, 30, "it grew, but nobody saw");
+    assert.ok(s.crystals["0,-4"].amount > 30);
+  });
+
+  test("artillery fires over a mountain at what another unit can see", () => {
+    const s = scenario({
+      terrain: { "0,-1": "mountain" },
+      units: [unit("a", "artillery", BLUE, "0,0", { setUp: true }),
+        unit("s", "scoutBike", BLUE, "1,-3"), unit("e", "tank", GREEN, "0,-3")],
+      rules: LIVE,
+    });
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "a"), ["e"]);
+    const tankBehind = scenario({
+      terrain: { "0,-1": "mountain" },
+      units: [unit("t", "tank", BLUE, "0,0"), unit("e", "tank", GREEN, "0,-2")],
+    });
+    assert.deepEqual(attackTargets(viewFor(tankBehind, BLUE), "t"), [], "a tank cannot");
+  });
+
+  test("units can fire blind into explored ground out of sight", () => {
+    const s = scenario({
+      units: [unit("a", "artillery", BLUE, "0,0", { setUp: true })], rules: LIVE,
+    });
+    const view = viewFor(s, BLUE);
+    const fogged = darkTargets(view, "a").filter((k) => view.map.hexes[k].terrain);
+    assert.ok(fogged.length > 0);
   });
 });
 

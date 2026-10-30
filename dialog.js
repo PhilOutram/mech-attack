@@ -16,7 +16,9 @@ export function confirmDialog({ title, text, confirm = "OK", cancel = "Cancel", 
   no.textContent = cancel || "";
   no.hidden = cancel === null;
   overlay.hidden = false;
-  yes.focus();
+  // Open at the top: focusing the button would scroll a long dialog down to it.
+  overlay.querySelector(".map-picker-card").scrollTop = 0;
+  yes.focus({ preventScroll: true });
 
   return new Promise((resolve) => {
     const close = (answer) => {

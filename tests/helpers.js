@@ -39,6 +39,9 @@ export function testRules(overrides = {}) {
   const rules = structuredClone(RULES);
   rules.start.units = [];
   rules.crystals.spawnChoices = [0];
+  // Test positions are built with every block turned over and everything on them visible;
+  // tests of live sight (fog.liveSight) turn it on themselves.
+  rules.fog.liveSight = false;
   for (const section in overrides) {
     const value = overrides[section];
     // Sections that are objects are merged; anything else (values, lists) is replaced.

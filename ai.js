@@ -12,9 +12,9 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard, allied, crystalTargets,
-} from "./engine.js?v=0.60";
-import { neighbourKeys, distance } from "./hex.js?v=0.60";
-import { COUNTERS } from "./counters.js?v=0.60";
+} from "./engine.js?v=0.61";
+import { neighbourKeys, distance } from "./hex.js?v=0.61";
+import { COUNTERS } from "./counters.js?v=0.61";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;

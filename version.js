@@ -1,8 +1,19 @@
-export const VERSION = "v0.60";
+export const VERSION = "v0.61";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.61",
+    date: "2026-10-30",
+    notes: [
+      "Live sight: only what your units can see now is clear. The rest of the ground you " +
+        "have explored is under a thin fog that hides enemy units.",
+      "Artillery fires over mountains at anything your units can see, or blind.",
+      "Briefings and tips use the width of a computer or a phone on its side, and open at " +
+        "the top.",
+    ],
+  },
   {
     version: "v0.60",
     date: "2026-10-30",

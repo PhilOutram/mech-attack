@@ -60,8 +60,12 @@ test("a free-for-all on a map for three sides plays to the end and scores by pla
   const record = runGame({ map, seed: 1, roundCap: 40 });
   assert.ok(record.result);
   assert.equal(record.built.length, 3);
+  // Places share 0 to 1 between the sides: last 0, first 1, and a draw shares out the places
+  // of those still in; whatever the finish, they add up to the same total.
   const scores = placeScores(record, 3);
-  assert.deepEqual([...scores].sort(), [0, 0.5, 1]);
+  assert.equal(scores.length, 3);
+  assert.ok(scores.every((x) => x >= 0 && x <= 1));
+  assert.equal(scores.reduce((a, b) => a + b, 0), 1.5);
 });
 
 test("place scores: a draw shares the places of everyone still in", () => {

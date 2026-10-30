@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, parseKey, key, DIRECTIONS,
-} from "./hex.js?v=0.60";
+} from "./hex.js?v=0.61";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -296,13 +296,17 @@ function revealFrom(state, player, at, range) {
   for (const k of hexesInSight(state, at, range)) revealed[blockOf(state, k)] = true;
 }
 
-// Hexes the player sees with their own units: every hex of a block they have turned over in
-// fog mode "tiles", or the hexes in sight of their units in fog mode "sight".
+// Hexes the player sees with their own units: in fog mode "sight", the hexes in sight of
+// their units; in fog mode "tiles", every hex of a block they have turned over, or with
+// rules.fog.liveSight only those of them a unit can see now.
 function ownVisibleHexes(state, player) {
   if (!tilesFog(state)) return hexesSeenBy(state, player);
   const visible = {};
   const revealed = state.players[player].revealed;
-  for (const k in state.map.hexes) if (revealed[blockOf(state, k)]) visible[k] = true;
+  const inSight = state.rules.fog.liveSight ? hexesSeenBy(state, player) : null;
+  for (const k in state.map.hexes) {
+    if (revealed[blockOf(state, k)] && (!inSight || inSight[k])) visible[k] = true;
+  }
   return visible;
 }
 
@@ -339,6 +343,13 @@ export function refreshKnowledge(state) {
   }
   state.players.forEach((player, p) => {
     const seen = visibleHexes(state, p);
+    // A block turned over shows everything on it at that moment, as on the table, even
+    // where no unit can see it now (fog liveSight).
+    if (tilesFog(state)) {
+      for (const k in state.map.hexes) {
+        if (!player.explored[k] && player.revealed[blockOf(state, k)]) seen[k] = true;
+      }
+    }
     for (const k in seen) {
       player.explored[k] = true;
       const pile = state.crystals[k];
@@ -608,7 +619,8 @@ function firingReach(view, unit) {
     const reach = new Set(DIRECTIONS.flatMap((d) => lineHexes(view, unit.at, d, maxRange)));
     return (k) => reach.has(k) && distance(unit.at, k) >= minRange;
   }
-  const blocks = blocksSight(view);
+  // Indirect fire (Artillery) goes over mountains.
+  const blocks = stats.indirect ? () => false : blocksSight(view);
   return (k) => {
     const d = distance(unit.at, k);
     return d >= minRange && d <= maxRange && lineOfSight(unit.at, k, blocks);

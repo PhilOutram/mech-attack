@@ -26,7 +26,9 @@ export const RULES = {
     artillery: {
       name: "Artillery", cost: 50, move: 2, defence: 10, attack: 30,
       range: [2, 5], storage: 0, healing: 0, sight: 3,
-      needsSetup: true,
+      // Indirect fire (Phil, 30 October 2026): it fires over mountains, at anything a unit of
+      // its side can see, or blind.
+      needsSetup: true, indirect: true,
     },
     lightHarvester: {
       name: "Light Harvester", cost: 50, move: 6, defence: 15, attack: 0,
@@ -244,7 +246,11 @@ export const RULES = {
   // stopOnReveal: a move that turns over new blocks stops there, before going on into ground
   // that was face down when it was planned; the unit keeps its unused move points (Phil, 29
   // October 2026).
-  fog: { mode: "tiles", revealRange: 1, stopOnReveal: true },
+  // liveSight (Phil, 30 October 2026): in fog mode "tiles", a turned-over block shows its
+  // terrain for good, but only hexes a unit can see now (within sight, not behind mountains)
+  // show what is on them; the rest of the explored ground is under a thin fog that hides
+  // enemy units and shows crystals as last seen.
+  fog: { mode: "tiles", revealRange: 1, stopOnReveal: true, liveSight: true },
 
   // Undos per game for the player on the game screen (the engine does not use this).
   undosPerGame: 5,
