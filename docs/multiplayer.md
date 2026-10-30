@@ -99,10 +99,11 @@ Mission ideas, each built round working together:
 4. **Last Stand** (3 humans, 2 AIs): hold three factories for 15 rounds against two AI armies; any one factory lost loses the mission.
 5. **Kharon Rising** (2 or 3 humans, 2 AIs): the finale, all units, the two strongest AI personalities.
 
-Questions for Phil:
-- Should each human have their own home and crystals in every mission, or do some missions share one factory (like one base run by two commanders)?
-- Is a human who is knocked out able to keep watching and advising, or is their device done?
-- Should co-op progress be per device (each player unlocks missions on their own phone) or follow the host?
+Settled with Phil (30 October 2026):
+- Each human always has their own home and crystals.
+- A human who is knocked out keeps watching (and can advise) until the mission ends.
+
+Still to decide: whose progress unlocks co-op missions. Suggested: the host can start any mission their device has unlocked, others join whatever their own progress, and a win is recorded on every player's device, so anyone can host the next mission.
 
 ## Still to decide (provisional for now)
 
