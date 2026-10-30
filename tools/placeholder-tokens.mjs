@@ -1,7 +1,7 @@
 // Writes simple placeholder tokens for units that have no artwork yet (Infantry, Transporter,
-// Chinook, Commander Jeanne, Heavy Tank and Twin Turret), in each player's colour. Replace
-// them with the real art when it is drawn. The Turret has Phil's art (units/turret-*.svg), so
-// it is not drawn here.
+// Chinook, Commander Jeanne and Heavy Tank), in each player's colour. Replace them with the
+// real art when it is drawn. The Turret and Twin Turret have Phil's art (units/turret-*.svg,
+// units/twin-turret-*.svg), so they are not drawn here.
 // Usage: node tools/placeholder-tokens.mjs
 import { writeFileSync } from "node:fs";
 
@@ -75,19 +75,8 @@ function heavyTank(fill, dark) {
     ` stroke-width="3"/>`;
 }
 
-// A twin gun emplacement seen from above: round base and two short barrels.
-function twinTurret(fill, dark) {
-  return `<circle cx="100" cy="108" r="70" fill="${dark}" stroke="#111" stroke-width="3"/>` +
-    `<rect x="76" y="30" width="14" height="60" rx="4" fill="#2a2a2a" stroke="#111"` +
-    ` stroke-width="2"/>` +
-    `<rect x="110" y="30" width="14" height="60" rx="4" fill="#2a2a2a" stroke="#111"` +
-    ` stroke-width="2"/>` +
-    `<rect x="64" y="80" width="72" height="56" rx="14" fill="${fill}" stroke="#111"` +
-    ` stroke-width="3"/>`;
-}
-
 const TOKENS = [["infantry", infantry], ["transporter", transporter], ["chinook", chinook],
-  ["vip", vip], ["heavy-tank", heavyTank], ["twin-turret", twinTurret]];
+  ["vip", vip], ["heavy-tank", heavyTank]];
 
 for (const [colour, [fill, dark]] of Object.entries(COLOURS)) {
   for (const [name, draw] of TOKENS) {

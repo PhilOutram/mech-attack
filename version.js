@@ -1,8 +1,17 @@
-export const VERSION = "v0.59";
+export const VERSION = "v0.60";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.60",
+    date: "2026-10-30",
+    notes: [
+      "The Twin Turret has Phil's art, in every player's colour.",
+      "The Heavy Tank has yellow, purple and pink tokens. They were missing, which stopped the " +
+        "app installing for offline play.",
+    ],
+  },
   {
     version: "v0.59",
     date: "2026-10-30",
