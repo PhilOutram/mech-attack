@@ -1,14 +1,14 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.57";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.57";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.57";
-import { confirmDialog } from "./dialog.js?v=0.57";
-import { showTip, resetTips } from "./tips.js?v=0.57";
-import { RULES } from "./rules-config.js?v=0.57";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.57";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.57";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.57";
-import { wireMultiplayer } from "./multiplayer.js?v=0.57";
+import { VERSION, CHANGELOG } from "./version.js?v=0.58";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.58";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.58";
+import { confirmDialog } from "./dialog.js?v=0.58";
+import { showTip, resetTips } from "./tips.js?v=0.58";
+import { RULES } from "./rules-config.js?v=0.58";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.58";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.58";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.58";
+import { wireMultiplayer } from "./multiplayer.js?v=0.58";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -42,6 +42,24 @@ const resume = document.getElementById("menu-resume");
 refreshMenu();
 
 const picker = document.getElementById("map-picker");
+
+// Skirmish: a one-off battle against the AI (the map picker), or with other players (the
+// multiplayer setup, multiplayer.js). Back from either returns here.
+const skirmishMenu = document.getElementById("skirmish-menu");
+document.getElementById("menu-skirmish").addEventListener("click", () => {
+  skirmishMenu.hidden = false;
+});
+document.getElementById("skirmish-cancel").addEventListener("click", () => {
+  skirmishMenu.hidden = true;
+});
+for (const id of ["menu-play", "menu-multi"]) {
+  document.getElementById(id).addEventListener("click", () => {
+    skirmishMenu.hidden = true;
+  });
+}
+document.getElementById("mp-cancel").addEventListener("click", () => {
+  skirmishMenu.hidden = false;
+});
 
 document.getElementById("menu-play").addEventListener("click", async () => {
   const replace = !hasSavedGame() || await confirmDialog({
@@ -123,6 +141,10 @@ document.getElementById("menu-help").addEventListener("click", () => {
 });
 document.getElementById("help-cancel").addEventListener("click", () => {
   helpMenu.hidden = true;
+});
+document.getElementById("help-about").addEventListener("click", () => {
+  helpMenu.hidden = true;
+  showChangelog();
 });
 document.getElementById("help-tips").addEventListener("click", () => {
   helpMenu.hidden = true;
@@ -210,6 +232,7 @@ document.getElementById("map-new").addEventListener("click", () =>
 document.getElementById("map-fixed").addEventListener("click", () => play({ mapId: "fixed-1" }));
 document.getElementById("map-cancel").addEventListener("click", () => {
   picker.hidden = true;
+  skirmishMenu.hidden = false;
 });
 document.getElementById("map-number-form").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -225,7 +248,8 @@ document.getElementById("map-recent").addEventListener("click", (e) => {
 // hosting lobby is left out: its button cancels the game being set up, too much for a stray
 // tap. Confirmation boxes and tips already close this way (dialog.js, tips.js).
 const BACK_ON_BACKDROP = [["campaign-picker", "campaign-cancel"], ["map-picker", "map-cancel"],
-  ["mp-setup", "mp-cancel"], ["mp-join", "mp-join-cancel"], ["help-menu", "help-cancel"]];
+  ["mp-setup", "mp-cancel"], ["mp-join", "mp-join-cancel"], ["help-menu", "help-cancel"],
+  ["skirmish-menu", "skirmish-cancel"]];
 for (const [overlayId, backId] of BACK_ON_BACKDROP) {
   const overlay = document.getElementById(overlayId);
   overlay.addEventListener("click", (e) => {

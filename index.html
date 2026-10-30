@@ -13,21 +13,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.57" />
+  <link rel="stylesheet" href="styles.css?v=0.58" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
     <img class="splash-art" src="splash.jpg"
       alt="Mech Attack - a blue battle tank firing across a red Martian desert" />
     <nav class="splash-menu" aria-label="Main menu">
-      <button id="menu-campaign" class="start-btn" type="button">Campaign</button>
-      <button id="menu-play" class="start-btn" type="button">Play</button>
-      <button id="menu-multi" class="start-btn" type="button">Multiplayer</button>
-      <button id="menu-join" class="start-btn" type="button">Join game</button>
       <button id="menu-resume" class="start-btn" type="button" hidden>Resume</button>
+      <button id="menu-campaign" class="start-btn" type="button">Campaign</button>
+      <button id="menu-skirmish" class="start-btn" type="button">Skirmish</button>
+      <button id="menu-join" class="start-btn" type="button">Join a game</button>
       <button id="menu-help" class="start-btn" type="button">Help</button>
     </nav>
   </section>
+
+  <div id="skirmish-menu" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="skirmish-title">
+      <h2 id="skirmish-title">Skirmish</h2>
+      <p class="level-persona">A one-off battle on a map of your choice.</p>
+      <div class="menu-choices">
+        <button id="menu-play" class="start-btn" type="button">Against the AI</button>
+        <p class="level-persona">You against one Consortium commander, at the rank you choose.</p>
+        <button id="menu-multi" class="start-btn" type="button">With other players</button>
+        <p class="level-persona">Two to four sides, humans and AIs: take turns or play co-op, on
+          this device or online.</p>
+      </div>
+      <button id="skirmish-cancel" class="start-btn" type="button">Back</button>
+    </div>
+  </div>
 
   <div id="help-menu" class="map-picker" hidden>
     <div class="map-picker-card" role="dialog" aria-labelledby="help-title">
@@ -35,6 +49,7 @@
       <div class="map-choices help-choices">
         <button id="menu-units" class="start-btn" type="button">Units</button>
         <button id="help-tips" class="start-btn" type="button">Show tips again</button>
+        <button id="help-about" class="start-btn" type="button">About</button>
       </div>
       <button id="help-cancel" class="start-btn" type="button">Back</button>
     </div>
@@ -221,6 +236,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.57" type="module"></script>
+  <script src="app.js?v=0.58" type="module"></script>
 </body>
 </html>

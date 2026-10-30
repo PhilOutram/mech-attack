@@ -7,30 +7,30 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.57";
-import { mapById, seededRandom } from "./maps.js?v=0.57";
+import { RULES } from "./rules-config.js?v=0.58";
+import { mapById, seededRandom } from "./maps.js?v=0.58";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets,
   STATE_FORMAT,
-} from "./engine.js?v=0.57";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.57";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.57";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.57";
-import { distance } from "./hex.js?v=0.57";
+} from "./engine.js?v=0.58";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.58";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.58";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.58";
+import { distance } from "./hex.js?v=0.58";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre,
-} from "./board.js?v=0.57";
-import { confirmDialog } from "./dialog.js?v=0.57";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.57";
-import { showTip, showNote } from "./tips.js?v=0.57";
+} from "./board.js?v=0.58";
+import { confirmDialog } from "./dialog.js?v=0.58";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.58";
+import { showTip, showNote } from "./tips.js?v=0.58";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.57";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.57";
+} from "./campaign.js?v=0.58";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.58";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -42,7 +42,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.57";
+const ASSET_VERSION = "0.58";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the

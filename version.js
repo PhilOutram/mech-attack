@@ -1,8 +1,16 @@
-export const VERSION = "v0.57";
+export const VERSION = "v0.58";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.58",
+    date: "2026-10-30",
+    notes: [
+      "Simpler main menu: Campaign, Skirmish, Join a game and Help. Skirmish offers a game " +
+        "against the AI or with other players; Help has Units, tips and About.",
+    ],
+  },
   {
     version: "v0.57",
     date: "2026-10-30",
