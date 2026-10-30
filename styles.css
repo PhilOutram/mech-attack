@@ -1326,3 +1326,14 @@ h1 {
   pointer-events: none;
   will-change: transform;
 }
+
+/* Back on the units page, at the right of its header. */
+.units-back {
+  margin-left: auto;
+  margin-right: 0.75rem;
+  animation: none;
+}
+
+.help-choices {
+  margin-bottom: 0.75rem;
+}

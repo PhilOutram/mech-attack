@@ -532,6 +532,42 @@ describe("combat", () => {
   });
 });
 
+describe("units that fire twice", () => {
+  // Three Green Infantry next to a Blue Heavy Tank.
+  const swarm = [unit("a", "infantry", GREEN, "0,-1"), unit("b", "infantry", GREEN, "1,-1"),
+    unit("c", "infantry", GREEN, "-1,0")];
+
+  test("a Heavy Tank fires twice a turn, at two different targets", () => {
+    let s = scenario({ units: [unit("h", "heavyTank", BLUE, "0,0"), ...swarm] });
+    s = play(s, attack("h", "a"));
+    assert.equal(s.units.a, undefined, "20 destroys Infantry");
+    assert.equal(s.units.h.acted, false, "it has a second shot");
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "h").sort(), ["b", "c"]);
+    assert.deepEqual(reachableHexes(viewFor(s, BLUE), "h"), {}, "no moving after firing");
+    s = play(s, attack("h", "b"));
+    assert.equal(s.units.h.acted, true);
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "h"), []);
+    s = play(s, END, END);
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "h"), ["c"], "both shots back next turn");
+  });
+
+  test("the same target cannot take both shots", () => {
+    let s = scenario({
+      units: [unit("t", "twinTurret", BLUE, "0,0"), unit("e", "tank", GREEN, "0,-1")],
+    });
+    s = play(s, attack("t", "e"));
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "t"), []);
+    assert.throws(() => play(s, attack("t", "e")), /cannot attack/);
+  });
+
+  test("twin guns fire only at the hexes next to them", () => {
+    const s = scenario({
+      units: [unit("t", "twinTurret", BLUE, "0,0"), unit("e", "infantry", GREEN, "0,-2")],
+    });
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "t"), []);
+  });
+});
+
 describe("blowing up crystals", () => {
   const blast = (unitId, at) => ({ type: "blast", unitId, at });
 

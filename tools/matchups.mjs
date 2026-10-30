@@ -10,11 +10,11 @@
 // Usage (from the project folder): node tools/matchups.mjs [--games 4] [--set rule=value ...]
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "../rules-config.js?v=0.56";
-import { mapById } from "../maps.js?v=0.56";
-import { newGame, applyAction, viewFor, unitsOf } from "../engine.js?v=0.56";
-import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.56";
-import { withOverrides } from "../sim.js?v=0.56";
+import { RULES } from "../rules-config.js?v=0.57";
+import { mapById } from "../maps.js?v=0.57";
+import { newGame, applyAction, viewFor, unitsOf } from "../engine.js?v=0.57";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.57";
+import { withOverrides } from "../sim.js?v=0.57";
 
 const DEFAULT_GAMES = 4;
 // Crystals' worth of units on each side, and the most units of one kind on the board.

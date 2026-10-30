@@ -3,10 +3,10 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.56";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.56";
-import { distance, cheapestPaths } from "./hex.js?v=0.56";
-import { LEVELS } from "./difficulty.js?v=0.56";
+import { RULES } from "./rules-config.js?v=0.57";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.57";
+import { distance, cheapestPaths } from "./hex.js?v=0.57";
+import { LEVELS } from "./difficulty.js?v=0.57";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 // The highest rank each mission has been won at: { mission index: rank id }.
@@ -53,6 +53,8 @@ export const UNIT_ROLES = {
   lightMedic: "Repairs damaged units.",
   artillery: "Long range, once set up.",
   turret: "A fixed gun to guard your factory.",
+  twinTurret: "A fixed twin gun: two close-range shots a turn.",
+  heavyTank: "Two guns, two targets a turn: shreds Infantry.",
   chinook: "Flies a vehicle or two Infantry over anything.",
   attackHelicopter: "Flies over everything to strike ground units.",
   antiAircraftJeep: "Shoots down aircraft.",
@@ -213,15 +215,17 @@ const MISSION_LIST = [
     title: "Hold the Line",
     mapId: "map-14-3-5-5-3",
     story: "A Consortium strike force is heading for your factory, and it is bigger than " +
-      "anything you can field. Your engineers have built two Turrets beside the factory: " +
-      "guns that never move but hit hard. Build more, and keep Green's Infantry out.",
+      "anything you can field. Your engineers have built two Turrets beside the factory, " +
+      "guns that never move but hit hard, and a Twin Turret that fires twice at anything " +
+      "right next to it. Command has sent a Sonic Tank too: its boom hits every enemy in a " +
+      "straight line, so catch them coming up the straight. Keep Green's Infantry out.",
     objective: `Hold your home factory for ${HOLD_ROUNDS} rounds.`,
-    boss: "heavyCannon",
+    boss: "sonicTank",
     goal: `Hold your home factory for ${HOLD_ROUNDS} rounds`,
-    setup: { units: [["lightHarvester", "tank", "turret", "turret"],
+    setup: { units: [["lightHarvester", "tank", "sonicTank", "turret", "turret", "twinTurret"],
       ["lightHarvester", "tank", "tank", "scoutBike", "scoutBike", "infantry", "infantry",
-        "transporter"]], crystals: [120, 150] },
-    newUnits: ["turret"],
+        "transporter"]], crystals: [120, 120] },
+    newUnits: ["turret", "twinTurret"],
     ai: "default",
     aiMix: { tank: 0.5, scoutBike: 0.3, infantry: 0.2 },
     done: (state) => holdsHome(state) && state.round > HOLD_ROUNDS,
@@ -257,7 +261,7 @@ const MISSION_LIST = [
       "each with crystals left in its store. Your Infantry can take them, but they are " +
       "weak: carry them in the Transporter and keep them covered while they break in.",
     objective: `Capture ${FACTORIES_TO_CAPTURE} factories with your Infantry.`,
-    boss: "sonicTank",
+    boss: "heavyCannon",
     goal: `Capture ${FACTORIES_TO_CAPTURE} factories`,
     setup: { units: [["lightHarvester", "tank", "infantry", "infantry", "transporter"],
       ["lightHarvester", "scoutBike", "tank", "infantry", "transporter"]],
@@ -282,7 +286,7 @@ const MISSION_LIST = [
     setup: { units: [["lightHarvester", "blastCannon", "tank"],
       ["lightHarvester", "scoutBike", "scoutBike", "scoutBike", "scoutBike", "scoutBike"]],
     crystals: [100, 150], upgrades: [["heavyWorks"], []] },
-    newUnits: ["blastCannon"],
+    newUnits: ["blastCannon", "heavyTank"],
     newUpgrades: ["heavyWorks"],
     ai: "default",
     aiMix: { scoutBike: 1 },
@@ -355,8 +359,8 @@ const MISSION_LIST = [
     goal: "Overrun Green's home factory",
     setup: { units: [
       ["lightHarvester", "scoutBike", "tank", "tank", "artillery", "infantry", "infantry"],
-      ["lightHarvester", "lightHarvester", "scoutBike", "tank", "tank", "infantry", "turret",
-        "turret", "artillery", "chinook", "fighter"]], crystals: [200, 200],
+      ["lightHarvester", "lightHarvester", "scoutBike", "tank", "heavyTank", "infantry",
+        "turret", "twinTurret", "artillery", "chinook", "fighter"]], crystals: [200, 200],
     upgrades: [[], ["lab", "heavyWorks", "airfield"]] },
     newUnits: ["heavyCannon"],
     ai: "evolved",

@@ -1,8 +1,21 @@
-export const VERSION = "v0.56";
+export const VERSION = "v0.57";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.57",
+    date: "2026-10-30",
+    notes: [
+      "New units: the Twin Turret and the Heavy Tank fire twice a turn at the hexes next to " +
+        "them, an answer to Infantry swarms.",
+      "Hold the Line is winnable: you start with a Sonic Tank and a Twin Turret, Green has " +
+        "fewer crystals, and its boss is a Sonic Tank (the Heavy Cannon moves to Storm the " +
+        "Works).",
+      "Help opens a menu with Units and Show tips again; the Units page has a Back button; " +
+        "tapping outside a menu closes it.",
+    ],
+  },
   {
     version: "v0.56",
     date: "2026-10-29",

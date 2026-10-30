@@ -144,6 +144,14 @@ describe("AI against Infantry swarms", () => {
     assert.deepEqual([action.type, action.unitType], ["build", "blastCannon"]);
   });
 
+  test("a personality that ranks its own army above answers builds its army first", () => {
+    const s = scenario({ units: [...swarm], playerCrystals: [500, 100] });
+    s.units[s.players[BLUE].factoryId].upgrades = ["heavyWorks"];
+    const armyFirst = { ...builder, mix: { tank: 1 }, counterPriority: 0.2, armyPriority: 0.9 };
+    const action = chooseAction(viewFor(s, BLUE), armyFirst, counters);
+    assert.deepEqual([action.type, action.unitType], ["build", "tank"]);
+  });
+
   test("it stops building counters once it has enough of them", () => {
     const cannons = [unit("x", "blastCannon", BLUE, "2,2"),
       unit("y", "blastCannon", BLUE, "3,2")];

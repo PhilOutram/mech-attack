@@ -163,6 +163,10 @@ function builtTip(type, rules) {
   if (s.splash) parts.push("Its blast also hits enemies next to the target.");
   if (s.line) parts.push("Its sonic boom hits every enemy along a straight line.");
   if (s.reload) parts.push("It fires every other turn.");
+  if (s.shots > 1) {
+    parts.push(`It fires ${s.shots} times a turn, each at a different target, but only at ` +
+      "the hexes next to it: tap Fire again after the first shot.");
+  }
   parts.push("New units can act from your next turn.");
   return { title: `New unit: ${s.name}`, text: parts.join(" ") };
 }

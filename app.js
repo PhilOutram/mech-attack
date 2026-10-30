@@ -1,14 +1,14 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.56";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.56";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.56";
-import { confirmDialog } from "./dialog.js?v=0.56";
-import { showTip, resetTips } from "./tips.js?v=0.56";
-import { RULES } from "./rules-config.js?v=0.56";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.56";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.56";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.56";
-import { wireMultiplayer } from "./multiplayer.js?v=0.56";
+import { VERSION, CHANGELOG } from "./version.js?v=0.57";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.57";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.57";
+import { confirmDialog } from "./dialog.js?v=0.57";
+import { showTip, resetTips } from "./tips.js?v=0.57";
+import { RULES } from "./rules-config.js?v=0.57";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.57";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.57";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.57";
+import { wireMultiplayer } from "./multiplayer.js?v=0.57";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -115,12 +115,26 @@ function showCampaign() {
   }).join("");
   campaignPicker.hidden = false;
 }
-// Help turns the tips back on: they show again as you play, starting with this one.
+// Help: the units reference, and turning the tips back on (they show again as you play,
+// starting with the welcome).
+const helpMenu = document.getElementById("help-menu");
 document.getElementById("menu-help").addEventListener("click", () => {
+  helpMenu.hidden = false;
+});
+document.getElementById("help-cancel").addEventListener("click", () => {
+  helpMenu.hidden = true;
+});
+document.getElementById("help-tips").addEventListener("click", () => {
+  helpMenu.hidden = true;
   resetTips();
   showTip("welcome", RULES);
 });
 document.getElementById("home").addEventListener("click", showSplash);
+// Back from the units page returns to the Help menu it was opened from.
+document.getElementById("units-back").addEventListener("click", () => {
+  showSplash();
+  helpMenu.hidden = false;
+});
 // Multiplayer: back to the menu when a game ends, or hide it as one starts.
 wireMultiplayer({ leaveTo: (menu) => {
   if (menu) showSplash();
@@ -207,6 +221,18 @@ document.getElementById("map-recent").addEventListener("click", (e) => {
   if (button) play({ mapId: button.dataset.map });
 });
 
+// Tapping outside a menu's card does what its Back button does (Phil, 29 October 2026). The
+// hosting lobby is left out: its button cancels the game being set up, too much for a stray
+// tap. Confirmation boxes and tips already close this way (dialog.js, tips.js).
+const BACK_ON_BACKDROP = [["campaign-picker", "campaign-cancel"], ["map-picker", "map-cancel"],
+  ["mp-setup", "mp-cancel"], ["mp-join", "mp-join-cancel"], ["help-menu", "help-cancel"]];
+for (const [overlayId, backId] of BACK_ON_BACKDROP) {
+  const overlay = document.getElementById(overlayId);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) document.getElementById(backId).click();
+  });
+}
+
 function refreshMenu() {
   resume.hidden = !hasSavedGame();
 }
@@ -229,6 +255,7 @@ function play(options) {
 }
 
 function showUnits() {
+  helpMenu.hidden = true;
   splash.hidden = true;
   units.hidden = false;
   window.scrollTo(0, 0);

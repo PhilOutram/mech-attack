@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.56" />
+  <link rel="stylesheet" href="styles.css?v=0.57" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -25,10 +25,20 @@
       <button id="menu-multi" class="start-btn" type="button">Multiplayer</button>
       <button id="menu-join" class="start-btn" type="button">Join game</button>
       <button id="menu-resume" class="start-btn" type="button" hidden>Resume</button>
-      <button id="menu-units" class="start-btn" type="button">Units</button>
       <button id="menu-help" class="start-btn" type="button">Help</button>
     </nav>
   </section>
+
+  <div id="help-menu" class="map-picker" hidden>
+    <div class="map-picker-card" role="dialog" aria-labelledby="help-title">
+      <h2 id="help-title">Help</h2>
+      <div class="map-choices help-choices">
+        <button id="menu-units" class="start-btn" type="button">Units</button>
+        <button id="help-tips" class="start-btn" type="button">Show tips again</button>
+      </div>
+      <button id="help-cancel" class="start-btn" type="button">Back</button>
+    </div>
+  </div>
 
   <div id="campaign-picker" class="map-picker" hidden>
     <div class="map-picker-card" role="dialog" aria-labelledby="campaign-title">
@@ -130,6 +140,7 @@
         <img src="icon.png" alt="" />
       </button>
       <h1>Units</h1>
+      <button id="units-back" class="start-btn units-back" type="button">Back</button>
     </header>
     <div id="unit-list"></div>
     <section class="notes">
@@ -210,6 +221,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.56" type="module"></script>
+  <script src="app.js?v=0.57" type="module"></script>
 </body>
 </html>
