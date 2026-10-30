@@ -1,8 +1,17 @@
-export const VERSION = "v0.69";
+export const VERSION = "v0.70";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.70",
+    date: "2026-10-30",
+    notes: [
+      "Resume brings back the last game played, including games with other devices.",
+      "A device that drops out reconnects by itself; a host that restarts keeps its code.",
+      "The game code is shown in the log.",
+    ],
+  },
   {
     version: "v0.69",
     date: "2026-10-30",

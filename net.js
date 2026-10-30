@@ -15,6 +15,14 @@ const CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const CODE_LENGTH = 4;
 const CLIENT_KEY = "mech-attack.client-id";
 const CONNECT_TIMEOUT_MS = 15000;
+// A host taking its code back after a refresh: the game service may still hold the old
+// registration for a while, so it tries this often, this far apart.
+const RECLAIM_ATTEMPTS = 6;
+const RECLAIM_DELAY_MS = 2500;
+// A host that drops off the game service (a phone gone to sleep) registers again after this.
+const RECONNECT_DELAY_MS = 2000;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let peerLibrary = null;
 
@@ -73,10 +81,21 @@ async function openPeer(id) {
 // Hosts a game for the given remote seats. onPlayers(joined) is told which seats have a
 // device: [seat, ...]. Seats are handed out in order to devices as they join; a device that
 // rejoins gets its old seat back (and, once the game has started, onRejoin(seat) is called so
-// the game can send it the game again).
-export async function hostGame({ remoteSeats, onPlayers = () => {} }) {
+// the game can send it the game again). A saved game hosted again passes its old code and
+// owners (link.owners(), which device has which seat), so the others can rejoin as before.
+export async function hostGame({ remoteSeats, onPlayers = () => {}, code: wanted = null,
+  owners: savedOwners = null }) {
   let peer = null;
   let code = null;
+  for (let attempt = 0; wanted && !peer && attempt < RECLAIM_ATTEMPTS; attempt++) {
+    if (attempt) await wait(RECLAIM_DELAY_MS);
+    try {
+      peer = await openPeer(ID_PREFIX + wanted);
+      code = wanted;
+    } catch (error) {
+      if (error.type !== "unavailable-id") throw error;
+    }
+  }
   for (let attempt = 0; !peer; attempt++) {
     code = randomCode();
     try {
@@ -86,8 +105,15 @@ export async function hostGame({ remoteSeats, onPlayers = () => {} }) {
       if (error.type !== "unavailable-id" || attempt > 4) throw error;
     }
   }
+  // A phone that goes to sleep drops off the game service, and the others could not find it
+  // to rejoin: it registers again.
+  peer.on("disconnected", () => {
+    setTimeout(() => {
+      if (!peer.destroyed && peer.disconnected) peer.reconnect();
+    }, RECONNECT_DELAY_MS);
+  });
   const connections = new Map(); // seat -> connection
-  const owners = new Map(); // client id -> seat
+  const owners = new Map(Object.entries(savedOwners || {})); // client id -> seat
   let handler = () => {};
   const link = {
     role: "host",
@@ -101,6 +127,7 @@ export async function hostGame({ remoteSeats, onPlayers = () => {} }) {
       handler = fn;
     },
     joined: () => [...connections.keys()],
+    owners: () => Object.fromEntries(owners),
     close() {
       peer.destroy();
     },
@@ -147,6 +174,7 @@ export async function joinGame(code) {
     send(_, message) {
       if (conn.open) conn.send(message);
     },
+    isOpen: () => conn.open,
     onMessage(fn) {
       handler = fn;
     },

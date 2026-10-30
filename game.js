@@ -7,43 +7,49 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.69";
-import { mapById, seededRandom } from "./maps.js?v=0.69";
+import { RULES } from "./rules-config.js?v=0.70";
+import { mapById, seededRandom } from "./maps.js?v=0.70";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.69";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.69";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.69";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.69";
-import { distance } from "./hex.js?v=0.69";
+} from "./engine.js?v=0.70";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.70";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.70";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.70";
+import { distance } from "./hex.js?v=0.70";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.69";
-import { confirmDialog } from "./dialog.js?v=0.69";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.69";
-import { showTip, showNote } from "./tips.js?v=0.69";
+} from "./board.js?v=0.70";
+import { confirmDialog } from "./dialog.js?v=0.70";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.70";
+import { showTip, showNote } from "./tips.js?v=0.70";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.69";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.69";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.69";
+} from "./campaign.js?v=0.70";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.70";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.70";
+import { joinGame as joinRemote } from "./net.js?v=0.70";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
 const AI_PLAYER = 1;
 const SAVE_KEY = "mech-attack.save";
+// How the saved game links to other devices (see savedLink).
+const LINK_KEY = "mech-attack.link";
+// A device that lost the host tries to rejoin this often, this far apart.
+const REJOIN_ATTEMPTS = 10;
+const REJOIN_DELAY_MS = 3000;
 const RECENT_KEY = "mech-attack.recent-maps";
 // Per-game extras kept beside the save: undos left and whether surrender was demanded.
 const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.69";
+const ASSET_VERSION = "0.70";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route in this long, about the length of the
@@ -151,14 +157,40 @@ function loadSave() {
   }
 }
 
-// Games on several devices are not saved: they cannot be resumed without the others.
+// The game last played is the one Resume brings back, whatever kind it is. A game hosted
+// here saves the whole game and its code and seats, so it can be hosted again and the others
+// can rejoin; a game joined on another device lives there, so this device keeps only how to
+// get back to it.
 function save() {
-  if (link) return;
   try {
-    if (state.result) localStorage.removeItem(SAVE_KEY);
-    else localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    if (state.result) {
+      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(LINK_KEY);
+      return;
+    }
+    localStorage.setItem(SAVE_KEY, JSON.stringify(isClient()
+      ? { format: STATE_FORMAT, joined: true } : state));
+    if (!link) localStorage.removeItem(LINK_KEY);
+    else {
+      localStorage.setItem(LINK_KEY, JSON.stringify(link.role === "host"
+        ? { role: "host", code: link.code, owners: link.owners(),
+          remoteSeats: seatsOf(state).map((seat, p) => (seat.remote ? p : -1))
+            .filter((p) => p >= 0) }
+        : { role: "client", code: link.code }));
+    }
   } catch {
     // Storage can be full or blocked; the game carries on without saving.
+  }
+}
+
+// How the saved game links to other devices: { role: "host", code, owners, remoteSeats } for
+// a game hosted here, { role: "client", code } for one joined elsewhere, or null.
+export function savedLink() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LINK_KEY));
+    return saved && hasSavedGame() ? saved : null;
+  } catch {
+    return null;
   }
 }
 
@@ -415,7 +447,10 @@ export async function openGame({
     const chosen = levelById(state.level);
     showBanner(`${chosen.rank}: you face ${chosen.opponent}`, OPPONENT_BANNER_MS);
   }
-  if (link) link.onMessage(onLinkMessage);
+  if (link) {
+    link.onMessage(onLinkMessage);
+    sayGameCode();
+  }
   if (link && link.role === "host") {
     sendStart();
     link.onRejoin = (seat) => sendStart(seat);
@@ -459,6 +494,8 @@ export async function joinGame({ linkTo, start, onLeave }) {
   await loadTiles(ASSET_VERSION);
   fitBoard();
   link.onMessage(onLinkMessage);
+  save();
+  sayGameCode();
   tip("welcome");
   if (coopMissionOf(state)) await showCoopBriefing();
   render();
@@ -2034,6 +2071,11 @@ let nextRef = 1;
 const waiting = new Map();
 
 function sendToHost(action) {
+  // A dropped connection loses the action: reconnect, and the player taps again.
+  if (!link.isOpen()) {
+    rejoin();
+    return Promise.resolve(false);
+  }
   const ref = nextRef++;
   ui.busy = true;
   render();
@@ -2052,6 +2094,7 @@ async function clientReceive(message) {
     const before = state;
     state = clientState(message.view, seatsOf(state),
       { coop: state.coop, coopSteps: message.steps });
+    save();
     showEvents(message.events, before, state);
     ui.busy = true;
     await showMoves(message.events, before, state);
@@ -2072,12 +2115,69 @@ async function clientReceive(message) {
     if (message.events.some((e) => e.type === "endTurn" || e.type === "newRound")) {
       nextTurn(!before.active.includes(me) && state.active.includes(me));
     }
+  } else if (message.type === "start") {
+    // Back after a dropped connection: the host sends the whole game again. Anything sent
+    // while the connection was down was lost.
+    state = clientState(message.view, message.seats,
+      { coop: message.coop, coopSteps: message.steps });
+    for (const answer of waiting.values()) answer(false);
+    waiting.clear();
+    ui.busy = false;
+    say("Reconnected to the host.");
+    render();
+    nextTurn(false);
   } else if (message.type === "closed") {
-    say("The connection to the host was lost.");
-    ui.busy = true;
+    rejoin();
+  }
+}
+
+// The game's code in the log, for a device that drops out and has to join again by hand.
+function sayGameCode() {
+  say(`Game code ${link.code}. A device that drops out comes back with Resume.`);
+}
+
+// Client: after the connection to the host drops (a phone gone to sleep, a weak signal),
+// joins again with the same code until the host answers; the host gives this device its
+// seat back and sends the game again.
+let rejoining = false;
+
+async function rejoin() {
+  if (rejoining || !isClient()) return;
+  rejoining = true;
+  const code = link.code;
+  say("Lost the host. Reconnecting…");
+  ui.busy = true;
+  render();
+  for (let attempt = 0; attempt < REJOIN_ATTEMPTS; attempt++) {
+    if (attempt) await new Promise((resolve) => setTimeout(resolve, REJOIN_DELAY_MS));
+    if (!isClient() || link.code !== code) break;
+    try {
+      const joined = await joinRemote(code);
+      if (!isClient() || link.code !== code) {
+        joined.link.close();
+        break;
+      }
+      link.close();
+      link = joined.link;
+      link.onMessage(onLinkMessage);
+      rejoining = false;
+      return;
+    } catch {
+      // The host is not back yet: try again.
+    }
+  }
+  rejoining = false;
+  if (isClient()) {
+    say(`Could not reach the host. Once it is back, choose Resume (or Join a game, code ` +
+      `${code}).`);
     render();
   }
 }
+
+// A phone coming back to the app finds out its connection dropped while it was away.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && isClient() && !link.isOpen()) rejoin();
+});
 
 // ---------------------------------------------------------------------------------------
 // Pan, zoom and taps

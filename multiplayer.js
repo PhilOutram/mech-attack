@@ -6,13 +6,13 @@
 // - Same time (co-op): 2 to 4 humans, one device each, on one team against one or two AI sides.
 //   The humans play at the same time; then the AI team takes its turn. The AI starts with more
 //   for each human it faces (see coopSetup).
-import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.69";
-import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.69";
-import { hostGame, joinGame as joinRemote } from "./net.js?v=0.69";
-import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.69";
-import { PLAYER_COLOURS } from "./board.js?v=0.69";
-import { RULES } from "./rules-config.js?v=0.69";
-import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.69";
+import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.70";
+import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.70";
+import { hostGame, joinGame as joinRemote } from "./net.js?v=0.70";
+import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.70";
+import { PLAYER_COLOURS } from "./board.js?v=0.70";
+import { RULES } from "./rules-config.js?v=0.70";
+import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.70";
 
 const MIN_SIDES = 2;
 const MAX_TURN_SIDES = 4;
@@ -340,6 +340,35 @@ function startHosted() {
 // Joining someone else's game
 
 let joining = null;
+
+// Resume for a game this device joined: joins it again with its code.
+export function rejoinGame(code) {
+  showJoin();
+  $("mp-code").value = code;
+  join(code);
+}
+
+// Resume for a game hosted on this device: hosts it again under its old code, so the others
+// rejoin with Resume (or Join a game) and get their seats back.
+export async function resumeHosted(saved) {
+  $("mp-lobby").hidden = false;
+  $("mp-lobby-code").textContent = saved.code;
+  $("mp-lobby-players").innerHTML = "";
+  $("mp-lobby-start").disabled = true;
+  $("mp-lobby-status").textContent = "Opening the game again…";
+  try {
+    host = await hostGame({ remoteSeats: saved.remoteSeats, code: saved.code,
+      owners: saved.owners });
+  } catch (error) {
+    $("mp-lobby-status").textContent = error.message;
+    return;
+  }
+  $("mp-lobby").hidden = true;
+  hooks.leaveTo(false);
+  const linkTo = host;
+  host = null;
+  openGame({ resume: true, linkTo, onLeave: () => hooks.leaveTo(true) });
+}
 
 function showJoin() {
   $("mp-join").hidden = false;

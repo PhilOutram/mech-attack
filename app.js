@@ -1,15 +1,17 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.69";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.69";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.69";
-import { confirmDialog } from "./dialog.js?v=0.69";
-import { showTip, resetTips } from "./tips.js?v=0.69";
-import { RULES } from "./rules-config.js?v=0.69";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.69";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.69";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.69";
-import { wireMultiplayer, showCoopSetup } from "./multiplayer.js?v=0.69";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.69";
+import { VERSION, CHANGELOG } from "./version.js?v=0.70";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.70";
+import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.70";
+import { confirmDialog } from "./dialog.js?v=0.70";
+import { showTip, resetTips } from "./tips.js?v=0.70";
+import { RULES } from "./rules-config.js?v=0.70";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.70";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.70";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.70";
+import {
+  wireMultiplayer, showCoopSetup, rejoinGame, resumeHosted,
+} from "./multiplayer.js?v=0.70";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.70";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -72,7 +74,18 @@ document.getElementById("menu-play").addEventListener("click", async () => {
   });
   if (replace) showMapPicker();
 });
-resume.addEventListener("click", () => play({ resume: true }));
+// Resume brings back the game last played: a game joined on another device is joined again,
+// and one hosted here is hosted again for the others to rejoin.
+resume.addEventListener("click", () => {
+  const linked = savedLink();
+  if (linked && linked.role === "client") {
+    rejoinGame(linked.code);
+  } else if (linked && linked.role === "host") {
+    resumeHosted(linked);
+  } else {
+    play({ resume: true });
+  }
+});
 document.getElementById("menu-units").addEventListener("click", showUnits);
 
 // The campaign: missions in order, each unlocked by finishing the one before.
