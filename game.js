@@ -7,32 +7,32 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.70";
-import { mapById, seededRandom } from "./maps.js?v=0.70";
+import { RULES } from "./rules-config.js?v=0.71";
+import { mapById, seededRandom } from "./maps.js?v=0.71";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.70";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.70";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.70";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.70";
-import { distance } from "./hex.js?v=0.70";
+} from "./engine.js?v=0.71";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.71";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.71";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.71";
+import { distance } from "./hex.js?v=0.71";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.70";
-import { confirmDialog } from "./dialog.js?v=0.70";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.70";
-import { showTip, showNote } from "./tips.js?v=0.70";
+} from "./board.js?v=0.71";
+import { confirmDialog } from "./dialog.js?v=0.71";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.71";
+import { showTip, showNote } from "./tips.js?v=0.71";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.70";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.70";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.70";
-import { joinGame as joinRemote } from "./net.js?v=0.70";
+} from "./campaign.js?v=0.71";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.71";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.71";
+import { joinGame as joinRemote } from "./net.js?v=0.71";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -49,12 +49,14 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.70";
+const ASSET_VERSION = "0.71";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
-// A move is shown by gliding the unit along its route in this long, about the length of the
-// movement sounds, each step taking an equal share (Phil, 29 October 2026).
-const MOVE_MS = 1500;
+// A move is shown by gliding the unit along its route at this many milliseconds a hex, so
+// a short move is quick and a long one takes longer (Phil, 30 October 2026).
+const MOVE_STEP_MS = 300;
+// The move's sound starts this long before the unit sets off, so they are heard together.
+const MOVE_SOUND_LEAD_MS = 150;
 // How long a banner such as "60 crystals unloaded" stays over the board (a tap anywhere
 // clears it sooner), the "Round 5" banner at the start of your turn, and the one naming your
 // opponent at the start of a game.
@@ -992,6 +994,7 @@ function isEnemyOf(view, owner) {
 // Green unit is drawn only on hexes you can see.
 async function showMoves(events, before, after) {
   const seen = (k) => before.visible[k] || after.visible[k];
+  let first = true;
   for (const e of events) {
     if (e.type !== "move" || !e.path.length) continue;
     const unit = before.units[e.unitId] || after.units[e.unitId];
@@ -999,21 +1002,27 @@ async function showMoves(events, before, after) {
     const route = [e.from, ...e.path];
     facing[unit.id] = facingAngle(route[route.length - 2], route[route.length - 1]);
     if (prefersReducedMotion()) continue;
+    if (first) await new Promise((resolve) => setTimeout(resolve, MOVE_SOUND_LEAD_MS));
+    first = false;
     // The board still shows the unit where it started, with nothing redrawn since the action,
     // so the move starts with its sound. The token there is hidden, and a copy of it floats
     // over the board, moved by the phone's graphics hardware like pan and zoom, until the
     // board is drawn again at the end.
     const parked = els.root.querySelector(`[data-unit="${unit.id}"]`);
     if (parked) parked.style.visibility = "hidden";
+    // A redraw part-way (an explosion ending) leaves the unit out rather than drawing it
+    // already at the end of its route.
+    ui.moving = { unit, at: e.from, hidden: true };
     const token = floatingToken(unit);
     token.place(...hexCentre(e.from), facingAngle(route[0], route[1]));
     // A Green unit shows only on hexes you can see.
     const shown = (k) => unit.owner === me || seen(k);
     token.img.style.visibility = shown(e.from) ? "visible" : "hidden";
-    await glide(route, MOVE_MS / e.path.length, (x, y, angle, k) => {
+    await glide(route, MOVE_STEP_MS, (x, y, angle, k) => {
       token.place(x, y, angle);
       token.img.style.visibility = shown(k) ? "visible" : "hidden";
     });
+    ui.moving = null;
     token.img.remove();
   }
 }
@@ -1140,6 +1149,10 @@ function showEvents(events, before, after) {
   const effects = [];
   const lines = [];
   const sounds = new Map();
+  // Sounds that wait until the moves before them have been shown (crystals unloaded by a
+  // harvester that has just driven up to its factory), and how long the moves take.
+  const laterSounds = new Map();
+  let moveMs = 0;
   let unloaded = 0;
   // The sum behind each hit blue can see, and the type of the unit whose shot is landing.
   const sums = [];
@@ -1147,8 +1160,8 @@ function showEvents(events, before, after) {
   // Hexes your units fired into blind, so what is destroyed there can be reported.
   const blindShots = new Set();
   const knockedOut = [];
-  const sound = (clip) => {
-    if (clip) sounds.set(clip[0], Math.max(clip[1], sounds.get(clip[0]) || 0));
+  const sound = (clip, into = sounds) => {
+    if (clip) into.set(clip[0], Math.max(clip[1], into.get(clip[0]) || 0));
   };
   let any = false;
   for (const e of events) {
@@ -1216,6 +1229,10 @@ function showEvents(events, before, after) {
       if (e.path.some(seen) || seen(e.from)) {
         any = true;
         if (e.path.length) sound(moveSound(typeOf(e.unitId)));
+        // As showMoves shows it: the sound's lead before the first move, then each hex.
+        if (e.path.length && !prefersReducedMotion()) {
+          moveMs += (moveMs ? 0 : MOVE_SOUND_LEAD_MS) + e.path.length * MOVE_STEP_MS;
+        }
       }
       const mover = before.units[e.unitId];
       if (mover && mover.owner === me && !unitStats(before, mover).air &&
@@ -1246,7 +1263,7 @@ function showEvents(events, before, after) {
       lines.push(`A crystal pile reached ${e.amount} and exploded.`);
     } else if (e.type === "harvest" || e.type === "unload") {
       const harvester = after.units[e.unitId];
-      if (seen(harvester?.at)) sound(["harvest", 1]);
+      if (seen(harvester?.at)) sound(["harvest", 1], moveMs ? laterSounds : sounds);
       if (harvester?.owner !== me) continue;
       if (e.type === "harvest") {
         lines.push(`Harvested ${e.amount} crystals.`);
@@ -1303,7 +1320,12 @@ function showEvents(events, before, after) {
   waitForBoom(effects);
   if (effects.length) flash(effects);
   for (const [clip, volume] of sounds) playSound(clip, volume);
-  if (unloaded) showBanner(`${unloaded} crystals unloaded`);
+  const afterMoves = () => {
+    for (const [clip, volume] of laterSounds) playSound(clip, volume);
+    if (unloaded) showBanner(`${unloaded} crystals unloaded`);
+  };
+  if (moveMs) setTimeout(afterMoves, moveMs);
+  else afterMoves();
   if (knockedOut.length) showBanner(`${namesOf(knockedOut)} out of the game`);
   if (sums.length) showBanner(sums.join("\n"), ATTACK_BANNER_MS);
   ui.attackShown = sums.length > 0;
