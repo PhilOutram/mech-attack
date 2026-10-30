@@ -1,8 +1,17 @@
-export const VERSION = "v0.66";
+export const VERSION = "v0.67";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.67",
+    date: "2026-10-30",
+    notes: [
+      "Landscape: the map gets nearly all the screen, in a raised frame with cut-off corners.",
+      "The side column is narrow, with the bar, orders and log in boxes of their own.",
+      "Objective is a trophy button.",
+    ],
+  },
   {
     version: "v0.66",
     date: "2026-10-30",

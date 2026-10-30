@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.66" />
+  <link rel="stylesheet" href="styles.css?v=0.67" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -199,19 +199,32 @@
         <img src="units/crystals.svg" alt="Crystals" /><span id="game-crystals"></span>
       </div>
       <button id="sound-toggle" class="sound-toggle" type="button" aria-label="Sound"></button>
-      <button id="objective-btn" class="end-turn objective-btn" type="button"
-        hidden>Objective</button>
+      <button id="objective-btn" class="icon-btn objective-btn" type="button" hidden
+        aria-label="Objective" title="Objective">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M7 3h10v6a5 5 0 0 1-10 0z"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.8"
+            d="M7 5H4.5v1.5A3.5 3.5 0 0 0 8 10M17 5h2.5v1.5A3.5 3.5 0 0 1 16 10"/>
+          <rect x="11" y="13" width="2" height="5" fill="currentColor"/>
+          <rect x="7" y="18" width="10" height="3" rx="1" fill="currentColor"/>
+        </svg>
+      </button>
       <button id="quit-game" class="end-turn quit-game" type="button">Quit</button>
       <button id="end-turn" class="end-turn" type="button">End turn</button>
     </header>
     <div class="board-wrap">
-      <svg id="board" class="board" xmlns="http://www.w3.org/2000/svg"
-        aria-label="Game board"><g id="board-root"></g></svg>
-      <div id="game-banner" class="game-banner" role="status" hidden></div>
-      <div id="build-info" class="build-info" hidden></div>
+      <div class="board-face">
+        <svg id="board" class="board" xmlns="http://www.w3.org/2000/svg"
+          aria-label="Game board"><g id="board-root"></g></svg>
+        <div id="game-banner" class="game-banner" role="status" hidden></div>
+        <div id="build-info" class="build-info" hidden></div>
+      </div>
     </div>
     <section class="panel" aria-live="polite">
-      <p id="game-message" class="game-message"></p>
+      <div class="game-log">
+        <span class="log-title">Log</span>
+        <p id="game-message" class="game-message"></p>
+      </div>
       <div id="unit-panel"></div>
     </section>
     <div id="pass-device" class="pass-device" hidden>
@@ -258,6 +271,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.66" type="module"></script>
+  <script src="app.js?v=0.67" type="module"></script>
 </body>
 </html>

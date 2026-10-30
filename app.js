@@ -1,15 +1,15 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.66";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.66";
-import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.66";
-import { confirmDialog } from "./dialog.js?v=0.66";
-import { showTip, resetTips } from "./tips.js?v=0.66";
-import { RULES } from "./rules-config.js?v=0.66";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.66";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.66";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.66";
-import { wireMultiplayer, showCoopSetup } from "./multiplayer.js?v=0.66";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.66";
+import { VERSION, CHANGELOG } from "./version.js?v=0.67";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.67";
+import { openGame, hasSavedGame, recentMaps, newMapId } from "./game.js?v=0.67";
+import { confirmDialog } from "./dialog.js?v=0.67";
+import { showTip, resetTips } from "./tips.js?v=0.67";
+import { RULES } from "./rules-config.js?v=0.67";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.67";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.67";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.67";
+import { wireMultiplayer, showCoopSetup } from "./multiplayer.js?v=0.67";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.67";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
