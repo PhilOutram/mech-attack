@@ -3,10 +3,10 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.79";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.79";
-import { distance, cheapestPaths } from "./hex.js?v=0.79";
-import { LEVELS } from "./difficulty.js?v=0.79";
+import { RULES } from "./rules-config.js?v=0.80";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.80";
+import { distance, cheapestPaths } from "./hex.js?v=0.80";
+import { LEVELS } from "./difficulty.js?v=0.80";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 // The highest rank each mission has been won at: { mission index: rank id }.
@@ -37,6 +37,9 @@ export const CAMPAIGN_NAME = "Red Dust";
 const BANK_TARGET = 200;
 const LANDFALL_INFANTRY = 1;
 const LANDFALL_CRYSTALS = 75;
+// Two hexes from the factory, so the Infantry move next to it before they can break in
+// (Phil, 31 October 2026). More than one in case a level adds units.
+const LANDFALL_STARTS = ["3,-3", "4,-3", "2,-3"];
 const FACTORIES_TO_CAPTURE = 3;
 const HOLD_ROUNDS = 12;
 const SCOUTS_TO_DESTROY = 8;
@@ -51,6 +54,7 @@ export const UNIT_ROLES = {
   tank: "Your workhorse: tough, and hits hard.",
   lightHarvester: "Carries 90 crystals home in one trip.",
   lightMedic: "Repairs damaged units.",
+  crystalSeeder: "Plants new crystal piles from your store.",
   artillery: "Long range, once set up.",
   turret: "A fixed gun to guard your factory.",
   twinTurret: "A fixed twin gun: two close-range shots a turn.",
@@ -172,7 +176,8 @@ const MISSION_LIST = [
     objective: "Take the factory, build a Scout Bike, then harvest and build a Tank.",
     steps: LANDFALL_STEPS,
     setup: { units: [Array(LANDFALL_INFANTRY).fill("infantry"), []],
-      crystals: [LANDFALL_CRYSTALS, 0], unclaimedHome: [true, false] },
+      crystals: [LANDFALL_CRYSTALS, 0], unclaimedHome: [true, false],
+      starts: [LANDFALL_STARTS, null] },
     newUnits: ["infantry", "scoutBike", "tank"],
     rules: { loseWithNoUnits: false },
     noSurrender: true,
@@ -190,7 +195,9 @@ const MISSION_LIST = [
       "and think about building a Crystal lab.",
     setup: { units: [["lightHarvester", "scoutBike"], ["lightHarvester", "scoutBike"]],
       crystals: [60, 50] },
-    newUnits: ["lightHarvester", "lightMedic", "crystalSeeder"],
+    // The Light Medic waits for First Contact, where there is fighting to repair (Phil, 31
+    // October 2026).
+    newUnits: ["lightHarvester", "crystalSeeder"],
     newUpgrades: ["lab"],
     ai: "default",
     // Green races for crystals here; it does not send Infantry at your factory yet.
@@ -208,7 +215,7 @@ const MISSION_LIST = [
     goal: "Overrun Green's home factory",
     setup: { units: [["lightHarvester", "scoutBike", "tank", "tank", "infantry", "infantry"],
       ["lightHarvester", "scoutBike", "tank", "lightMedic"]], crystals: [80, 60] },
-    newUnits: ["artillery"],
+    newUnits: ["artillery", "lightMedic"],
     ai: "default",
     done: null,
   },

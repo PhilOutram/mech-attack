@@ -55,7 +55,7 @@ Stats start from the full unit table, with costs scaled to the Game 2 prices. Th
 | Blast Cannon | ground | ground | 65 | 3 | 15 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. Defence 15, not the unit table's 10 (Phil, 31 October 2026), so one Tank shot no longer destroys it. |
 | Sonic Tank | ground | ground and air | 60 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
 | Anti-Aircraft Jeep | ground | air | 30 | 5 | 15 | 30 | 1–3 | |
-| Attack Helicopter | air | ground and air | 55 | 5 | 10 | 20 | 1–2 | Hits air as well as ground; cost 55, was 45 (Phil, 31 October 2026). |
+| Attack Helicopter | air | ground and air | 55 | 5 | 5 | 15 | 1–2 | Hits air as well as ground; cost 55, was 45 (Phil, 31 October 2026). Defence 5 and attack 15 (were 10 and 20) the same day, provisional: the dearer price hardly changed how well it did. |
 | Fighter | air | air | 45 | 7 | 15 | 30 | 1–4 | Cost 45, was 60 (Phil, 31 October 2026). |
 
 Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
@@ -103,7 +103,7 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 All the numbers are provisional, as is everything not listed as Phil's. The Turret's stats are scaled down from the "Turret (constructed)" row of the full unit table, and the Chinook's come from its "Transport" row.
 
 ### Moving into face-down ground
-A move that turns over a new block stops there, unless it has arrived (`fog.stopOnReveal`; Phil, 29 October 2026; on 30 October changed to stop on every new block, so the unit is always next to what just turned over). The unit keeps the move points it has not used, so you can see what is there and then carry on, fire, or stop. So you can tap a face-down hex far away and the unit goes as far as the edge first.
+A move that turns over a new block stops there, unless it has arrived (`fog.stopOnReveal`; Phil, 29 October 2026; on 30 October changed to stop on every new block, so the unit is always next to what just turned over). The unit keeps the move points it has not used, so you can see what is there and then carry on, fire, or stop. So you can tap a face-down hex far away and the unit goes as far as the edge first. A move whose last step turns over new ground also keeps the rest of the unit's move (Phil, 31 October 2026), so a unit that stops at the edge of what is known can carry on into what it has just turned over.
 
 ### Firing blind
 A unit can fire into any hex in range that its player cannot see (Phil, 29 October 2026). An enemy there is hit as normal; an empty hex wastes the shot. You are told whether you hit something, not what. A unit fired on blind does not fire back. The AI does not fire blind.
@@ -166,7 +166,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Crystal spawns | 0 or 1 new piles of 10 after each turn (the same number after both turns of a round), on a random empty open hex at least 3 hexes from both factories | `crystals.spawnChoices`, `spawnMinDistanceFromFactory` |
 | Round limit | A game reaching round 100 ends with no winner | `roundCap` |
 | Carried crystals | Lost when the carrying unit is destroyed | |
-| Crystal Seeder | Name, cost 70, move 6, defence 5, sight 3, holds 30, plants 10 a turn; planting no closer than 3 to any factory; a planted pile first grows after the next turn | `units.crystalSeeder`, `crystals.plantMinDistanceFromFactory` |
+| Crystal Seeder | Name, cost 50, move 6, defence 5, sight 3, holds 30, plants 10 a turn; adding to a pile only while it has room for 10 below the explode level; a new pile first grows after the next turn | `units.crystalSeeder` |
 
 ## Campaign: Red Dust
 
@@ -197,7 +197,7 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 
 - All blocks start face down.
 - When any unit (or a factory) is on a hex of a block or right next to one, the whole block is turned over (`fog.revealRange` 1, Phil's choice). Each side starts with about 3 blocks face up: its home block and the blocks its starting units stand next to.
-- Turned-over blocks are private: a block your units turn over is face up for you only. When it turns over you see everything on it at that moment, and its terrain stays known.
+- Turned-over blocks are private: a block your units turn over is face up for you only. Its terrain and factories show at once and stay known. Crystals on it show only once one of your units can see them, like enemy units (Phil, 31 October 2026; before that, a block showed its crystals as soon as it turned over).
 - Live sight (`fog.liveSight`; Phil, 30 October 2026): after that, only hexes one of your units can see now (within its sight range, not behind a mountain) show what is on them. The rest of your explored ground lies under a thin fog: enemy units there are hidden, crystals show as you last saw them, and factories as last seen. Before this, everything on a turned-over block stayed visible for good.
 - Artillery fires indirectly (unit stat `indirect`; Phil, 30 October 2026): over mountains, at anything a unit of its side can see, or blind into hexes nobody can see. You never see the blocks the opponent has turned over, or anything on them, until your own units turn them over (Phil, 28 October 2026).
 - A moving unit turns over the blocks it passes next to along its route, not just where it stops, and stops where new ground turns over (see Moving into face-down ground).
@@ -229,9 +229,9 @@ Phil, 31 October 2026: a unit carrying crystals can unload them at an ally's fac
 
 ## Crystal Seeder
 
-Phil, 31 October 2026: a harvester the other way round, so the map need never run out of crystals. It is fragile (defence 5), fast (move 6), unarmed, and costs 70. It is built empty. Next to one of its own factories it loads 10, 20 or 30 crystals from its owner's store (it holds 30), without using its move or action. After moving it can plant 10 crystals as a new pile on a free hex next to it, which uses its action; the pile then grows like any other. Its crystals are lost with it.
+Phil, 31 October 2026: a harvester the other way round, so the map need never run out of crystals. It is fragile (defence 5), fast (move 6), unarmed, and costs 50 (70 at first). It is built empty. Next to one of its own factories it loads 10, 20 or 30 crystals from its owner's store (it holds 30), without using its move or action. After moving it can plant 10 crystals on any open hex next to it with no unit on it, which uses its action: as a new pile, or added to a pile already there. The pile then grows like any other. It may plant anywhere, even next to a factory, where the pile blocks building until it is harvested, crushed or blasted (Phil, 31 October 2026: plant anywhere; at first it could not plant within 3 hexes of a factory or on a pile). Its crystals are lost with it.
 
-Provisional: the name; planting no closer than 3 hexes to any factory (the same as natural spawns), so piles near home are not free; a planted pile first grows after the next turn, like a spawned one; only empty hexes, so a Seeder cannot top up a pile until it explodes.
+Provisional: the name; a new pile first grows after the next turn, like a spawned one; adding to a pile leaves its growth alone, and only while the pile has room for 10 more below the explode level. The AI does not plant next to its own factories.
 
 ## Ruins
 

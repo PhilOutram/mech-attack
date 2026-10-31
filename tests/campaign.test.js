@@ -8,7 +8,7 @@ import {
   newGame, applyAction, unitsOf, legalActions, reachableHexes, viewFor, factoryBuilds,
 } from "../engine.js";
 import { MISSIONS, missionRules, missionsDone, missionMap } from "../campaign.js";
-import { cheapestPaths } from "../hex.js";
+import { cheapestPaths, distance } from "../hex.js";
 import { scenario } from "./helpers.js";
 
 const BLUE = 0;
@@ -58,7 +58,14 @@ test("in the first mission the infantry capture their own unclaimed home factory
   const home = s.units[s.players[BLUE].factoryId];
   assert.equal(home.owner, null);
   const infantry = unitsOf(s, BLUE).find((u) => u.type === "infantry");
-  assert.ok(home.at in reachableHexes(viewFor(s, BLUE), infantry.id));
+  // They land two hexes away, so they first move next to it and wait a turn there.
+  assert.equal(distance(infantry.at, home.at), 2);
+  assert.ok(!(home.at in reachableHexes(viewFor(s, BLUE), infantry.id)));
+  const beside = Object.keys(reachableHexes(viewFor(s, BLUE), infantry.id))
+    .find((k) => distance(k, home.at) === 1);
+  s = applyAction(s, { type: "move", unitId: infantry.id, to: beside });
+  s = applyAction(s, { type: "endTurn" });
+  s = applyAction(s, { type: "endTurn" });
   s = applyAction(s, { type: "move", unitId: infantry.id, to: home.at });
   assert.equal(s.units[home.id].owner, BLUE);
   assert.equal(s.result, null);

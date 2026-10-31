@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.79" />
+  <link rel="stylesheet" href="styles.css?v=0.80" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -246,8 +246,9 @@
       </div>
     </div>
     <section class="panel" aria-live="polite">
-      <div class="game-log">
-        <span class="log-title">Log</span>
+      <div id="game-log" class="game-log">
+        <button id="log-toggle" class="log-title" type="button" aria-expanded="false"
+          aria-controls="game-message">Log</button>
         <p id="game-message" class="game-message"></p>
       </div>
       <div id="unit-panel"></div>
@@ -296,6 +297,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.79" type="module"></script>
+  <script src="app.js?v=0.80" type="module"></script>
 </body>
 </html>

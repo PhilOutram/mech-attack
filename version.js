@@ -1,8 +1,17 @@
-export const VERSION = "v0.79";
+export const VERSION = "v0.80";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.80",
+    date: "2026-10-31",
+    notes: [
+      "Crystal Seeder costs 50 and plants anywhere, piles too. Helicopter defence 5, attack 15.",
+      "The log folds to one line: tap it to open it over the map. Taller orders panel on phones.",
+      "A unit that turns over new ground keeps its leftover move. Crystals show once seen.",
+    ],
+  },
   {
     version: "v0.79",
     date: "2026-10-31",

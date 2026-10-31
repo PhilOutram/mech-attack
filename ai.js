@@ -12,9 +12,9 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard, allied, crystalTargets, boomHexes, searchTargets, seedLoads, plantSites,
-} from "./engine.js?v=0.79";
-import { neighbourKeys, distance } from "./hex.js?v=0.79";
-import { COUNTERS } from "./counters.js?v=0.79";
+} from "./engine.js?v=0.80";
+import { neighbourKeys, distance } from "./hex.js?v=0.80";
+import { COUNTERS } from "./counters.js?v=0.80";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
@@ -43,9 +43,13 @@ const INFANTRY_TYPE = "infantry";
 const TRANSPORTER_TYPE = "transporter";
 const LAB_UPGRADE = "lab";
 const SEEDER_TYPE = "crystalSeeder";
-// A Crystal Seeder plants this many hexes further out than the closest it may plant to its
-// home factory, at most.
-const PLANT_BAND = 2;
+// A loaded Crystal Seeder heads this close to its home factory, and at most PLANT_BAND
+// further out. From there it plants beside it, but never next to its own factories, where a
+// pile would block building.
+const PLANT_NEAREST = 2;
+const PLANT_BAND    = 2;
+// Ranks adding to a pile behind every empty hex: more than any distance on a map.
+const PILE_SITE_PENALTY = 1000;
 
 // The army units a personality chooses between, with the hand-tuned build shares.
 export const DEFAULT_PERSONALITY = {
@@ -482,22 +486,33 @@ function seedCrystals(ctx) {
   for (const unit of mine.filter((u) => isSeeder(view, u))) {
     const loads = seedLoads(view, unit.id);
     if (loads.length) return { type: "loadSeeds", unitId: unit.id, amount: Math.max(...loads) };
-    const [at] = plantSites(view, unit.id);
+    const at = bestPlantSite(ctx, unit);
     if (at) return { type: "plant", unitId: unit.id, at };
   }
   return null;
 }
 
-// Where a Crystal Seeder heads: with crystals to plant, open free ground just beyond where it
-// may plant round home; empty, back next to one of its factories.
+// Where a Crystal Seeder plants: not next to its own factories, an empty hex before a pile,
+// then nearest home.
+function bestPlantSite(ctx, unit) {
+  const { view, myFactories } = ctx;
+  const home = (ctx.myFactory || myFactories[0])?.at;
+  const sites = plantSites(view, unit.id).filter((k) =>
+    myFactories.every((f) => distance(f.at, k) > 1));
+  const score = (k) => (view.crystals[k] ? PILE_SITE_PENALTY : 0) +
+    (home ? distance(home, k) : 0);
+  return sites.sort((a, b) => score(a) - score(b))[0] || null;
+}
+
+// Where a Crystal Seeder heads: with crystals to plant, open free ground near home; empty,
+// back next to one of its factories.
 function seederGoals(ctx, unit) {
   const { view, myFactories } = ctx;
   const stats = unitStats(view, unit);
   if (!myFactories.length) return null;
   if (unit.seeds < stats.seedAmount) return myFactories.flatMap((f) => neighbourKeys(f.at));
   const home = (ctx.myFactory || myFactories[0]).at;
-  const least = view.rules.crystals.plantMinDistanceFromFactory + 1;
-  return hexesAround(view, home, least, least + PLANT_BAND).filter((k) =>
+  return hexesAround(view, home, PLANT_NEAREST, PLANT_NEAREST + PLANT_BAND).filter((k) =>
     view.map.hexes[k].terrain && !view.crystals[k]);
 }
 

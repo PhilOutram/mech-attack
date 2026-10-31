@@ -5,6 +5,7 @@ import {
   applyAction, legalActions, viewFor, seedLoads, plantSites, unloadFactories, canUnload,
 } from "../engine.js";
 import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js";
+import { distance } from "../hex.js";
 import { scenario } from "./helpers.js";
 
 const BLUE = 0;
@@ -61,16 +62,22 @@ describe("the Crystal Seeder", () => {
     assert.deepEqual(plantSites(viewFor(s, BLUE), "c"), [], "one pile a turn");
   });
 
-  test("it plants only on a free hex with no crystals, far enough from every factory", () => {
+  test("it plants anywhere next to it that is open and free of units", () => {
     const s = scenario({
-      units: [seeder("0,3", SEEDS), unit("t", "tank", BLUE, "1,2")],
-      crystals: { "-1,3": { amount: 20 } },
+      units: [seeder("0,4", SEEDS), unit("t", "tank", BLUE, "1,3")],
+      crystals: { "-1,4": { amount: 20 }, "-1,5": { amount: 75 } },
     });
     const sites = plantSites(viewFor(s, BLUE), "c");
-    assert.ok(!sites.includes("0,4"), "2 from blue's factory, closer than 3");
-    assert.ok(!sites.includes("1,2"), "a unit is there");
-    assert.ok(!sites.includes("-1,3"), "crystals are there");
-    assert.ok(sites.includes("0,2"));
+    assert.ok(sites.includes("0,5"), "next to blue's factory");
+    assert.ok(sites.includes("-1,4"), "a pile with room for 10 more");
+    assert.ok(!sites.includes("-1,5"), "no room below the explode level");
+    assert.ok(!sites.includes("1,3"), "a unit is there");
+  });
+
+  test("planting on a pile adds to it", () => {
+    let s = scenario({ units: [seeder(MIDDLE, SEEDS)], crystals: { "1,0": { amount: 20 } } });
+    s = play(s, { type: "plant", unitId: "c", at: "1,0" });
+    assert.equal(s.crystals["1,0"].amount, 20 + SEED_AMOUNT);
   });
 
   test("an empty Seeder cannot plant", () => {
@@ -93,6 +100,13 @@ describe("the Crystal Seeder", () => {
     const out = scenario({ units: [seeder(MIDDLE, SEEDS)] });
     const action = chooseAction(viewFor(out, BLUE), DEFAULT_PERSONALITY);
     assert.equal(action.type, "plant");
+  });
+
+  test("the AI does not plant next to its own factory, where a pile would block building", () => {
+    const s = scenario({ units: [seeder(BY_BLUE_FACTORY, SEEDS)] });
+    const action = chooseAction(viewFor(s, BLUE), DEFAULT_PERSONALITY);
+    assert.equal(action.type, "plant");
+    assert.ok(distance(action.at, "0,6") > 1);
   });
 });
 

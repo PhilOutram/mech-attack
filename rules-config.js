@@ -122,9 +122,10 @@ export const RULES = {
     },
     // Attack Helicopter hits air as well as ground, and the Fighter costs 45 (was 60) (Phil,
     // 31 October 2026). The helicopter then costs 55 (was 45): it was the best answer to 7 of
-    // the 18 enemy types.
+    // the 18 enemy types. The price hardly mattered, so later that day defence 5 (was 10) and
+    // attack 15 (was 20): average counter score 0.70 down to 0.60 (provisional).
     attackHelicopter: {
-      name: "Attack Helicopter", cost: 55, move: 5, defence: 10, attack: 20,
+      name: "Attack Helicopter", cost: 55, move: 5, defence: 5, attack: 15,
       range: [1, 2], storage: 0, healing: 0, sight: 3,
       air: true, hits: "both", needs: "airfield",
     },
@@ -136,11 +137,12 @@ export const RULES = {
     // Crystal Seeder (Phil, 31 October 2026): a harvester the other way round. It is built
     // empty. Next to one of its own factories it loads crystals from its owner's store, in
     // steps of seedAmount up to "seeds", without using its move or action. After moving it
-    // plants seedAmount crystals as a new pile on a free hex next to it, which uses its
-    // action; the pile then grows like any other. Fragile, fast and unarmed. Its crystals are
-    // lost with it. Name and stats provisional.
+    // plants seedAmount crystals on any free hex next to it, as a new pile or added to one,
+    // which uses its action; the pile then grows like any other (Phil: plant anywhere, cost
+    // 50). Fragile, fast and unarmed. Its crystals are lost with it. Name and stats
+    // provisional.
     crystalSeeder: {
-      name: "Crystal Seeder", cost: 70, move: 6, defence: 5, attack: 0,
+      name: "Crystal Seeder", cost: 50, move: 6, defence: 5, attack: 0,
       range: null, storage: 0, healing: 0, sight: 3,
       seeds: 30, seedAmount: 10,
     },
@@ -255,9 +257,6 @@ export const RULES = {
     // destroying all of it, as their attack for the turn (Phil, 29 October 2026).
     blastable: true,
     spawnMinDistanceFromFactory: 3, // provisional
-    // A Crystal Seeder may not plant closer than this to any factory, so piles near home are
-    // not free (provisional).
-    plantMinDistanceFromFactory: 3,
   },
 
   start: {

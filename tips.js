@@ -159,9 +159,9 @@ function builtTip(type, rules) {
   if (s.seeds) {
     parts.push(`It plants new crystal piles. Next to one of your factories, tap Load to fill ` +
       `it from your store (up to ${s.seeds}). Then drive out and tap Plant: it puts down ` +
-      `${s.seedAmount} crystals on a free hex next to it, at least ` +
-      `${rules.crystals.plantMinDistanceFromFactory} from any factory, and the pile grows ` +
-      "from then on. Its crystals are lost if it is destroyed.");
+      `${s.seedAmount} crystals on a free hex next to it, or adds them to a pile there, and ` +
+      "the pile grows from then on. Crystals next to a factory block building there. Its " +
+      "crystals are lost if it is destroyed.");
   }
   if (s.move === 0) parts.push("It never moves, so place it where it can guard.");
   if (s.captures) {

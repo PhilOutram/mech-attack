@@ -16,12 +16,15 @@ How an idea gets tested:
 
 Core tuning (changes numbers only, no new rules):
 - Done in v0.79: Twin Tank cost 65 and move 4 (were 90 and 3), so it is a fast escort rather than a worse Heavy Cannon; its average as an answer rose from 0.09 to 0.32. Attack Helicopter cost 55 (was 45), but it is still the best answer to 7 of 19 enemy types (average 0.69): the price makes little difference in battles of equal value, because most ground units cannot hit it. Next to try: lower its defence or attack instead.
-- The Tank is the second-best answer on average (0.45, level with the Heavy Cannon). Phil, 31 October 2026: perhaps tanks are a little too strong; weakening them slightly would bring the heavy units into play.
+- Done in v0.80: Attack Helicopter defence 5 and attack 15 (were 10 and 20). Average as an answer 0.70 to 0.60; still the best answer to 7 of 19. Tried and not taken: range 1 (0.64), defence 5 alone (0.63), attack 15 alone (0.62).
+- The Tank is the second-best answer on average (0.45, level with the Heavy Cannon). Phil, 31 October 2026: perhaps tanks are a little too strong; weakening them slightly would bring the heavy units into play. Tested 31 October: combat works by thresholds (a life goes when the attacks on a unit reach its defence), so there is no small step. Defence 22 or attack 20 change almost nothing (0.43); defence 20 lets every 20-attack unit take a life on its own and halves the Tank (0.24, even at cost 60), lifts the Twin Tank (0.32 to 0.39) and shortens games (14.7 to 13.4 rounds). Not applied: Phil to choose.
+- The second player wins most games on fixed map 1 (first player 12 to 19% of decided games in 300-game runs, v0.79 and v0.80). Needs a look at `start.secondPlayerCrystals` and at other maps before changing anything.
 - Heavy works could build heavier, armoured versions of the existing units rather than new kinds, so the escalation reads as the same units getting bigger (Phil, 31 October 2026). Worth testing only if it lets units be retired.
 
 Added in v0.79 (to be judged by use, like everything else):
 - Unloading at an ally's factory gives them the crystals.
 - Crystal Seeder (see `docs/rules.md`). First measure: the default AI builds one in 87 of 100 games, spends about 145 crystals a game on it (the Seeder and its loads) and harvests about 64 back from what it planted, so in games of about 15 rounds it does not yet pay for itself. Games ran about 2 rounds longer with it (13.1 to 15.0), and comebacks rose slightly.
+- v0.80 (Phil): Seeder cost 50 and it plants anywhere, piles included. The AI then builds one in 96 of 100 games and harvests back more than it plants (87 against 84 crystals a game).
 
 Candidates for retiring (to measure, not yet decided):
 - Units that overlap: the Twin Turret and the Twin Tank do the same job, one fixed, one mobile.

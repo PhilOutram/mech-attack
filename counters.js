@@ -7,15 +7,15 @@ export const COUNTERS = {
     "scoutBike": 0,
     "tank": 1,
     "heavyCannon": 1,
-    "artillery": 0.74,
-    "infantry": -0.43,
+    "artillery": 0.68,
+    "infantry": -0.4,
     "turret": 0.79,
-    "heavyTank": 0.96,
+    "heavyTank": 0.89,
     "twinTurret": 0.11,
     "blastCannon": 1,
     "sonicTank": 1,
     "antiAircraftJeep": -0.36,
-    "attackHelicopter": 0.93,
+    "attackHelicopter": 0.96,
     "fighter": 0
   },
   "tank": {
@@ -45,7 +45,7 @@ export const COUNTERS = {
     "blastCannon": -0.5,
     "sonicTank": -0.92,
     "antiAircraftJeep": -0.54,
-    "attackHelicopter": 0.92,
+    "attackHelicopter": 1,
     "fighter": 0
   },
   "artillery": {
@@ -65,15 +65,15 @@ export const COUNTERS = {
   },
   "lightHarvester": {
     "scoutBike": 1,
-    "tank": 0.94,
-    "heavyCannon": 0.81,
-    "artillery": 0.5,
+    "tank": 1,
+    "heavyCannon": 0.63,
+    "artillery": 0.25,
     "infantry": 0.89,
     "turret": 0.06,
     "heavyTank": 1,
     "twinTurret": 0,
-    "blastCannon": 0.56,
-    "sonicTank": 0.5,
+    "blastCannon": 0.31,
+    "sonicTank": 0.38,
     "antiAircraftJeep": 0,
     "attackHelicopter": 1,
     "fighter": 0
@@ -99,13 +99,13 @@ export const COUNTERS = {
     "heavyCannon": 1,
     "artillery": -0.23,
     "infantry": -0.16,
-    "turret": 0.91,
+    "turret": 0.95,
     "heavyTank": 1,
     "twinTurret": 0.91,
     "blastCannon": 0.92,
     "sonicTank": 1,
     "antiAircraftJeep": -0.86,
-    "attackHelicopter": 0.31,
+    "attackHelicopter": -0.28,
     "fighter": -0.96
   },
   "transporter": {
@@ -150,7 +150,7 @@ export const COUNTERS = {
     "blastCannon": -0.5,
     "sonicTank": -0.5,
     "antiAircraftJeep": 0,
-    "attackHelicopter": 1,
+    "attackHelicopter": 0.75,
     "fighter": 0
   },
   "heavyTank": {
@@ -162,7 +162,7 @@ export const COUNTERS = {
     "turret": 1,
     "heavyTank": 0.17,
     "twinTurret": -0.54,
-    "blastCannon": -0.58,
+    "blastCannon": -0.67,
     "sonicTank": -1,
     "antiAircraftJeep": -1,
     "attackHelicopter": 1,
@@ -184,7 +184,7 @@ export const COUNTERS = {
     "fighter": 0
   },
   "blastCannon": {
-    "scoutBike": -0.83,
+    "scoutBike": -0.92,
     "tank": 0.42,
     "heavyCannon": 0.83,
     "artillery": 0.17,
@@ -210,7 +210,7 @@ export const COUNTERS = {
     "blastCannon": 0.08,
     "sonicTank": -0.75,
     "antiAircraftJeep": -0.25,
-    "attackHelicopter": 0.4,
+    "attackHelicopter": -0.54,
     "fighter": 0
   },
   "antiAircraftJeep": {
@@ -225,20 +225,20 @@ export const COUNTERS = {
     "blastCannon": 0.36,
     "sonicTank": 0.36,
     "antiAircraftJeep": 0,
-    "attackHelicopter": -0.68,
+    "attackHelicopter": -0.75,
     "fighter": 0
   },
   "attackHelicopter": {
-    "scoutBike": -0.89,
-    "tank": -0.58,
-    "heavyCannon": -0.75,
+    "scoutBike": -0.86,
+    "tank": -0.5,
+    "heavyCannon": -0.92,
     "artillery": -1,
-    "infantry": -0.6,
-    "turret": -1,
+    "infantry": 0.19,
+    "turret": -0.63,
     "heavyTank": -0.83,
     "twinTurret": -1,
     "blastCannon": -1,
-    "sonicTank": -0.42,
+    "sonicTank": 1,
     "antiAircraftJeep": 0.79,
     "attackHelicopter": -0.06,
     "fighter": 0.44

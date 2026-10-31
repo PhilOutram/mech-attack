@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.79";
+} from "./hex.js?v=0.80";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -28,8 +28,8 @@ import {
 //   dropped off on a free hex next to it, or straight into a factory to capture it.
 // - Factory upgrades (unit.upgrades) unlock the unit types that need them (stat "needs"); a
 //   Crystal lab makes crystals every turn.
-// - A move cut short by turning over new ground (stoppedBy "revealed") leaves the unit able
-//   to use the rest of its move (unit.continues).
+// - A move cut short by turning over new ground (stoppedBy "revealed"), or one whose last
+//   step turns some over, leaves the unit able to use the rest of its move (unit.continues).
 // - players[p].lost counts that player's destroyed units by type.
 //
 // Sides, teams and turns (format 8):
@@ -55,10 +55,11 @@ export const PLAYER_COLOURS = ["blue", "green", "yellow", "purple", "pink"];
 
 // setup (campaign missions and difficulty levels): { units: [blue types, green types],
 // crystals: [blue, green], unclaimedHome: [blue?, green?], noHome: [blue?, green?],
-// upgrades: [blue's, green's] } replaces the starting units and crystals in rules.start for
-// that game. A player whose home is unclaimed starts with their home factory unused and must
-// capture it with infantry first; a player with noHome has no factory at all. upgrades are
-// already fitted to the player's home factory.
+// upgrades: [blue's, green's], starts: [blue's hexes, green's hexes] } replaces the starting
+// units and crystals in rules.start for that game. A player whose home is unclaimed starts
+// with their home factory unused and must capture it with infantry first; a player with
+// noHome has no factory at all. upgrades are already fitted to the player's home factory.
+// starts, where given, replaces the map's start hexes for that player's units.
 //
 // sides: one entry per player, { team } (default: two sides, each its own team); the map
 // needs a factory site for each. phases: who acts together, as lists of players (default:
@@ -120,8 +121,9 @@ export function newGame({
       player.factoryId = factory.id;
     }
     const types = setup ? setup.units[p] : rules.start.units;
+    const starts = (setup && setup.starts && setup.starts[p]) || map.starts[p];
     types.forEach((type, i) => {
-      const at = startSite(state, p, map.starts[p][i], taken);
+      const at = startSite(state, p, starts[i], taken);
       taken.add(at);
       addUnit(state, type, p, at);
     });
@@ -346,15 +348,17 @@ export function refreshKnowledge(state) {
   }
   state.players.forEach((player, p) => {
     const seen = visibleHexes(state, p);
-    // A block turned over shows everything on it at that moment, as on the table, even
-    // where no unit can see it now (fog liveSight).
+    // A block turned over shows its ground and factories, even where no unit can see it now
+    // (fog liveSight), but its crystals only once a unit can see them, like enemy units
+    // (Phil, 31 October 2026).
+    const known = { ...seen };
     if (tilesFog(state)) {
       for (const k in state.map.hexes) {
-        if (!player.explored[k] && player.revealed[blockOf(state, k)]) seen[k] = true;
+        if (!player.explored[k] && player.revealed[blockOf(state, k)]) known[k] = true;
       }
     }
+    for (const k in known) player.explored[k] = true;
     for (const k in seen) {
-      player.explored[k] = true;
       const pile = state.crystals[k];
       if (pile) player.seenCrystals[k] = { amount: pile.amount };
       else delete player.seenCrystals[k];
@@ -364,12 +368,12 @@ export function refreshKnowledge(state) {
     for (const id in player.seenFactories) {
       const remembered = player.seenFactories[id];
       const factory = state.units[id];
-      if (seen[remembered.at] && (!factory || factory.owner === p)) {
+      if (known[remembered.at] && (!factory || factory.owner === p)) {
         delete player.seenFactories[id];
       }
     }
     for (const unit of Object.values(state.units)) {
-      if (unit.owner === p || !seen[unit.at] || !unitStats(state, unit).isFactory) continue;
+      if (unit.owner === p || !known[unit.at] || !unitStats(state, unit).isFactory) continue;
       player.seenFactories[unit.id] = { ...unit, lives: state.rules.lives };
     }
   });
@@ -736,19 +740,17 @@ export function seedLoads(view, unitId) {
   return loads;
 }
 
-// Hexes a Crystal Seeder can plant on: free open hexes next to it with no crystals, far
-// enough from every factory (rules.crystals.plantMinDistanceFromFactory). Works on a view.
+// Hexes a Crystal Seeder can plant on: any free open hex next to it (Phil, 31 October 2026:
+// anywhere), including a pile with room for another seedAmount below the explode level.
+// Works on a view.
 export function plantSites(view, unitId) {
   const unit = view.units[unitId];
   const stats = unit && unitStats(view, unit);
   if (!stats || !stats.seeds || unit.acted || unit.seeds < stats.seedAmount) return [];
-  const factories = [...view.map.factories,
-    ...(view.map.neutralFactories || []).map((f) => f.at),
-    ...Object.values(view.units).filter((u) => unitStats(view, u).isFactory).map((u) => u.at)];
-  const least = view.rules.crystals.plantMinDistanceFromFactory;
+  const most = view.rules.crystals.explodeAt - stats.seedAmount;
   return neighbourKeys(unit.at).filter((k) => view.map.hexes[k] &&
     view.map.hexes[k].terrain && terrainRules(view, k).moveCost !== null &&
-    !view.crystals[k] && !unitAt(view, k) && factories.every((f) => distance(f, k) >= least));
+    !unitAt(view, k) && (!view.crystals[k] || view.crystals[k].amount <= most));
 }
 
 // Hexes a transporter can drop its next passenger on: a free open hex next to it, or a
@@ -1002,6 +1004,8 @@ function applyMove(state, { unitId, to }, actor) {
   const player = state.players[unit.owner];
   const stopOnReveal = tilesFog(state) && state.rules.fog.stopOnReveal;
   const from = unit.at;
+  // Ground turned over by the move's last step: the unit may then go on with what is left.
+  let revealedAtEnd = false;
   // Each hex walked, with the move points it took.
   const walked = [];
   let stoppedBy = null;
@@ -1029,6 +1033,7 @@ function applyMove(state, { unitId, to }, actor) {
       stoppedBy = "revealed";
       break;
     }
+    if (stopOnReveal && turned) revealedAtEnd = true;
   }
   // Never finish on a hex another unit is on, unless entering it.
   while (walked.length) {
@@ -1044,7 +1049,11 @@ function applyMove(state, { unitId, to }, actor) {
   // A move that gets nowhere (something hidden in the way) uses up the rest of the unit's
   // move, so a unit that splits its move cannot keep trying it.
   unit.moveUsed = path.length ? (unit.moveUsed || 0) + used : unitStats(state, unit).move;
-  unit.continues = stoppedBy === "revealed" && used > 0 && unit.at !== to;
+  // Stopped by new ground, or arrived and turned some over: either way the unit may use the
+  // rest of its move (Phil, 31 October 2026: arriving counts too).
+  const turnedOver = (stoppedBy === "revealed" && unit.at !== to) ||
+    (revealedAtEnd && unit.at === to);
+  unit.continues = turnedOver && used > 0 && unit.moveUsed < unitStats(state, unit).move;
   state.events.push({ type: "move", unitId, from, to: unit.at, path, stoppedBy,
     moveLeft: unit.continues ? moveLeft(state, unit) : 0 });
 
@@ -1314,7 +1323,7 @@ function applyLoadSeeds(state, { unitId, amount }, actor) {
   state.events.push({ type: "loadSeeds", unitId, amount });
 }
 
-// A Crystal Seeder plants a new pile next to it, which uses its action.
+// A Crystal Seeder plants a new pile next to it, or adds to one, which uses its action.
 function applyPlant(state, { unitId, at }, actor) {
   const unit = ownUnit(state, unitId, actor);
   if (!plantSites(viewFor(state, actor), unitId).includes(at)) {
@@ -1322,8 +1331,9 @@ function applyPlant(state, { unitId, at }, actor) {
   }
   const amount = unitStats(state, unit).seedAmount;
   unit.seeds -= amount;
-  // Planted this turn, so it first grows after the next turn.
-  state.crystals[at] = { amount, harvestedThisTurn: true };
+  // A new pile first grows after the next turn; adding to a pile leaves its growth alone.
+  if (state.crystals[at]) state.crystals[at].amount += amount;
+  else state.crystals[at] = { amount, harvestedThisTurn: true };
   finishAction(unit);
   state.events.push({ type: "plant", unitId, at, amount });
 }

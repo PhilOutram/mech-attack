@@ -1075,16 +1075,22 @@ describe("live sight under thin fog", () => {
     assert.ok(view.visible["0,0"], "the scout sees 3 hexes");
   });
 
-  test("a block turned over shows its crystals; out of sight they show as last seen", () => {
+  test("a block turned over hides its crystals until a unit can see them", () => {
     let s = scenario({
       units: [unit("s", "scoutBike", BLUE, "0,3")], crystals: { "0,-4": { amount: 30 } },
       rules: LIVE, explored: false,
     });
-    // The pile's block is turned over far from the scout's sight.
+    // The pile's block is turned over far from the scout's sight (Phil, 31 October 2026:
+    // crystals show only once seen, like enemy units).
     s.players[BLUE].revealed[s.map.hexes["0,-4"].cluster] = true;
     refreshKnowledge(s);
-    assert.equal(viewFor(s, BLUE).visible["0,-4"], undefined);
-    assert.equal(viewFor(s, BLUE).crystals["0,-4"].amount, 30);
+    assert.ok(viewFor(s, BLUE).map.hexes["0,-4"].terrain, "its ground shows");
+    assert.equal(viewFor(s, BLUE).crystals["0,-4"], undefined);
+    s.units.s.at = "0,-2";
+    refreshKnowledge(s);
+    assert.equal(viewFor(s, BLUE).crystals["0,-4"].amount, 30, "seen now");
+    s.units.s.at = "0,3";
+    refreshKnowledge(s);
     s = play(s, END, END);
     assert.equal(viewFor(s, BLUE).crystals["0,-4"].amount, 30, "it grew, but nobody saw");
     assert.ok(s.crystals["0,-4"].amount > 30);
@@ -1151,6 +1157,18 @@ describe("moving into face-down ground", () => {
     const again = reachableHexes(viewFor(s, BLUE), "t");
     assert.ok(Object.values(again).every((cost) => cost <= left), "only the rest of its move");
     assert.ok(Object.keys(again).length > 0);
+  });
+
+  test("a move whose last step turns over new ground leaves the rest of the move too", () => {
+    const fresh = () => scenario({ units: [unit("t", "tank", BLUE, "0,0")], explored: false });
+    const stop = play(fresh(), { type: "move", unitId: "t", to: "0,-4" }).units.t.at;
+    const s = play(fresh(), { type: "move", unitId: "t", to: stop });
+    const move = s.events.find((e) => e.type === "move");
+    assert.equal(s.units.t.at, stop);
+    assert.equal(move.stoppedBy, null);
+    assert.ok(s.units.t.continues);
+    assert.equal(move.moveLeft, RULES.units.tank.move - s.units.t.moveUsed);
+    assert.ok(Object.keys(reachableHexes(viewFor(s, BLUE), "t")).length > 0);
   });
 
   test("the unit can then carry on, and stops for good once its move is used", () => {

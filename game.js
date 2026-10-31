@@ -7,8 +7,8 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.79";
-import { mapById, seededRandom } from "./maps.js?v=0.79";
+import { RULES } from "./rules-config.js?v=0.80";
+import { mapById, seededRandom } from "./maps.js?v=0.80";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   searchTargets, unloadFactories, seedLoads, plantSites,
@@ -16,24 +16,24 @@ import {
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.79";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.79";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.79";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.79";
-import { distance } from "./hex.js?v=0.79";
+} from "./engine.js?v=0.80";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.80";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.80";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.80";
+import { distance } from "./hex.js?v=0.80";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.79";
-import { confirmDialog } from "./dialog.js?v=0.79";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.79";
-import { showTip, showNote } from "./tips.js?v=0.79";
+} from "./board.js?v=0.80";
+import { confirmDialog } from "./dialog.js?v=0.80";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.80";
+import { showTip, showNote } from "./tips.js?v=0.80";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.79";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.79";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.79";
-import { joinGame as joinRemote } from "./net.js?v=0.79";
+} from "./campaign.js?v=0.80";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.80";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.80";
+import { joinGame as joinRemote } from "./net.js?v=0.80";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -50,7 +50,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.79";
+const ASSET_VERSION = "0.80";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route at this many milliseconds a hex, so
@@ -77,7 +77,11 @@ const DRAG_THRESHOLD_PX = 8;
 const MAX_ZOOM = 4;
 const WHEEL_ZOOM_RATE = 0.0015;
 const MAX_SEED = 2 ** 31;
-const MESSAGE_LINES = 6;
+// Log lines kept: the closed log shows the latest, the open one all of them.
+const MESSAGE_LINES = 30;
+const MISSION_WON_PAUSE_MS = 2000;
+// How long a newly built unit's moving sound plays.
+const BUILD_SOUND_MS = 600;
 // Demand surrender: the AI plays the game on until this much time has gone (at least
 // MIN_PLAYOUTS games, at most rules.surrenderPlayouts), so a game with many sides cannot keep
 // the screen waiting; with more than two sides each game runs this many rounds.
@@ -708,6 +712,7 @@ function findElements() {
     pass: $("pass-device"), passTitle: $("pass-title"), passText: $("pass-text"),
     passGo: $("pass-go"),
     home: $("game-home"), message: $("game-message"), panel: $("unit-panel"),
+    log: $("game-log"), logToggle: $("log-toggle"),
     over: $("game-over"), overTitle: $("game-over-title"), overText: $("game-over-text"),
     overUnlocks: $("game-over-unlocks"),
     again: $("play-again"), newMap: $("play-new-map"), toTitle: $("game-over-home"),
@@ -739,6 +744,8 @@ function wire(onLeave) {
   // End turn; in a phase shared with other players, tapping it again takes the turn back
   // while they are still playing.
   els.endTurn.addEventListener("click", async () => {
+    // Pressing it answers the flash, so the flash stops.
+    els.endTurn.classList.remove("flash");
     if (mayResume()) {
       await act({ type: "resumeTurn" });
       return;
@@ -747,6 +754,12 @@ function wire(onLeave) {
     if (await act({ type: "endTurn" }) && !isClient()) nextTurn();
   });
   els.quit.addEventListener("click", quitGame);
+  // Tapping the log opens it upwards over the map, and tapping it again closes it.
+  els.log.addEventListener("click", () => {
+    const open = els.log.classList.toggle("open");
+    els.logToggle.setAttribute("aria-expanded", String(open));
+    els.message.scrollTop = els.message.scrollHeight;
+  });
   // Phones play sound only after a tap, so the first tap anywhere starts it. A tap anywhere
   // also clears a banner.
   document.addEventListener("pointerdown", unlockSound, { passive: true });
@@ -1165,6 +1178,10 @@ function showEvents(events, before, after) {
   const sound = (clip, into = sounds) => {
     if (clip) into.set(clip[0], Math.max(clip[1], into.get(clip[0]) || 0));
   };
+  // How long the clips of moving units play: until the moves end, or briefly for a unit
+  // driving out of its factory. Other clips play to the end.
+  const moveClips = new Set();
+  let builtMs = 0;
   let any = false;
   for (const e of events) {
     if (["fire", "returnFire", "splash", "lineHit"].includes(e.type)) {
@@ -1230,7 +1247,10 @@ function showEvents(events, before, after) {
     } else if (e.type === "move") {
       if (e.path.some(seen) || seen(e.from)) {
         any = true;
-        if (e.path.length) sound(moveSound(typeOf(e.unitId)));
+        if (e.path.length) {
+          sound(moveSound(typeOf(e.unitId)));
+          moveClips.add(moveSound(typeOf(e.unitId))[0]);
+        }
         // As showMoves shows it: the sound's lead before the first move, then each hex.
         if (e.path.length && !prefersReducedMotion()) {
           moveMs += (moveMs ? 0 : MOVE_SOUND_LEAD_MS) + e.path.length * MOVE_STEP_MS;
@@ -1243,7 +1263,7 @@ function showEvents(events, before, after) {
       if (e.stoppedBy === "unit" && after.units[e.unitId]?.owner === me) {
         lines.push("Something hidden blocked the way.");
       }
-      if (e.stoppedBy === "revealed" && after.units[e.unitId]?.owner === me) {
+      if (e.moveLeft && after.units[e.unitId]?.owner === me) {
         // Only offer the rest of the move if it reaches somewhere (rough ground costs 2).
         const onward = Object.keys(reachableHexes(after, e.unitId)).length > 0;
         lines.push(onward ? `New ground turned over. ${e.moveLeft} move point` +
@@ -1289,6 +1309,10 @@ function showEvents(events, before, after) {
     } else if (e.type === "build" && (after.units[e.unitId]?.owner === me || seen(e.at))) {
       any = true;
       lines.push(`${unitName(after, e.unitId)} built.`);
+      // A short burst of its moving sound as it rolls out of the factory.
+      sound(moveSound(e.unitType));
+      moveClips.add(moveSound(e.unitType)[0]);
+      builtMs = BUILD_SOUND_MS;
       if (after.units[e.unitId]?.owner === me) tip(`built:${e.unitType}`);
     } else if (e.type === "heal" && seen(after.units[e.unitId]?.at)) {
       lines.push(`${unitName(after, e.targetId)} repaired.`);
@@ -1346,7 +1370,10 @@ function showEvents(events, before, after) {
   for (const line of lines) say(line);
   waitForBoom(effects);
   if (effects.length) flash(effects);
-  for (const [clip, volume] of sounds) playSound(clip, volume);
+  const cut = Math.max(moveMs, builtMs) || null;
+  for (const [clip, volume] of sounds) {
+    playSound(clip, volume, moveClips.has(clip) ? cut : null);
+  }
   const afterMoves = () => {
     for (const [clip, volume] of laterSounds) playSound(clip, volume);
     if (unloaded) showBanner(`${unloaded} crystals unloaded`);
@@ -1715,6 +1742,7 @@ function render() {
   renderPanel(view);
   renderBuildInfo(view);
   els.message.innerHTML = ui.messages.map((m) => `<span>${m}</span>`).join("");
+  els.message.scrollTop = els.message.scrollHeight;
   offerTips(view);
 }
 
@@ -2023,9 +2051,23 @@ function showMultiplayerOver() {
   els.over.hidden = false;
 }
 
+// A won mission is announced after a pause, so the winning move can be seen first.
+let gameOverTimer = null;
+
 function showGameOver() {
   // Shown once: several paths can reach the end of a game.
-  if (!els.over.hidden) return;
+  if (!els.over.hidden || gameOverTimer) return;
+  if (missionOf(state) && state.result.winner === me) {
+    gameOverTimer = setTimeout(() => {
+      gameOverTimer = null;
+      if (state && state.result) announceGameOver();
+    }, MISSION_WON_PAUSE_MS);
+    return;
+  }
+  announceGameOver();
+}
+
+function announceGameOver() {
   if (isMultiplayer()) {
     showMultiplayerOver();
     return;
@@ -2061,12 +2103,16 @@ function showGameOver() {
         : " The next mission is unlocked.";
     }
     els.newMap.hidden = !won || last;
-    // What winning unlocks: the units new in the next mission.
+    // The objectives met, ticked and crossed out, then what winning unlocks: the units new in
+    // the next mission.
+    const steps = m.steps ? m.steps.map((step) => step.text) : [m.objective];
+    const met = won ? `<ul class="objectives-met">${steps.map((step) =>
+      `<li><span aria-hidden="true">✔</span><s>${step}</s></li>`).join("")}</ul>` : "";
     const next = MISSIONS[index + 1];
     const cards = won && next ? unlockCards(`Unlocked for mission ${index + 2}`,
       next.newUnits, next.newUpgrades) : "";
-    els.overUnlocks.innerHTML = cards;
-    els.overUnlocks.hidden = !cards;
+    els.overUnlocks.innerHTML = met + cards;
+    els.overUnlocks.hidden = !met && !cards;
   }
   els.overText.textContent = text;
   els.over.hidden = false;

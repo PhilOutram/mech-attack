@@ -10,6 +10,9 @@ const ON_KEY = "mech-attack.sound";
 // without re-editing the files.
 const TARGET_LUFS = -19;
 const DECIBELS_PER_GAIN_DECADE = 20;
+// A clip cut short fades out over this long, so it does not click.
+const FADE_S = 0.15;
+const MS_PER_S = 1000;
 export const SOUNDS = {
   tankMoving: { file: "audio/tank-moving.mp3", lufs: -26.0 },
   flying: { file: "audio/helicopter.mp3", lufs: -24.4 },
@@ -67,8 +70,9 @@ async function load(name) {
   }
 }
 
-// Plays a clip once. volume scales it further (1 = the clip's even level).
-export function playSound(name, volume = 1) {
+// Plays a clip once. volume scales it further (1 = the clip's even level). ms, if given, cuts
+// it short: it fades out and stops that long after it starts (a move that has finished).
+export function playSound(name, volume = 1, ms = null) {
   if (!on || !context || !buffers[name]) return;
   const source = context.createBufferSource();
   source.buffer = buffers[name];
@@ -77,4 +81,10 @@ export function playSound(name, volume = 1) {
   gain.gain.value = level * volume;
   source.connect(gain).connect(context.destination);
   source.start();
+  if (ms !== null) {
+    const end = context.currentTime + ms / MS_PER_S;
+    gain.gain.setValueAtTime(level * volume, Math.max(context.currentTime, end - FADE_S));
+    gain.gain.linearRampToValueAtTime(0, end);
+    source.stop(end);
+  }
 }
