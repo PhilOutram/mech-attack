@@ -118,13 +118,15 @@ export const RULES = {
       range: [1, 3], storage: 0, healing: 0, sight: 3,
       hits: "air",
     },
+    // Attack Helicopter hits air as well as ground, and the Fighter costs 45 (was 60) (Phil,
+    // 31 October 2026).
     attackHelicopter: {
       name: "Attack Helicopter", cost: 45, move: 5, defence: 10, attack: 20,
       range: [1, 2], storage: 0, healing: 0, sight: 3,
-      air: true, needs: "airfield",
+      air: true, hits: "both", needs: "airfield",
     },
     fighter: {
-      name: "Fighter", cost: 60, move: 7, defence: 15, attack: 30,
+      name: "Fighter", cost: 45, move: 7, defence: 15, attack: 30,
       range: [1, 4], storage: 0, healing: 0, sight: 4,
       air: true, hits: "air", needs: "airfield",
     },

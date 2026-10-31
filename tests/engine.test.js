@@ -299,12 +299,12 @@ describe("ground and air", () => {
     assert.deepEqual(attackTargets(viewFor(s, BLUE), "j"), []);
   });
 
-  test("an attack helicopter hits ground units and only anti-air can hit it", () => {
+  test("an attack helicopter hits ground and air units (Phil, 31 October 2026)", () => {
     const s = scenario({
       units: [...base, unit("h", "attackHelicopter", BLUE, "0,0"),
         unit("e", "artillery", GREEN, "0,-2"), unit("f", "fighter", GREEN, "1,-1")],
     });
-    assert.deepEqual(attackTargets(viewFor(s, BLUE), "h"), ["e"]);
+    assert.deepEqual(attackTargets(viewFor(s, BLUE), "h").sort(), ["e", "f"]);
   });
 
   test("a fighter hits air units only", () => {

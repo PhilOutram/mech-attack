@@ -3,10 +3,10 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.76";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.76";
-import { distance, cheapestPaths } from "./hex.js?v=0.76";
-import { LEVELS } from "./difficulty.js?v=0.76";
+import { RULES } from "./rules-config.js?v=0.77";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.77";
+import { distance, cheapestPaths } from "./hex.js?v=0.77";
+import { LEVELS } from "./difficulty.js?v=0.77";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 // The highest rank each mission has been won at: { mission index: rank id }.
@@ -56,7 +56,7 @@ export const UNIT_ROLES = {
   twinTurret: "A fixed twin gun: two close-range shots a turn.",
   heavyTank: "Two guns, two targets a turn: shreds Infantry.",
   chinook: "Flies a vehicle or two Infantry over anything.",
-  attackHelicopter: "Flies over everything to strike ground units.",
+  attackHelicopter: "Flies over everything to strike ground and air units.",
   antiAircraftJeep: "Shoots down aircraft.",
   transporter: "Carries two Infantry fast.",
   blastCannon: "Cluster bomb: hits everything round its target.",

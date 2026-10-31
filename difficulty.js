@@ -1,7 +1,7 @@
 // Difficulty levels for a game against the AI (Phil, 29 October 2026). The player picks the
 // rank they play at; each rank faces its own Consortium commander, who plays in their own way
 // and starts with more or less than you. Campaign missions set their own opponent instead.
-import { RULES } from "./rules-config.js?v=0.76";
+import { RULES } from "./rules-config.js?v=0.77";
 
 const LEVEL_KEY = "mech-attack.level";
 

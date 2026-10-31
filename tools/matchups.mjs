@@ -10,11 +10,11 @@
 // Usage (from the project folder): node tools/matchups.mjs [--games 4] [--set rule=value ...]
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "../rules-config.js?v=0.76";
-import { mapById } from "../maps.js?v=0.76";
-import { newGame, applyAction, viewFor, unitsOf } from "../engine.js?v=0.76";
-import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.76";
-import { withOverrides } from "../sim.js?v=0.76";
+import { RULES } from "../rules-config.js?v=0.77";
+import { mapById } from "../maps.js?v=0.77";
+import { newGame, applyAction, viewFor, unitsOf } from "../engine.js?v=0.77";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.77";
+import { withOverrides } from "../sim.js?v=0.77";
 
 const DEFAULT_GAMES = 4;
 // Crystals' worth of units on each side, and the most units of one kind on the board.
@@ -67,10 +67,17 @@ function battle(rules, map, counter, enemy, seed, firstPlayer) {
   return valueLeft(state, 0, start[0]) - valueLeft(state, 1, start[1]);
 }
 
-export function measureCounters({ games = DEFAULT_GAMES, rules = RULES, log = () => {} }) {
+// reshape (optional): changes each battle map's terrain, to measure counters on other ground
+// (see tools/terrain-matchups.mjs).
+export function measureCounters({ games = DEFAULT_GAMES, rules = RULES, log = () => {},
+  reshape = null }) {
   const battleRules = { ...rules, roundCap: ROUND_CAP, loseWithNoUnits: true,
     crystals: { ...rules.crystals, spawnChoices: [0] } };
-  const maps = MAPS.map((id) => mapById(id, battleRules));
+  const maps = MAPS.map((id) => {
+    const map = mapById(id, battleRules);
+    if (reshape) reshape(map, battleRules);
+    return map;
+  });
   const buildable = Object.keys(rules.units).filter((t) => rules.units[t].cost !== null);
   const fighters = buildable.filter((t) => rules.units[t].attack > 0);
   const table = {};

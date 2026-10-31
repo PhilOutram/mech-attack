@@ -45,7 +45,7 @@ Settled with Phil, 28 October 2026: the rules are the same for every unit, and u
 - Infantry hit air as well as ground (Phil, 29 October 2026), so a cheap unit can answer the Attack Helicopter. The Scout Bike did this from 28 October and went back to ground only: it was doing too many jobs.
 
 ### Spotter Drone
-Cost 15 (was 30), move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Sonic Tank and Infantry can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+Cost 15 (was 30), move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Attack Helicopter, the Sonic Tank and Infantry can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
 
 ### Units added on 28 October 2026
 Stats start from the full unit table, with costs scaled to the Game 2 prices. The numbers are provisional; the abilities were confirmed by Phil.
@@ -55,8 +55,8 @@ Stats start from the full unit table, with costs scaled to the Game 2 prices. Th
 | Blast Cannon | ground | ground | 65 | 3 | 15 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. Defence 15, not the unit table's 10 (Phil, 31 October 2026), so one Tank shot no longer destroys it. |
 | Sonic Tank | ground | ground and air | 60 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
 | Anti-Aircraft Jeep | ground | air | 30 | 5 | 15 | 30 | 1–3 | |
-| Attack Helicopter | air | ground | 45 | 5 | 10 | 20 | 1–2 | |
-| Fighter | air | air | 60 | 7 | 15 | 30 | 1–4 | |
+| Attack Helicopter | air | ground and air | 45 | 5 | 10 | 20 | 1–2 | Hits air as well as ground (Phil, 31 October 2026). |
+| Fighter | air | air | 45 | 7 | 15 | 30 | 1–4 | Cost 45, was 60 (Phil, 31 October 2026). |
 
 Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
 

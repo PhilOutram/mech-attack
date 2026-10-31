@@ -1,17 +1,18 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.76";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.76";
-import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.76";
-import { confirmDialog } from "./dialog.js?v=0.76";
-import { showTip, resetTips } from "./tips.js?v=0.76";
-import { RULES } from "./rules-config.js?v=0.76";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.76";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.76";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.76";
+import { VERSION, CHANGELOG } from "./version.js?v=0.77";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.77";
+import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.77";
+import { confirmDialog } from "./dialog.js?v=0.77";
+import { showTip, resetTips } from "./tips.js?v=0.77";
+import { RULES } from "./rules-config.js?v=0.77";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.77";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.77";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.77";
 import {
   wireMultiplayer, showCoopSetup, rejoinGame, resumeHosted,
-} from "./multiplayer.js?v=0.76";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.76";
+} from "./multiplayer.js?v=0.77";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.77";
+import { unitImage } from "./board.js?v=0.77";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -326,15 +327,22 @@ document.getElementById("map-recent").addEventListener("click", (e) => {
 // numbers the game plays by (rules-config.js), ground units first and then air, each by cost.
 const HITS_SHORT = { ground: "G", air: "A", both: "G+A" };
 const NEEDS_SHORT = { heavyWorks: "Heavy", airfield: "Air" };
+// Shorter names where the full one would make the table too wide for a phone.
+const TABLE_NAMES = { antiAircraftJeep: "AA Jeep", attackHelicopter: "Helicopter",
+  lightHarvester: "Harvester" };
+// The units are shown in blue, the player's colour.
+const TABLE_OWNER = 0;
 
 function renderUnitTable() {
-  const units = Object.values(RULES.units).filter((u) => !u.isFactory && u.cost !== null)
-    .sort((a, b) => Number(Boolean(a.air)) - Number(Boolean(b.air)) || a.cost - b.cost);
+  const units = Object.entries(RULES.units).filter(([, u]) => !u.isFactory && u.cost !== null)
+    .sort(([, a], [, b]) => Number(Boolean(a.air)) - Number(Boolean(b.air)) || a.cost - b.cost);
   const range = (r) => (!r ? "–" : r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
-  document.getElementById("unit-table-body").innerHTML = units.map((u) => {
+  document.getElementById("unit-table-body").innerHTML = units.map(([type, u]) => {
     const attack = !u.attack ? "–" : u.shots > 1 ? `${u.attack}×${u.shots}` : `${u.attack}`;
     const hits = u.attack ? HITS_SHORT[u.hits || "ground"] : "–";
-    return `<tr class="${u.air ? "unit-air" : "unit-ground"}"><td>${u.name}</td>` +
+    return `<tr class="${u.air ? "unit-air" : "unit-ground"}"><td>` +
+      `<img src="${unitImage(type, TABLE_OWNER)}" alt="" class="unit-table-token">` +
+      `${TABLE_NAMES[type] || u.name}</td>` +
       `<td>${u.cost}</td><td>${u.move}</td><td>${attack}</td><td>${u.defence}</td>` +
       `<td>${range(u.range)}</td><td>${u.sight}</td><td>${hits}</td>` +
       `<td>${NEEDS_SHORT[u.needs] || "–"}</td></tr>`;

@@ -50,7 +50,7 @@ export const UNITS = [
   u("A1", "Fighter", "Offensive", "L", 78, 7, null, 30, 4, null, null, null,
     "Flies; hits air units only", "fighter-green.svg"),
   u("A2", "Attack Helicopter", "Offensive", "L", 30, 5, null, null, 2, null, null, null,
-    "Flies; hits ground units", "attack-helicopter-green.svg"),
+    "Flies; hits ground and air units", "attack-helicopter-green.svg"),
   u("A3", "Transport", "Transport", "H", 20, 5, null, 0, 0, null, null, null),
   u("D1", "Fort", "Defence", "H", 18, 2, 10, 0, 0, 0, 0, 2),
   u("D1", "Fort (constructed)", "Defence", "H", 95, 0, 50, 20, 2, 0, 10, 3,
