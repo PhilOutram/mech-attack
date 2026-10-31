@@ -1259,6 +1259,323 @@
      "Heavy Tank"
     ]
    ]
+  },
+  "roughMiddle": {
+   "name": "A band of rough ground across the middle, open ground behind each side",
+   "table": {
+    "scoutBike": {
+     "scoutBike": 0,
+     "tank": 1,
+     "heavyCannon": 1,
+     "artillery": 0.69,
+     "infantry": -0.79,
+     "turret": 0.86,
+     "heavyTank": 1,
+     "twinTurret": 0.18,
+     "blastCannon": 0.83,
+     "sonicTank": 0.92,
+     "antiAircraftJeep": -0.64,
+     "attackHelicopter": 0.93,
+     "fighter": 0
+    },
+    "tank": {
+     "scoutBike": -1,
+     "tank": 0.33,
+     "heavyCannon": 1,
+     "artillery": -0.1,
+     "infantry": -1,
+     "turret": 0.85,
+     "heavyTank": -1,
+     "twinTurret": -0.81,
+     "blastCannon": -0.42,
+     "sonicTank": -0.67,
+     "antiAircraftJeep": -1,
+     "attackHelicopter": 0.92,
+     "fighter": 0
+    },
+    "heavyCannon": {
+     "scoutBike": -1,
+     "tank": -1,
+     "heavyCannon": 0.25,
+     "artillery": -0.42,
+     "infantry": -1,
+     "turret": 0.75,
+     "heavyTank": -1,
+     "twinTurret": -0.19,
+     "blastCannon": -0.75,
+     "sonicTank": -0.92,
+     "antiAircraftJeep": -0.54,
+     "attackHelicopter": 0.92,
+     "fighter": 0
+    },
+    "artillery": {
+     "scoutBike": -0.63,
+     "tank": 0.17,
+     "heavyCannon": 0.83,
+     "artillery": 0,
+     "infantry": -0.88,
+     "turret": 0,
+     "heavyTank": -0.56,
+     "twinTurret": 0,
+     "blastCannon": 0.69,
+     "sonicTank": 0.54,
+     "antiAircraftJeep": -0.07,
+     "attackHelicopter": 1,
+     "fighter": 0
+    },
+    "lightHarvester": {
+     "scoutBike": 1,
+     "tank": 0.94,
+     "heavyCannon": 0.63,
+     "artillery": 0.56,
+     "infantry": 0.51,
+     "turret": 0.06,
+     "heavyTank": 1,
+     "twinTurret": 0,
+     "blastCannon": 0.56,
+     "sonicTank": 0.38,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": 1,
+     "fighter": 0
+    },
+    "spotterDrone": {
+     "scoutBike": 0,
+     "tank": 0,
+     "heavyCannon": 0,
+     "artillery": 0,
+     "infantry": 0.97,
+     "turret": 0,
+     "heavyTank": 0,
+     "twinTurret": 0,
+     "blastCannon": 0,
+     "sonicTank": 1,
+     "antiAircraftJeep": 0.95,
+     "attackHelicopter": 0.95,
+     "fighter": 0.95
+    },
+    "infantry": {
+     "scoutBike": 0.75,
+     "tank": 1,
+     "heavyCannon": 1,
+     "artillery": 0.57,
+     "infantry": -0.06,
+     "turret": 1,
+     "heavyTank": 1,
+     "twinTurret": 0.96,
+     "blastCannon": 0.92,
+     "sonicTank": 1,
+     "antiAircraftJeep": -0.86,
+     "attackHelicopter": 0.54,
+     "fighter": -0.91
+    },
+    "transporter": {
+     "scoutBike": 0.92,
+     "tank": 0.96,
+     "heavyCannon": 0.25,
+     "artillery": 0.12,
+     "infantry": -0.05,
+     "turret": 0,
+     "heavyTank": 0.46,
+     "twinTurret": 0,
+     "blastCannon": 0.25,
+     "sonicTank": 0.17,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": 1,
+     "fighter": 0
+    },
+    "chinook": {
+     "scoutBike": 0,
+     "tank": 0,
+     "heavyCannon": 0,
+     "artillery": 0,
+     "infantry": 0.33,
+     "turret": 0,
+     "heavyTank": 0,
+     "twinTurret": 0,
+     "blastCannon": 0,
+     "sonicTank": 0,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": 1,
+     "fighter": 0
+    },
+    "turret": {
+     "scoutBike": -0.86,
+     "tank": -0.94,
+     "heavyCannon": -0.83,
+     "artillery": 0,
+     "infantry": -0.58,
+     "turret": 0,
+     "heavyTank": -1,
+     "twinTurret": 0,
+     "blastCannon": -0.42,
+     "sonicTank": -0.5,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": 1,
+     "fighter": 0
+    },
+    "heavyTank": {
+     "scoutBike": -1,
+     "tank": 1,
+     "heavyCannon": 1,
+     "artillery": 0.19,
+     "infantry": -1.03,
+     "turret": 1,
+     "heavyTank": 0,
+     "twinTurret": 0.38,
+     "blastCannon": 1,
+     "sonicTank": -0.38,
+     "antiAircraftJeep": -1,
+     "attackHelicopter": 1,
+     "fighter": 0
+    },
+    "twinTurret": {
+     "scoutBike": -0.21,
+     "tank": 1,
+     "heavyCannon": 0,
+     "artillery": 0,
+     "infantry": -0.55,
+     "turret": 0,
+     "heavyTank": 0.13,
+     "twinTurret": 0,
+     "blastCannon": 0,
+     "sonicTank": 0,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": 1,
+     "fighter": 0
+    },
+    "blastCannon": {
+     "scoutBike": -0.67,
+     "tank": 0,
+     "heavyCannon": 1,
+     "artillery": -0.6,
+     "infantry": -1.03,
+     "turret": 0.17,
+     "heavyTank": -0.83,
+     "twinTurret": 0,
+     "blastCannon": -0.25,
+     "sonicTank": -0.08,
+     "antiAircraftJeep": -0.43,
+     "attackHelicopter": 0.92,
+     "fighter": 0
+    },
+    "sonicTank": {
+     "scoutBike": -1,
+     "tank": 0.5,
+     "heavyCannon": 0.92,
+     "artillery": -0.38,
+     "infantry": -1,
+     "turret": 0.33,
+     "heavyTank": -0.33,
+     "twinTurret": 0,
+     "blastCannon": -0.17,
+     "sonicTank": 0.08,
+     "antiAircraftJeep": -0.36,
+     "attackHelicopter": 0.38,
+     "fighter": 0
+    },
+    "antiAircraftJeep": {
+     "scoutBike": 0.75,
+     "tank": 0.93,
+     "heavyCannon": 0.36,
+     "artillery": 0.18,
+     "infantry": 0.38,
+     "turret": 0,
+     "heavyTank": 1,
+     "twinTurret": 0,
+     "blastCannon": 0.36,
+     "sonicTank": 0.43,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": -0.71,
+     "fighter": 0
+    },
+    "attackHelicopter": {
+     "scoutBike": -1,
+     "tank": -1,
+     "heavyCannon": -1,
+     "artillery": -1,
+     "infantry": -0.72,
+     "turret": -1,
+     "heavyTank": -1,
+     "twinTurret": -1,
+     "blastCannon": -1,
+     "sonicTank": 0.04,
+     "antiAircraftJeep": 0.75,
+     "attackHelicopter": -0.06,
+     "fighter": 0.44
+    },
+    "fighter": {
+     "scoutBike": 0,
+     "tank": 0,
+     "heavyCannon": 0,
+     "artillery": 0,
+     "infantry": 0.32,
+     "turret": 0,
+     "heavyTank": 0,
+     "twinTurret": 0,
+     "blastCannon": 0,
+     "sonicTank": 0,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": -0.56,
+     "fighter": 0
+    },
+    "lightMedic": {
+     "scoutBike": 0.9,
+     "tank": 1,
+     "heavyCannon": 0.15,
+     "artillery": 0.1,
+     "infantry": 0,
+     "turret": 0,
+     "heavyTank": 0.7,
+     "twinTurret": 0,
+     "blastCannon": 0.15,
+     "sonicTank": 0.1,
+     "antiAircraftJeep": 0,
+     "attackHelicopter": 1,
+     "fighter": 0
+    }
+   },
+   "rings": [
+    [
+     "Infantry",
+     "Anti-Aircraft Jeep",
+     "Attack Helicopter"
+    ],
+    [
+     "Infantry",
+     "Fighter",
+     "Attack Helicopter"
+    ],
+    [
+     "Scout Bike",
+     "Anti-Aircraft Jeep",
+     "Attack Helicopter"
+    ],
+    [
+     "Anti-Aircraft Jeep",
+     "Attack Helicopter",
+     "Sonic Tank"
+    ],
+    [
+     "Anti-Aircraft Jeep",
+     "Attack Helicopter",
+     "Blast Cannon"
+    ],
+    [
+     "Anti-Aircraft Jeep",
+     "Attack Helicopter",
+     "Tank"
+    ],
+    [
+     "Anti-Aircraft Jeep",
+     "Attack Helicopter",
+     "Heavy Cannon"
+    ],
+    [
+     "Anti-Aircraft Jeep",
+     "Attack Helicopter",
+     "Twin Tank"
+    ]
+   ]
   }
  }
 }
