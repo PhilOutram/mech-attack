@@ -2,6 +2,30 @@
 
 Captured 19 October 2026, updated 28 October 2026. Phil's ideas first, then existing assets, then open design questions raised while capturing them.
 
+## Keep the core simple (Phil, 31 October 2026)
+
+The core game has proven fun because it is simple. Getting that core right comes first. There is a limit to how many units and rules the game can carry; campaigns help new players learn, but they do not raise that limit. Every new idea goes into the ideas log below first and earns its place by testing, not by sounding good.
+
+How an idea gets tested:
+- **Balance:** the simulator plays the AI against itself with a rule changed, so two versions can be compared side by side, e.g. `node sim.js --games 500 --seed 1 --set units.attackHelicopter.cost=55` against the same run without `--set`. `tools/matchups.mjs`, `tools/duels.mjs` and `tools/terrain-matchups.mjs` show how the counters and rings move.
+- **Fun:** the simulator cannot measure that. An idea that passes the balance check gets played by people before it goes into the main game, ideally first as an optional rule or a single campaign mission.
+
+### Ideas log
+
+Core tuning (changes numbers only, no new rules):
+- Twin Tank: cost 65, move 4, so it is a fast escort rather than a worse Heavy Cannon. Awaiting Phil.
+- Attack Helicopter: cost 55; it is the best answer to 7 of 18 enemy types. Awaiting Phil.
+
+Parked for testing, or for a sequel:
+- Separate attack and defence against ground and against air. Would shift the rings a lot, but doubles the numbers on every unit. Sequel.
+- Factory upgrades that change units: Optics (+1 sight), Armour plating (+5 defence, -1 move), Long barrels (+1 range, -5 attack). Flat boosts were rejected because they steepen the cost ladder.
+- Crystal transfer between allies: harvesters unloading at an ally's factory, and a Supply depot upgrade for direct transfers.
+- Engineer: lays anti-tank spikes (vehicles cannot cross; Infantry and air can) and clears rough ground. The rough-band test showed that terrain which only slows units makes no new rings; terrain has to block to make them.
+- Engineers that rebuild ruins or build outposts.
+- Event cards (idea 8). Phil: wait.
+
+Approved earlier for the co-op campaigns (31 October); to be checked against this principle before building: crystal gifting, allied transport, role kits, turret deployer with overwatch, same-round objectives. Separate 2-, 3- and 4-player campaigns, and up to 8 players once the new colours are drawn.
+
 ## Phil's ideas
 
 ### 1. New units from existing art styles
