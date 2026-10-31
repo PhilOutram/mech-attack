@@ -19,13 +19,13 @@
 // play the hand-tuned AI, and they are written out for the game to use.
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "./rules-config.js?v=0.80";
-import { mapById, seededRandom, MAP_SHAPES, shapesForSides } from "./maps.js?v=0.80";
+import { RULES } from "./rules-config.js?v=0.81";
+import { mapById, seededRandom, MAP_SHAPES, shapesForSides } from "./maps.js?v=0.81";
 import {
   DEFAULT_PERSONALITY, randomPersonality, mutatePersonality, crossPersonalities,
   favouriteUnits,
-} from "./ai.js?v=0.80";
-import { runGame, withOverrides, placeScores } from "./sim.js?v=0.80";
+} from "./ai.js?v=0.81";
+import { runGame, withOverrides, placeScores } from "./sim.js?v=0.81";
 
 const DEFAULTS = { generations: 30, population: 16, games: 8, seed: 1 };
 // Generated maps in the pool (map-1 .. map-N of every shape), alongside fixed map 1.

@@ -20,6 +20,45 @@ body {
   min-height: 100%;
 }
 
+/* The game is switched off (maintenance.js): this covers everything, with no way past it. */
+.maintenance {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 16px;
+  background-color: var(--bg);
+  text-align: center;
+}
+
+.maintenance[hidden] {
+  display: none;
+}
+
+.maintenance h1 {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--title-font);
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.maintenance p {
+  max-width: 24rem;
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Nothing underneath scrolls while it is down. */
+body.is-down {
+  overflow: hidden;
+}
+
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg);

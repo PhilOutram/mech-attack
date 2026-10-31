@@ -3,8 +3,8 @@
 // crystals; the team wins or loses together, and a human who is knocked out keeps watching.
 // The host can start any mission their device has unlocked; a win is recorded on every
 // player's device, so anyone can host the next one.
-import { RULES } from "./rules-config.js?v=0.80";
-import { shapesForSides } from "./maps.js?v=0.80";
+import { RULES } from "./rules-config.js?v=0.81";
+import { shapesForSides } from "./maps.js?v=0.81";
 
 const PROGRESS_KEY = "mech-attack.coop-campaign";
 const HUMAN_TEAM = 0;

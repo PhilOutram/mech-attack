@@ -6,13 +6,13 @@
 // - Same time (co-op): 2 to 4 humans, one device each, on one team against one or two AI sides.
 //   The humans play at the same time; then the AI team takes its turn. The AI starts with more
 //   for each human it faces (see coopSetup).
-import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.80";
-import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.80";
-import { hostGame, joinGame as joinRemote } from "./net.js?v=0.80";
-import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.80";
-import { PLAYER_COLOURS } from "./board.js?v=0.80";
-import { RULES } from "./rules-config.js?v=0.80";
-import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.80";
+import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.81";
+import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.81";
+import { hostGame, joinGame as joinRemote } from "./net.js?v=0.81";
+import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.81";
+import { PLAYER_COLOURS } from "./board.js?v=0.81";
+import { RULES } from "./rules-config.js?v=0.81";
+import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.81";
 
 const MIN_SIDES = 2;
 const MAX_TURN_SIDES = 4;
