@@ -26,10 +26,15 @@ Added in v0.79 (to be judged by use, like everything else):
 - Crystal Seeder (see `docs/rules.md`). First measure: the default AI builds one in 87 of 100 games, spends about 145 crystals a game on it (the Seeder and its loads) and harvests about 64 back from what it planted, so in games of about 15 rounds it does not yet pay for itself. Games ran about 2 rounds longer with it (13.1 to 15.0), and comebacks rose slightly.
 - v0.80 (Phil): Seeder cost 50 and it plants anywhere, piles included. The AI then builds one in 96 of 100 games and harvests back more than it plants (87 against 84 crystals a game).
 
-Candidates for retiring (to measure, not yet decided):
-- Units that overlap: the Twin Turret and the Twin Tank do the same job, one fixed, one mobile.
-- Units the evolved AI rarely buys (see `docs/evolution.md` once evolution is rerun).
-- Rule options kept only for testing: `turnOrder` "alternate", `capture.guarded`, `combat.returnFirePerTurn`, line-of-sight fog.
+Candidates for retiring (measured 31 October 2026 on v0.81, `docs/balance/unit-use.md`; Phil to decide):
+- Twin Turret: never built by the evolved or the hand-tuned AI. Overlaps the Turret and the Twin Tank.
+- Transporter and Chinook, and with them the boarding and drop-off rules: never built by the evolved AI; a transport is boarded about once in 100 games. Missions 5 and 6 introduce them, and Green has a Transporter in Hold the Line.
+- Fighter: never built by the evolved AI, rarely by the hand-tuned one, and destroyed nothing. Infantry, the Anti-Aircraft Jeep and the Attack Helicopter already hit air.
+- Blast Cannon and Sonic Tank: built in about 1 game in 100. Each brings a rule of its own (cluster bomb, sonic boom, firing every other turn). The Sonic Tank is a campaign boss.
+- To watch, not yet: Twin Tank (0.05 a game even after its cost cut), Light Medic (the AI may undervalue repairs), Anti-Aircraft Jeep (only worth it when air units are common), Crystal Seeder (evolution switched it off: it does not pay back in games of about 15 rounds), ruins (new, generated maps only).
+- Rule options kept only for testing, which players never see: `turnOrder` "alternate", `capture.guarded`, `combat.returnFirePerTurn`, line-of-sight fog. Removing them simplifies the code, not the game.
+
+What evolution found instead: Infantry. The evolved personalities build Infantry for about half their units, overrun about 3 factories a game, and beat the hand-tuned AI about 80% of the time. Sides that built Infantry won 201 games and lost 21. If anything is too strong, it is the cheap Infantry rush, not the Tank.
 
 Parked for testing, or for a sequel:
 - Separate attack and defence against ground and against air. Would shift the rings a lot, but doubles the numbers on every unit. Sequel.

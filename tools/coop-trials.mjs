@@ -3,10 +3,10 @@
 // often the AI does, and how many stall at the round cap. A rough guide to whether a mission
 // is fair for that many players, not a measure of how people play it.
 //   node tools/coop-trials.mjs --mission 2 --humans 3 --games 20
-import { mapById } from "../maps.js?v=0.81";
-import { newGame, applyAction, viewFor } from "../engine.js?v=0.81";
-import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.81";
-import { COOP_MISSIONS, coopPlan } from "../coop-campaign.js?v=0.81";
+import { mapById } from "../maps.js?v=0.82";
+import { newGame, applyAction, viewFor } from "../engine.js?v=0.82";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.82";
+import { COOP_MISSIONS, coopPlan } from "../coop-campaign.js?v=0.82";
 
 const DEFAULT_GAMES = 20;
 const ROUND_CAP = 40;
