@@ -1,8 +1,15 @@
-export const VERSION = "v0.75";
+export const VERSION = "v0.76";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.76",
+    date: "2026-10-31",
+    notes: [
+      "Help: a unit table with every unit on one row, ground units blue and air green.",
+    ],
+  },
   {
     version: "v0.75",
     date: "2026-10-31",

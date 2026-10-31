@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=0.75" />
+  <link rel="stylesheet" href="styles.css?v=0.76" />
 </head>
 <body>
   <section id="splash" class="splash" aria-label="Mech Attack">
@@ -47,11 +47,30 @@
     <div class="map-picker-card" role="dialog" aria-labelledby="help-title">
       <h2 id="help-title">Help</h2>
       <div class="map-choices help-choices">
+        <button id="help-table" class="start-btn" type="button">Unit table</button>
         <button id="menu-units" class="start-btn" type="button">Units</button>
         <button id="help-tips" class="start-btn" type="button">Show tips again</button>
         <button id="help-about" class="start-btn" type="button">About</button>
       </div>
       <button id="help-cancel" class="start-btn" type="button">Back</button>
+    </div>
+  </div>
+
+  <div id="unit-table" class="map-picker" hidden>
+    <div class="map-picker-card unit-table-card" role="dialog"
+      aria-labelledby="unit-table-title">
+      <h2 id="unit-table-title">Unit table</h2>
+      <table class="unit-table">
+        <thead>
+          <tr><th>Unit</th><th>Cost</th><th>Move</th><th>Att</th><th>Def</th><th>Range</th>
+            <th>Sight</th><th>Hits</th><th>Needs</th></tr>
+        </thead>
+        <tbody id="unit-table-body"></tbody>
+      </table>
+      <p class="unit-table-key"><span class="unit-ground">Blue: ground units.</span>
+        <span class="unit-air">Green: air units.</span> Hits: G ground, A air. ×2: fires twice
+        a turn. Needs: the factory upgrade that builds it (Heavy works or Airfield).</p>
+      <button id="unit-table-back" class="start-btn" type="button">Back</button>
     </div>
   </div>
 
@@ -75,8 +94,8 @@
       <section id="campaign-coop" class="campaign-section" role="tabpanel" hidden>
         <h2>Co-op: Red Dust: Together</h2>
         <p class="campaign-intro">Missions for 2 or 3 players (each mission says how many) at
-          the same time, one device each, against the Consortium. The host can play any mission they have unlocked; a win
-          counts on everyone's device.</p>
+          the same time, one device each, against the Consortium. The host can play any mission
+          they have unlocked; a win counts on everyone's device.</p>
         <ul id="coop-list" class="map-recent"></ul>
       </section>
       <button id="campaign-cancel" class="start-btn" type="button">Back</button>
@@ -277,6 +296,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=0.75" type="module"></script>
+  <script src="app.js?v=0.76" type="module"></script>
 </body>
 </html>

@@ -1443,6 +1443,57 @@ h1 {
 }
 
 /* The highest rank a campaign mission has been won at, under its name. */
+/* The unit table in Help: one row per unit, small enough for a phone held upright. Ground
+   units are blue and air units green, as on the build buttons. */
+.unit-table-card {
+  max-width: 34rem;
+  padding: 1rem 0.6rem;
+}
+
+.unit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.64rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.unit-table th,
+.unit-table td {
+  padding: 0.3rem 0.1rem;
+  border-bottom: 1px solid var(--panel-edge);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.unit-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.unit-table th:first-child,
+.unit-table td:first-child {
+  text-align: left;
+}
+
+.unit-table td:first-child {
+  font-weight: 700;
+}
+
+.unit-ground {
+  color: var(--accent);
+}
+
+.unit-air {
+  color: #5ee08a;
+}
+
+.unit-table-key {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 /* The campaign picker keeps one size and place whichever tab is showing: the missions
    scroll inside it. */
 #campaign-picker .map-picker-card {

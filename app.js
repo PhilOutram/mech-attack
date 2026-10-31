@@ -1,17 +1,17 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.75";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.75";
-import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.75";
-import { confirmDialog } from "./dialog.js?v=0.75";
-import { showTip, resetTips } from "./tips.js?v=0.75";
-import { RULES } from "./rules-config.js?v=0.75";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.75";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.75";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.75";
+import { VERSION, CHANGELOG } from "./version.js?v=0.76";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.76";
+import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.76";
+import { confirmDialog } from "./dialog.js?v=0.76";
+import { showTip, resetTips } from "./tips.js?v=0.76";
+import { RULES } from "./rules-config.js?v=0.76";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.76";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.76";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.76";
 import {
   wireMultiplayer, showCoopSetup, rejoinGame, resumeHosted,
-} from "./multiplayer.js?v=0.75";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.75";
+} from "./multiplayer.js?v=0.76";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.76";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -215,6 +215,15 @@ document.getElementById("help-about").addEventListener("click", () => {
   helpMenu.hidden = true;
   showChangelog();
 });
+document.getElementById("help-table").addEventListener("click", () => {
+  helpMenu.hidden = true;
+  renderUnitTable();
+  document.getElementById("unit-table").hidden = false;
+});
+document.getElementById("unit-table-back").addEventListener("click", () => {
+  document.getElementById("unit-table").hidden = true;
+  helpMenu.hidden = false;
+});
 document.getElementById("help-tips").addEventListener("click", () => {
   helpMenu.hidden = true;
   resetTips();
@@ -313,12 +322,31 @@ document.getElementById("map-recent").addEventListener("click", (e) => {
   if (button) play({ mapId: button.dataset.map });
 });
 
+// The unit table in Help: every unit you can build (and the turrets), one row each, with the
+// numbers the game plays by (rules-config.js), ground units first and then air, each by cost.
+const HITS_SHORT = { ground: "G", air: "A", both: "G+A" };
+const NEEDS_SHORT = { heavyWorks: "Heavy", airfield: "Air" };
+
+function renderUnitTable() {
+  const units = Object.values(RULES.units).filter((u) => !u.isFactory && u.cost !== null)
+    .sort((a, b) => Number(Boolean(a.air)) - Number(Boolean(b.air)) || a.cost - b.cost);
+  const range = (r) => (!r ? "–" : r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
+  document.getElementById("unit-table-body").innerHTML = units.map((u) => {
+    const attack = !u.attack ? "–" : u.shots > 1 ? `${u.attack}×${u.shots}` : `${u.attack}`;
+    const hits = u.attack ? HITS_SHORT[u.hits || "ground"] : "–";
+    return `<tr class="${u.air ? "unit-air" : "unit-ground"}"><td>${u.name}</td>` +
+      `<td>${u.cost}</td><td>${u.move}</td><td>${attack}</td><td>${u.defence}</td>` +
+      `<td>${range(u.range)}</td><td>${u.sight}</td><td>${hits}</td>` +
+      `<td>${NEEDS_SHORT[u.needs] || "–"}</td></tr>`;
+  }).join("");
+}
+
 // Tapping outside a menu's card does what its Back button does (Phil, 29 October 2026). The
 // hosting lobby is left out: its button cancels the game being set up, too much for a stray
 // tap. Confirmation boxes and tips already close this way (dialog.js, tips.js).
 const BACK_ON_BACKDROP = [["campaign-picker", "campaign-cancel"], ["map-picker", "map-cancel"],
   ["mp-setup", "mp-cancel"], ["mp-join", "mp-join-cancel"], ["help-menu", "help-cancel"],
-  ["skirmish-menu", "skirmish-cancel"]];
+  ["skirmish-menu", "skirmish-cancel"], ["unit-table", "unit-table-back"]];
 for (const [overlayId, backId] of BACK_ON_BACKDROP) {
   const overlay = document.getElementById(overlayId);
   overlay.addEventListener("click", (e) => {
