@@ -55,7 +55,7 @@ Stats start from the full unit table, with costs scaled to the Game 2 prices. Th
 | Blast Cannon | ground | ground | 65 | 3 | 15 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. Defence 15, not the unit table's 10 (Phil, 31 October 2026), so one Tank shot no longer destroys it. |
 | Sonic Tank | ground | ground and air | 60 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
 | Anti-Aircraft Jeep | ground | air | 30 | 5 | 15 | 30 | 1–3 | |
-| Attack Helicopter | air | ground and air | 45 | 5 | 10 | 20 | 1–2 | Hits air as well as ground (Phil, 31 October 2026). |
+| Attack Helicopter | air | ground and air | 55 | 5 | 10 | 20 | 1–2 | Hits air as well as ground; cost 55, was 45 (Phil, 31 October 2026). |
 | Fighter | air | air | 45 | 7 | 15 | 30 | 1–4 | Cost 45, was 60 (Phil, 31 October 2026). |
 
 Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
@@ -98,7 +98,7 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 | Chinook | 55 | 5 | 15 | – | – | 3 | Flies; carries 1 vehicle or 2 Infantry |
 | Turret | 50 | 0 | 35 | 25 | 1–3 | 3 | Never moves |
 | Twin Turret | 50 | 0 | 30 | 20 × 2 | 1 | 3 | Never moves; fires twice a turn at different targets next to it |
-| Twin Tank | 90 | 3 | 35 | 20 × 2 | 1 | 3 | Needs Heavy works; fires twice a turn at different targets next to it |
+| Twin Tank | 65 | 4 | 35 | 20 × 2 | 1 | 3 | Needs Heavy works; fires twice a turn at different targets next to it. Cost 65 and move 4, were 90 and 3 (Phil, 31 October 2026) |
 
 All the numbers are provisional, as is everything not listed as Phil's. The Turret's stats are scaled down from the "Turret (constructed)" row of the full unit table, and the Chinook's come from its "Transport" row.
 
@@ -166,6 +166,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Crystal spawns | 0 or 1 new piles of 10 after each turn (the same number after both turns of a round), on a random empty open hex at least 3 hexes from both factories | `crystals.spawnChoices`, `spawnMinDistanceFromFactory` |
 | Round limit | A game reaching round 100 ends with no winner | `roundCap` |
 | Carried crystals | Lost when the carrying unit is destroyed | |
+| Crystal Seeder | Name, cost 70, move 6, defence 5, sight 3, holds 30, plants 10 a turn; planting no closer than 3 to any factory; a planted pile first grows after the next turn | `units.crystalSeeder`, `crystals.plantMinDistanceFromFactory` |
 
 ## Campaign: Red Dust
 
@@ -221,6 +222,16 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 - Classic maps follow the same pattern as fixed map 1, with the factories in opposite corners. Opposite blocks get the same number of mountains in different places; the cracked chasm sits in one of the two middle blocks, and the other gets a single-hex chasm and a mountain.
 - Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory (unused ones too), each pair of starting piles and of unused factories the same path distance from its own and the enemy factory, and the middle pile the same distance from both. Layouts that fail are redrawn.
 - The simulator shows these checks are not enough on their own (see `docs/simulation.md`).
+
+## Giving crystals to an ally
+
+Phil, 31 October 2026: a unit carrying crystals can unload them at an ally's factory, which gives them to that ally. It takes the Give crystals order and uses the unit's action; it never happens by itself, so a harvester passing an ally's factory keeps its load. At its own factories a unit still unloads by itself. The AI never gives crystals yet. Still undecided: a Supply depot upgrade that sends crystals straight to an ally.
+
+## Crystal Seeder
+
+Phil, 31 October 2026: a harvester the other way round, so the map need never run out of crystals. It is fragile (defence 5), fast (move 6), unarmed, and costs 70. It is built empty. Next to one of its own factories it loads 10, 20 or 30 crystals from its owner's store (it holds 30), without using its move or action. After moving it can plant 10 crystals as a new pile on a free hex next to it, which uses its action; the pile then grows like any other. Its crystals are lost with it.
+
+Provisional: the name; planting no closer than 3 hexes to any factory (the same as natural spawns), so piles near home are not free; a planted pile first grows after the next turn, like a spawned one; only empty hexes, so a Seeder cannot top up a pile until it explodes.
 
 ## Ruins
 

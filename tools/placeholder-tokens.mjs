@@ -1,5 +1,6 @@
 // Writes simple placeholder tokens for units that have no artwork yet (Infantry, Transporter,
-// Chinook, Commander Jeanne and Heavy Tank), in each player's colour. Replace them with the
+// Chinook, Commander Jeanne, Twin Tank and Crystal Seeder), in blue and green;
+// tools/recolour-tokens.mjs then makes the other colours. Replace them with the
 // real art when it is drawn. The Turret and Twin Turret have Phil's art (units/turret-*.svg,
 // units/twin-turret-*.svg), so they are not drawn here.
 // Usage: node tools/placeholder-tokens.mjs
@@ -75,8 +76,25 @@ function heavyTank(fill, dark) {
     ` stroke-width="3"/>`;
 }
 
+// A light four-wheeled buggy seen from above, nose up, with an open hopper of crystals at the
+// back and a planting chute at the front.
+function crystalSeeder(fill, dark) {
+  const wheel = (x, y) => `<rect x="${x}" y="${y}" width="18" height="30" rx="6" fill="#222"/>`;
+  const crystal = (x, y, h) => `<polygon points="${x},${y - h} ${x + 9},${y} ${x},${y + 6} ` +
+    `${x - 9},${y}" fill="#c070ff" stroke="#3a1060" stroke-width="2"/>`;
+  return wheel(48, 40) + wheel(134, 40) + wheel(48, 130) + wheel(134, 130) +
+    `<path d="M70 30 L130 30 L140 60 L140 170 L60 170 L60 60 Z" fill="${fill}" stroke="#111"` +
+    ` stroke-width="3"/>` +
+    `<rect x="90" y="12" width="20" height="26" rx="4" fill="${dark}" stroke="#111"` +
+    ` stroke-width="2"/>` +
+    `<rect x="72" y="92" width="56" height="66" rx="8" fill="${dark}" stroke="#111"` +
+    ` stroke-width="3"/>` +
+    crystal(88, 128, 22) + crystal(112, 132, 18) + crystal(100, 112, 20) +
+    `<rect x="80" y="48" width="40" height="22" rx="5" fill="#cfe8ff" opacity="0.8"/>`;
+}
+
 const TOKENS = [["infantry", infantry], ["transporter", transporter], ["chinook", chinook],
-  ["vip", vip], ["heavy-tank", heavyTank]];
+  ["vip", vip], ["heavy-tank", heavyTank], ["crystal-seeder", crystalSeeder]];
 
 for (const [colour, [fill, dark]] of Object.entries(COLOURS)) {
   for (const [name, draw] of TOKENS) {

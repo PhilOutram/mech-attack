@@ -1,18 +1,18 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.78";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.78";
-import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.78";
-import { confirmDialog } from "./dialog.js?v=0.78";
-import { showTip, resetTips } from "./tips.js?v=0.78";
-import { RULES } from "./rules-config.js?v=0.78";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.78";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.78";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.78";
+import { VERSION, CHANGELOG } from "./version.js?v=0.79";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.79";
+import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.79";
+import { confirmDialog } from "./dialog.js?v=0.79";
+import { showTip, resetTips } from "./tips.js?v=0.79";
+import { RULES } from "./rules-config.js?v=0.79";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.79";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.79";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.79";
 import {
   wireMultiplayer, showCoopSetup, rejoinGame, resumeHosted,
-} from "./multiplayer.js?v=0.78";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.78";
-import { unitImage } from "./board.js?v=0.78";
+} from "./multiplayer.js?v=0.79";
+import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.79";
+import { unitImage } from "./board.js?v=0.79";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -329,7 +329,7 @@ const HITS_SHORT = { ground: "G", air: "A", both: "G+A" };
 const NEEDS_SHORT = { heavyWorks: "Heavy", airfield: "Air" };
 // Shorter names where the full one would make the table too wide for a phone.
 const TABLE_NAMES = { antiAircraftJeep: "AA Jeep", attackHelicopter: "Helicopter",
-  lightHarvester: "Harvester" };
+  lightHarvester: "Harvester", crystalSeeder: "Seeder" };
 // The units are shown in blue, the player's colour.
 const TABLE_OWNER = 0;
 

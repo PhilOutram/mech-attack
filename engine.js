@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.78";
+} from "./hex.js?v=0.79";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -174,6 +174,7 @@ function addUnit(state, type, owner, at) {
   // Arrays are replaced, never changed in place, so cloneState can share them.
   if (stats.isFactory) unit.upgrades = [];
   if (stats.carries) unit.cargo = [];
+  if (stats.seeds) unit.seeds = 0;
   state.units[id] = unit;
   return unit;
 }
@@ -705,10 +706,49 @@ function nextToOwnFactory(state, unit) {
   return factoriesOf(state, unit.owner).some((f) => distance(unit.at, f.at) === 1);
 }
 
+// The factories a unit can unload at: its owner's and its allies' factories next to it. At an
+// ally's factory the crystals go to that ally (Phil, 31 October 2026), and only with the
+// Unload order, never automatically. Works on a view too.
+export function unloadFactories(view, unitId) {
+  const unit = view.units[unitId];
+  if (!unit || unit.acted || unit.carrying <= 0) return [];
+  return Object.values(view.units).filter((f) => unitStats(view, f).isFactory &&
+    f.owner !== null && allied(view, f.owner, unit.owner) && distance(unit.at, f.at) === 1)
+    .map((f) => f.id);
+}
+
 export function canUnload(view, unitId) {
   const unit = view.units[unitId];
-  if (!unit || unit.acted || unit.carrying <= 0) return false;
-  return nextToOwnFactory(view, unit);
+  return unloadFactories(view, unitId).some((id) => view.units[id].owner === unit.owner);
+}
+
+// The amounts a Crystal Seeder can load now: steps of seedAmount that fit in it and that its
+// owner can pay for, while it is next to one of its own factories and has not acted.
+export function seedLoads(view, unitId) {
+  const unit = view.units[unitId];
+  const stats = unit && unitStats(view, unit);
+  if (!stats || !stats.seeds || unit.acted || !nextToOwnFactory(view, unit)) return [];
+  const most = Math.min(stats.seeds - unit.seeds, view.players[unit.owner].crystals);
+  const loads = [];
+  for (let amount = stats.seedAmount; amount <= most; amount += stats.seedAmount) {
+    loads.push(amount);
+  }
+  return loads;
+}
+
+// Hexes a Crystal Seeder can plant on: free open hexes next to it with no crystals, far
+// enough from every factory (rules.crystals.plantMinDistanceFromFactory). Works on a view.
+export function plantSites(view, unitId) {
+  const unit = view.units[unitId];
+  const stats = unit && unitStats(view, unit);
+  if (!stats || !stats.seeds || unit.acted || unit.seeds < stats.seedAmount) return [];
+  const factories = [...view.map.factories,
+    ...(view.map.neutralFactories || []).map((f) => f.at),
+    ...Object.values(view.units).filter((u) => unitStats(view, u).isFactory).map((u) => u.at)];
+  const least = view.rules.crystals.plantMinDistanceFromFactory;
+  return neighbourKeys(unit.at).filter((k) => view.map.hexes[k] &&
+    view.map.hexes[k].terrain && terrainRules(view, k).moveCost !== null &&
+    !view.crystals[k] && !unitAt(view, k) && factories.every((f) => distance(f, k) >= least));
 }
 
 // Hexes a transporter can drop its next passenger on: a free open hex next to it, or a
@@ -804,7 +844,18 @@ export function legalActions(state, player = state.current) {
     }
     for (const at of harvestTargets(view, id)) actions.push({ type: "harvest", unitId: id, at });
     for (const at of searchTargets(view, id)) actions.push({ type: "search", unitId: id, at });
-    if (canUnload(view, id)) actions.push({ type: "unload", unitId: id });
+    for (const factoryId of unloadFactories(view, id)) {
+      // Unloading at its owner's own factory needs no factory named.
+      if (view.units[factoryId].owner === unit.owner) {
+        if (canUnload(view, id)) actions.push({ type: "unload", unitId: id });
+      } else {
+        actions.push({ type: "unload", unitId: id, factoryId });
+      }
+    }
+    for (const amount of seedLoads(view, id)) {
+      actions.push({ type: "loadSeeds", unitId: id, amount });
+    }
+    for (const at of plantSites(view, id)) actions.push({ type: "plant", unitId: id, at });
     if (canSetUp(view, id)) actions.push({ type: "setUp", unitId: id });
     if (canPackUp(view, id)) actions.push({ type: "packUp", unitId: id });
     for (const at of dropSites(view, id)) actions.push({ type: "drop", unitId: id, at });
@@ -837,6 +888,8 @@ const HANDLERS = {
   harvest: applyHarvest,
   search: applySearch,
   unload: applyUnload,
+  loadSeeds: applyLoadSeeds,
+  plant: applyPlant,
   setUp: applySetUp,
   packUp: applyPackUp,
   drop: applyDrop,
@@ -1229,17 +1282,50 @@ function applyHarvest(state, { unitId, at }, actor) {
   state.events.push({ type: "harvest", unitId, at, amount });
 }
 
-function applyUnload(state, { unitId }, actor) {
+// Unloading at a factory: the unit's own (no factoryId needed) or an ally's (factoryId).
+function applyUnload(state, { unitId, factoryId = null }, actor) {
   const unit = ownUnit(state, unitId, actor);
-  if (!canUnload(viewFor(state, actor), unitId)) illegal(`${unitId} cannot unload`);
-  unload(state, unit, false);
+  const view = viewFor(state, actor);
+  const ok = factoryId === null ? canUnload(view, unitId)
+    : unloadFactories(view, unitId).includes(factoryId);
+  if (!ok) illegal(`${unitId} cannot unload`);
+  unload(state, unit, false, factoryId === null ? unit.owner : state.units[factoryId].owner);
   finishAction(unit);
 }
 
-function unload(state, unit, automatic) {
-  state.players[unit.owner].crystals += unit.carrying;
-  state.events.push({ type: "unload", unitId: unit.id, amount: unit.carrying, automatic });
+// The crystals go to the owner of the factory: the unit's owner unless given to an ally.
+function unload(state, unit, automatic, to = unit.owner) {
+  state.players[to].crystals += unit.carrying;
+  const event = { type: "unload", unitId: unit.id, amount: unit.carrying, automatic };
+  if (to !== unit.owner) event.to = to;
+  state.events.push(event);
   unit.carrying = 0;
+}
+
+// A Crystal Seeder loads crystals from its owner's store. It uses neither its move nor its
+// action.
+function applyLoadSeeds(state, { unitId, amount }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  if (!seedLoads(viewFor(state, actor), unitId).includes(amount)) {
+    illegal(`${unitId} cannot load ${amount}`);
+  }
+  state.players[actor].crystals -= amount;
+  unit.seeds += amount;
+  state.events.push({ type: "loadSeeds", unitId, amount });
+}
+
+// A Crystal Seeder plants a new pile next to it, which uses its action.
+function applyPlant(state, { unitId, at }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  if (!plantSites(viewFor(state, actor), unitId).includes(at)) {
+    illegal(`${unitId} cannot plant at ${at}`);
+  }
+  const amount = unitStats(state, unit).seedAmount;
+  unit.seeds -= amount;
+  // Planted this turn, so it first grows after the next turn.
+  state.crystals[at] = { amount, harvestedThisTurn: true };
+  finishAction(unit);
+  state.events.push({ type: "plant", unitId, at, amount });
 }
 
 // Setting up takes the unit's action for the turn, so it can fire from the next turn.

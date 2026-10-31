@@ -3,10 +3,10 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.78";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.78";
-import { distance, cheapestPaths } from "./hex.js?v=0.78";
-import { LEVELS } from "./difficulty.js?v=0.78";
+import { RULES } from "./rules-config.js?v=0.79";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.79";
+import { distance, cheapestPaths } from "./hex.js?v=0.79";
+import { LEVELS } from "./difficulty.js?v=0.79";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 // The highest rank each mission has been won at: { mission index: rank id }.
@@ -183,13 +183,14 @@ const MISSION_LIST = [
     title: "Supply Lines",
     mapId: "map-8",
     story: "The factory hums again. Command has sent the plans for a Crystal lab, which " +
-      "grows crystals inside a factory every turn. But you are not alone: Green Consortium " +
-      "scouts have been seen in the hills, and they want these crystals too.",
+      "grows crystals inside a factory every turn, and for a Crystal Seeder, which plants " +
+      "new ones. But you are not alone: Green Consortium scouts have been seen in the hills, " +
+      "and they want these crystals too.",
     objective: `Bank ${BANK_TARGET} crystals in your store. Harvest, protect your harvester, ` +
       "and think about building a Crystal lab.",
     setup: { units: [["lightHarvester", "scoutBike"], ["lightHarvester", "scoutBike"]],
       crystals: [60, 50] },
-    newUnits: ["lightHarvester", "lightMedic"],
+    newUnits: ["lightHarvester", "lightMedic", "crystalSeeder"],
     newUpgrades: ["lab"],
     ai: "default",
     // Green races for crystals here; it does not send Infantry at your factory yet.
@@ -360,7 +361,8 @@ const MISSION_LIST = [
     setup: { units: [
       ["lightHarvester", "scoutBike", "tank", "tank", "artillery", "infantry", "infantry"],
       ["lightHarvester", "lightHarvester", "scoutBike", "tank", "heavyTank", "infantry",
-        "turret", "twinTurret", "artillery", "chinook", "fighter"]], crystals: [200, 200],
+        "turret", "twinTurret", "artillery", "chinook", "fighter", "crystalSeeder"]],
+    crystals: [200, 200],
     upgrades: [[], ["lab", "heavyWorks", "airfield"]] },
     newUnits: ["heavyCannon"],
     ai: "evolved",

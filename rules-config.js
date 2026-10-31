@@ -76,9 +76,11 @@ export const RULES = {
     },
     // Two guns (Phil, 29 October 2026): "shots" is how many times a unit fires in a turn,
     // each at a different target; it cannot move once it has fired. Answers to Infantry swarms,
-    // so short range: only the hexes next to it. Stats provisional.
+    // so short range: only the hexes next to it. Cheaper and faster (Phil, 31 October 2026:
+    // was 90, move 3), so it is a fast escort rather than a worse Heavy Cannon. Stats
+    // provisional.
     heavyTank: {
-      name: "Twin Tank", cost: 90, move: 3, defence: 35, attack: 20,
+      name: "Twin Tank", cost: 65, move: 4, defence: 35, attack: 20,
       range: [1, 1], storage: 0, healing: 0, sight: 3,
       shots: 2, needs: "heavyWorks",
     },
@@ -119,9 +121,10 @@ export const RULES = {
       hits: "air",
     },
     // Attack Helicopter hits air as well as ground, and the Fighter costs 45 (was 60) (Phil,
-    // 31 October 2026).
+    // 31 October 2026). The helicopter then costs 55 (was 45): it was the best answer to 7 of
+    // the 18 enemy types.
     attackHelicopter: {
-      name: "Attack Helicopter", cost: 45, move: 5, defence: 10, attack: 20,
+      name: "Attack Helicopter", cost: 55, move: 5, defence: 10, attack: 20,
       range: [1, 2], storage: 0, healing: 0, sight: 3,
       air: true, hits: "both", needs: "airfield",
     },
@@ -129,6 +132,17 @@ export const RULES = {
       name: "Fighter", cost: 45, move: 7, defence: 15, attack: 30,
       range: [1, 4], storage: 0, healing: 0, sight: 4,
       air: true, hits: "air", needs: "airfield",
+    },
+    // Crystal Seeder (Phil, 31 October 2026): a harvester the other way round. It is built
+    // empty. Next to one of its own factories it loads crystals from its owner's store, in
+    // steps of seedAmount up to "seeds", without using its move or action. After moving it
+    // plants seedAmount crystals as a new pile on a free hex next to it, which uses its
+    // action; the pile then grows like any other. Fragile, fast and unarmed. Its crystals are
+    // lost with it. Name and stats provisional.
+    crystalSeeder: {
+      name: "Crystal Seeder", cost: 70, move: 6, defence: 5, attack: 0,
+      range: null, storage: 0, healing: 0, sight: 3,
+      seeds: 30, seedAmount: 10,
     },
     lightMedic: {
       name: "Light Medic", cost: 40, move: 5, defence: 15, attack: 0,
@@ -241,6 +255,9 @@ export const RULES = {
     // destroying all of it, as their attack for the turn (Phil, 29 October 2026).
     blastable: true,
     spawnMinDistanceFromFactory: 3, // provisional
+    // A Crystal Seeder may not plant closer than this to any factory, so piles near home are
+    // not free (provisional).
+    plantMinDistanceFromFactory: 3,
   },
 
   start: {

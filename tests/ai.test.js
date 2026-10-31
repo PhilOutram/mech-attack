@@ -214,7 +214,7 @@ describe("AI and factories", () => {
 
   test("it buys the factory upgrade its wanted unit needs", () => {
     const personality = {
-      ...DEFAULT_PERSONALITY, harvestersEarly: 1, captureFactories: 0, labs: 0,
+      ...DEFAULT_PERSONALITY, harvestersEarly: 1, captureFactories: 0, labs: 0, seeders: 0,
       mix: Object.fromEntries(Object.keys(DEFAULT_PERSONALITY.mix).map((type) =>
         [type, type === "heavyCannon" ? 1 : 0])),
     };

@@ -1,7 +1,7 @@
 // Minimal offline-first service worker.
 // Bump the version in CACHE whenever you change the cached files, and keep ASSETS
 // in sync with the files the app needs to work offline.
-const CACHE = "mech-attack-v0.78";
+const CACHE = "mech-attack-v0.79";
 const UNIT_TYPES = [
   "scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester", "light-medic",
 ];
@@ -9,7 +9,7 @@ const UNIT_TYPES = [
 const TOKEN_TYPES = [
   ...UNIT_TYPES, "spotter-drone", "blast-cannon", "sonic-tank", "anti-aircraft-jeep",
   "attack-helicopter", "fighter", "infantry", "transporter", "chinook", "turret", "vip",
-  "heavy-tank", "twin-turret",
+  "heavy-tank", "twin-turret", "crystal-seeder",
 ];
 // Player colours (more than two in multiplayer games).
 const COLOURS = ["blue", "green", "yellow", "purple", "pink"];
@@ -24,35 +24,35 @@ const SOUND_FILES = [
 const ASSETS = [
   ".",
   "index.html",
-  "styles.css?v=0.78",
-  "app.js?v=0.78",
-  "version.js?v=0.78",
-  "units.js?v=0.78",
-  "game.js?v=0.78",
-  "dialog.js?v=0.78",
-  "board.js?v=0.78",
-  "engine.js?v=0.78",
-  "ai.js?v=0.78",
-  "hex.js?v=0.78",
-  "maps.js?v=0.78",
-  "ai-personalities.js?v=0.78",
-  "ai-personalities-multi.js?v=0.78",
-  "rules-config.js?v=0.78",
-  "sound.js?v=0.78",
-  "tips.js?v=0.78",
-  "campaign.js?v=0.78",
-  "coop-campaign.js?v=0.78",
-  "counters.js?v=0.78",
-  "difficulty.js?v=0.78",
-  "multiplayer.js?v=0.78",
-  "net.js?v=0.78",
+  "styles.css?v=0.79",
+  "app.js?v=0.79",
+  "version.js?v=0.79",
+  "units.js?v=0.79",
+  "game.js?v=0.79",
+  "dialog.js?v=0.79",
+  "board.js?v=0.79",
+  "engine.js?v=0.79",
+  "ai.js?v=0.79",
+  "hex.js?v=0.79",
+  "maps.js?v=0.79",
+  "ai-personalities.js?v=0.79",
+  "ai-personalities-multi.js?v=0.79",
+  "rules-config.js?v=0.79",
+  "sound.js?v=0.79",
+  "tips.js?v=0.79",
+  "campaign.js?v=0.79",
+  "coop-campaign.js?v=0.79",
+  "counters.js?v=0.79",
+  "difficulty.js?v=0.79",
+  "multiplayer.js?v=0.79",
+  "net.js?v=0.79",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
   "icon-maskable.png",
   "apple-touch-icon.png",
   "splash.jpg",
-  "tiles/tiles.json?v=0.78",
+  "tiles/tiles.json?v=0.79",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
   ...TOKEN_TYPES.flatMap((u) => COLOURS.map((colour) => `units/${u}-${colour}.svg`)),

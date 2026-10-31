@@ -11,10 +11,10 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
-  canBoard, allied, crystalTargets, boomHexes, searchTargets,
-} from "./engine.js?v=0.78";
-import { neighbourKeys, distance } from "./hex.js?v=0.78";
-import { COUNTERS } from "./counters.js?v=0.78";
+  canBoard, allied, crystalTargets, boomHexes, searchTargets, seedLoads, plantSites,
+} from "./engine.js?v=0.79";
+import { neighbourKeys, distance } from "./hex.js?v=0.79";
+import { COUNTERS } from "./counters.js?v=0.79";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
@@ -42,6 +42,10 @@ const INFANTRY_WALK_DISTANCE = 4;
 const INFANTRY_TYPE = "infantry";
 const TRANSPORTER_TYPE = "transporter";
 const LAB_UPGRADE = "lab";
+const SEEDER_TYPE = "crystalSeeder";
+// A Crystal Seeder plants this many hexes further out than the closest it may plant to its
+// home factory, at most.
+const PLANT_BAND = 2;
 
 // The army units a personality chooses between, with the hand-tuned build shares.
 export const DEFAULT_PERSONALITY = {
@@ -61,6 +65,7 @@ export const DEFAULT_PERSONALITY = {
   counterPriority: 0.7,
   capturePriority: 0.6,
   armyPriority: 0.5,
+  seedPriority: 0.55,
   // Worth of one life of the enemy factory, in crystals (when factories take fire), and of
   // killing infantry about to overrun one of its own factories.
   factoryLifeValue: 200,
@@ -76,6 +81,7 @@ export const DEFAULT_PERSONALITY = {
   captureFactories: 1, // infantry kept while there are factories to capture
   transportInfantry: 0.3, // above TRANSPORT_THRESHOLD, infantry ride in a transporter
   labs: 1, // factories it fits with a Crystal lab, once its first harvesters are out
+  seeders: 1, // Crystal Seeders it keeps, once its first harvesters are out
   wreckPiles: 0.5, // keenness to blow up crystal piles on the enemy's side of the map
   // With more than one opponent, which to go for (its home factory is the army's goal):
   // how much nearness, weakness (what it has been seen to own; below 0, the AI goes for the
@@ -94,6 +100,7 @@ export const PERSONALITY_RANGES = {
   counterPriority: [0, 1, false],
   capturePriority: [0, 1, false],
   armyPriority: [0, 1, false],
+  seedPriority: [0, 1, false],
   factoryLifeValue: [50, 400, false],
   killBonusShare: [0, 1, false],
   returnFireCaution: [0, 2, false],
@@ -107,6 +114,7 @@ export const PERSONALITY_RANGES = {
   captureFactories: [0, 3, true],
   transportInfantry: [0, 1, false],
   labs: [0, 2, true],
+  seeders: [0, 2, true],
   wreckPiles: [0, 1, false],
   targetNearness: [0, 2, false],
   targetWeakness: [-1, 2, false],
@@ -181,6 +189,7 @@ export function chooseAction(view, personality = DEFAULT_PERSONALITY, counters =
     firstUnload(ctx) ||
     captureDrop(ctx) ||
     bestHarvest(ctx) ||
+    seedCrystals(ctx) ||
     searchRuin(ctx) ||
     wreckPile(ctx) ||
     labUpgrade(ctx) ||
@@ -463,6 +472,35 @@ function gatherers({ view, army }) {
   return harvesters.length ? harvesters : army.filter((u) => unitStats(view, u).storage > 0);
 }
 
+function isSeeder(view, unit) {
+  return Boolean(unitStats(view, unit).seeds);
+}
+
+// A Crystal Seeder next to home fills up, and one with crystals plants a pile next to it.
+function seedCrystals(ctx) {
+  const { view, mine } = ctx;
+  for (const unit of mine.filter((u) => isSeeder(view, u))) {
+    const loads = seedLoads(view, unit.id);
+    if (loads.length) return { type: "loadSeeds", unitId: unit.id, amount: Math.max(...loads) };
+    const [at] = plantSites(view, unit.id);
+    if (at) return { type: "plant", unitId: unit.id, at };
+  }
+  return null;
+}
+
+// Where a Crystal Seeder heads: with crystals to plant, open free ground just beyond where it
+// may plant round home; empty, back next to one of its factories.
+function seederGoals(ctx, unit) {
+  const { view, myFactories } = ctx;
+  const stats = unitStats(view, unit);
+  if (!myFactories.length) return null;
+  if (unit.seeds < stats.seedAmount) return myFactories.flatMap((f) => neighbourKeys(f.at));
+  const home = (ctx.myFactory || myFactories[0]).at;
+  const least = view.rules.crystals.plantMinDistanceFromFactory + 1;
+  return hexesAround(view, home, least, least + PLANT_BAND).filter((k) =>
+    view.map.hexes[k].terrain && !view.crystals[k]);
+}
+
 // Infantry next to a ruin search it when they have nothing better to do.
 function searchRuin(ctx) {
   const { view } = ctx;
@@ -547,10 +585,11 @@ function wantedUnitType(ctx, maxCost = Infinity) {
     return "lightHarvester";
   }
 
-  // Three wants compete, each with the priority its gene gives it (Phil, 29 October 2026:
+  // Four wants compete, each with the priority its gene gives it (Phil, 29 October 2026:
   // so evolution, not a fixed order, decides whether Tanks and heavy units get built): an
-  // answer to the enemy units it sees, Infantry (and a carrier) for capturing, and the unit
-  // its own army is shortest of.
+  // answer to the enemy units it sees, Infantry (and a carrier) for capturing, a Crystal
+  // Seeder once its first harvesters are out, and the unit its own army is shortest of.
+  // Personalities evolved before the Seeder existed take the default genes for it.
   const wants = [];
   const counter = counterWanted(ctx, fits);
   if (counter) wants.push([counter, p.counterPriority]);
@@ -563,6 +602,11 @@ function wantedUnitType(ctx, maxCost = Infinity) {
     else if (infantry < p.captureFactories && fits(INFANTRY_TYPE)) {
       wants.push([INFANTRY_TYPE, p.capturePriority]);
     }
+  }
+  const seeders = army.filter((u) => isSeeder(view, u)).length;
+  const gene = (name) => p[name] ?? DEFAULT_PERSONALITY[name];
+  if (harvesters >= p.harvestersEarly && seeders < gene("seeders") && fits(SEEDER_TYPE)) {
+    wants.push([SEEDER_TYPE, gene("seedPriority")]);
   }
   const own = armyWanted(ctx, fits);
   if (own) wants.push([own, p.armyPriority]);
@@ -784,6 +828,8 @@ function goalsFor(ctx, unit, claimedPiles) {
     }
   }
 
+  if (isSeeder(view, unit)) return seederGoals(ctx, unit);
+
   const captureGoals = infantryGoals(ctx, unit);
   if (captureGoals) return captureGoals;
 
@@ -903,8 +949,10 @@ function bestMove(ctx) {
     const reach = reachableHexes(view, unit.id);
     if (!Object.keys(reach).length) continue;
     const field = distanceField(view, goals);
-    const careful = gatherers(ctx).includes(unit);
-    const unloading = careful && unit.carrying > 0;
+    const seeder = isSeeder(view, unit);
+    const careful = seeder || gatherers(ctx).includes(unit);
+    const unloading = careful && (unit.carrying > 0 ||
+      (seeder && unit.seeds < unitStats(view, unit).seedAmount));
     const crowding = (k) => !unloading &&
       ctx.myFactories.some((f) => distance(k, f.at) === 1) ? FACTORY_CLEAR_PENALTY : 0;
     const crushing = (k) => (view.crystals[k] ? CRUSH_PENALTY : 0);

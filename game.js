@@ -7,33 +7,33 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.78";
-import { mapById, seededRandom } from "./maps.js?v=0.78";
+import { RULES } from "./rules-config.js?v=0.79";
+import { mapById, seededRandom } from "./maps.js?v=0.79";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
-  searchTargets,
+  searchTargets, unloadFactories, seedLoads, plantSites,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.78";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.78";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.78";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.78";
-import { distance } from "./hex.js?v=0.78";
+} from "./engine.js?v=0.79";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.79";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.79";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.79";
+import { distance } from "./hex.js?v=0.79";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.78";
-import { confirmDialog } from "./dialog.js?v=0.78";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.78";
-import { showTip, showNote } from "./tips.js?v=0.78";
+} from "./board.js?v=0.79";
+import { confirmDialog } from "./dialog.js?v=0.79";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.79";
+import { showTip, showNote } from "./tips.js?v=0.79";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.78";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.78";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.78";
-import { joinGame as joinRemote } from "./net.js?v=0.78";
+} from "./campaign.js?v=0.79";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.79";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.79";
+import { joinGame as joinRemote } from "./net.js?v=0.79";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -50,7 +50,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.78";
+const ASSET_VERSION = "0.79";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route at this many milliseconds a hex, so
@@ -1263,16 +1263,29 @@ function showEvents(events, before, after) {
       any = true;
       effects.push({ at: e.at, size: 0.9 });
       lines.push(`A crystal pile reached ${e.amount} and exploded.`);
+    } else if (e.type === "unload" && e.to === me && after.units[e.unitId]?.owner !== me) {
+      any = true;
+      lines.push(`${playerName(after.units[e.unitId].owner)} gave you ${e.amount} crystals.`);
+      sound(["harvest", 1], moveMs ? laterSounds : sounds);
+      unloaded += e.amount;
     } else if (e.type === "harvest" || e.type === "unload") {
       const harvester = after.units[e.unitId];
       if (seen(harvester?.at)) sound(["harvest", 1], moveMs ? laterSounds : sounds);
       if (harvester?.owner !== me) continue;
-      if (e.type === "harvest") {
+      if (e.type === "unload" && e.to !== undefined) {
+        lines.push(`Gave ${e.amount} crystals to ${playerName(e.to)}.`);
+      } else if (e.type === "harvest") {
         lines.push(`Harvested ${e.amount} crystals.`);
       } else {
         lines.push(`Unloaded ${e.amount} crystals${e.automatic ? " at the factory" : ""}.`);
         unloaded += e.amount;
       }
+    } else if (e.type === "plant" && seen(e.at)) {
+      any = true;
+      lines.push(`${unitName(after, e.unitId)} planted ${e.amount} crystals.`);
+      sound(["harvest", 1], moveMs ? laterSounds : sounds);
+    } else if (e.type === "loadSeeds" && after.units[e.unitId]?.owner === me) {
+      lines.push(`Loaded ${e.amount} crystals to plant.`);
     } else if (e.type === "build" && (after.units[e.unitId]?.owner === me || seen(e.at))) {
       any = true;
       lines.push(`${unitName(after, e.unitId)} built.`);
@@ -1449,6 +1462,8 @@ const MODES = {
   fire: { label: "Fire", style: "fire" },
   harvest: { label: "Harvest", style: "harvest" },
   search: { label: "Search ruin", style: "harvest" },
+  plant: { label: "Plant", style: "harvest" },
+  give: { label: "Give crystals", style: "harvest" },
   heal: { label: "Repair", style: "heal" },
   drop: { label: "Drop off", style: "move" },
 };
@@ -1461,6 +1476,12 @@ function targetsFor(view, mode, unitId) {
   }
   if (mode === "harvest") return harvestTargets(view, unitId);
   if (mode === "search") return searchTargets(view, unitId);
+  if (mode === "plant") return plantSites(view, unitId);
+  if (mode === "give") {
+    // Allies' factories only: at its own factory a unit unloads by itself.
+    return unloadFactories(view, unitId).map((id) => view.units[id])
+      .filter((f) => f.owner !== me).map((f) => f.at);
+  }
   if (mode === "heal") return healTargets(view, unitId).map((id) => view.units[id].at);
   if (mode === "drop") return dropSites(view, unitId);
   if (mode === "build") {
@@ -1489,6 +1510,8 @@ function actionFor(view, mode, unitId, k) {
   }
   if (mode === "harvest") return { type: "harvest", unitId, at: k };
   if (mode === "search") return { type: "search", unitId, at: k };
+  if (mode === "plant") return { type: "plant", unitId, at: k };
+  if (mode === "give") return { type: "unload", unitId, factoryId: unitOn.id };
   if (mode === "heal") return { type: "heal", unitId, targetId: unitOn.id };
   if (mode === "drop") return { type: "drop", unitId, at: k };
   if (mode === "build") return { type: "build", unitType: ui.buildType, at: k };
@@ -1626,7 +1649,8 @@ function onPanelClick(event) {
   // With only one pile (or ruin) in reach there is nothing to choose, so Harvest (or Search)
   // acts at once.
   const view = viewFor(state, me);
-  const choices = ["harvest", "search"].includes(order) ? targetsFor(view, order, unitId) : [];
+  const choices = ["harvest", "search", "give"].includes(order)
+    ? targetsFor(view, order, unitId) : [];
   if (choices.length === 1) {
     act(actionFor(view, order, unitId, choices[0]));
   } else if (MODES[order]) {
@@ -1638,6 +1662,8 @@ function onPanelClick(event) {
     render();
   } else if (order === "setUp" || order === "packUp") {
     act({ type: order, unitId });
+  } else if (order === "loadSeeds") {
+    act({ type: "loadSeeds", unitId, amount: Number(type) });
   } else if (order === "upgrade") {
     act({ type: "upgrade", factoryId: unitId, upgrade: type });
   } else if (order === "undo") {
@@ -1802,6 +1828,7 @@ function statLine(stats) {
   if (stats.reload) parts.push("Fires every other turn");
   if (stats.shots > 1) parts.push(`Fires ${stats.shots} times a turn, at different targets`);
   if (stats.storage) parts.push(`Storage ${stats.storage}`);
+  if (stats.seeds) parts.push(`Plants ${stats.seedAmount} crystals a turn, holds ${stats.seeds}`);
   if (stats.healing) parts.push(`Repair ${stats.healing}`);
   if (stats.captures) parts.push("Overruns factories");
   if (stats.carries) {
@@ -1857,6 +1884,10 @@ function factoryPanel(view, unit, head) {
     `${buildOrders}</div><div class="orders">${undoButton()}</div>`;
 }
 
+function hasAllies(view) {
+  return view.players.some((_, p) => p !== me && allied(view, p, me));
+}
+
 function orderButton(order, label, enabled, active = false, extra = "") {
   return `<button type="button" class="order${active ? " active" : ""}" data-order="${order}"` +
     `${extra}${enabled ? "" : " disabled"}>${label}</button>`;
@@ -1906,6 +1937,7 @@ function renderPanel(view) {
     status.push(upgrades.length ? upgrades.join(" · ") : "Light units only");
   }
   if (stats.storage) status.push(`Carrying ${unit.carrying}/${stats.storage}`);
+  if (stats.seeds) status.push(`Crystals to plant ${unit.seeds}/${stats.seeds}`);
   if (stats.carries) {
     const aboard = unit.cargo.map((c) => RULES.units[c.type].name).join(", ");
     status.push(`On board: ${aboard || "nobody"}`);
@@ -1937,11 +1969,20 @@ function renderPanel(view) {
   for (const mode in MODES) {
     if (mode === "harvest" && !stats.storage) continue;
     if (mode === "search" && !(view.rules.ruins?.searchers || []).includes(unit.type)) continue;
+    if (mode === "plant" && !stats.seeds) continue;
+    if (mode === "give" && (!stats.storage || !hasAllies(view))) continue;
     if (mode === "heal" && !stats.healing) continue;
     if (mode === "fire" && !stats.attack) continue;
     if (mode === "drop" && !stats.carries) continue;
     const enabled = myTurn() && targetsFor(view, mode, unit.id).length > 0;
     orders += orderButton(mode, MODES[mode].label, enabled, ui.mode === mode);
+  }
+  // A Crystal Seeder next to home loads 10, 20 or 30 crystals.
+  if (stats.seeds && myTurn()) {
+    for (const amount of seedLoads(view, unit.id)) {
+      orders += orderButton("loadSeeds", `Load ${amount}`, true, false,
+        ` data-type="${amount}"`);
+    }
   }
   if (stats.needsSetup) {
     orders += unit.setUp

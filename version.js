@@ -1,8 +1,17 @@
-export const VERSION = "v0.78";
+export const VERSION = "v0.79";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.79",
+    date: "2026-10-31",
+    notes: [
+      "New unit: the Crystal Seeder plants new crystal piles (loads at home, plants 10 a turn)",
+      "Give crystals: a unit can unload at an ally's factory, giving the ally its crystals",
+      "Twin Tank now costs 65 with move 4 (was 90, move 3); Attack Helicopter costs 55 (was 45)",
+    ],
+  },
   {
     version: "v0.78",
     date: "2026-10-31",

@@ -156,6 +156,13 @@ function builtTip(type, rules) {
   if (s.healing) {
     parts.push("Move it next to a damaged unit and tap Repair to restore a life.");
   }
+  if (s.seeds) {
+    parts.push(`It plants new crystal piles. Next to one of your factories, tap Load to fill ` +
+      `it from your store (up to ${s.seeds}). Then drive out and tap Plant: it puts down ` +
+      `${s.seedAmount} crystals on a free hex next to it, at least ` +
+      `${rules.crystals.plantMinDistanceFromFactory} from any factory, and the pile grows ` +
+      "from then on. Its crystals are lost if it is destroyed.");
+  }
   if (s.move === 0) parts.push("It never moves, so place it where it can guard.");
   if (s.captures) {
     parts.push("Start a turn next to a factory, then move into it to overrun it.");

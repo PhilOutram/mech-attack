@@ -6,6 +6,8 @@ Captured 19 October 2026, updated 28 October 2026. Phil's ideas first, then exis
 
 The core game has proven fun because it is simple. Getting that core right comes first. There is a limit to how many units and rules the game can carry; campaigns help new players learn, but they do not raise that limit. Every new idea goes into the ideas log below first and earns its place by testing, not by sounding good.
 
+It works both ways: units, rules and options already in the game have to keep earning their place too. Anything that is rarely used, does the same job as something else, or adds a rule for little play should be retired.
+
 How an idea gets tested:
 - **Balance:** the simulator plays the AI against itself with a rule changed, so two versions can be compared side by side, e.g. `node sim.js --games 500 --seed 1 --set units.attackHelicopter.cost=55` against the same run without `--set`. `tools/matchups.mjs`, `tools/duels.mjs` and `tools/terrain-matchups.mjs` show how the counters and rings move.
 - **Fun:** the simulator cannot measure that. An idea that passes the balance check gets played by people before it goes into the main game, ideally first as an optional rule or a single campaign mission.
@@ -13,14 +15,24 @@ How an idea gets tested:
 ### Ideas log
 
 Core tuning (changes numbers only, no new rules):
-- Twin Tank: cost 65, move 4, so it is a fast escort rather than a worse Heavy Cannon. Awaiting Phil.
-- Attack Helicopter: cost 55; it is the best answer to 7 of 18 enemy types. Awaiting Phil.
+- Done in v0.79: Twin Tank cost 65 and move 4 (were 90 and 3), so it is a fast escort rather than a worse Heavy Cannon; its average as an answer rose from 0.09 to 0.32. Attack Helicopter cost 55 (was 45), but it is still the best answer to 7 of 19 enemy types (average 0.69): the price makes little difference in battles of equal value, because most ground units cannot hit it. Next to try: lower its defence or attack instead.
+- The Tank is the second-best answer on average (0.45, level with the Heavy Cannon). Phil, 31 October 2026: perhaps tanks are a little too strong; weakening them slightly would bring the heavy units into play.
+- Heavy works could build heavier, armoured versions of the existing units rather than new kinds, so the escalation reads as the same units getting bigger (Phil, 31 October 2026). Worth testing only if it lets units be retired.
+
+Added in v0.79 (to be judged by use, like everything else):
+- Unloading at an ally's factory gives them the crystals.
+- Crystal Seeder (see `docs/rules.md`). First measure: the default AI builds one in 87 of 100 games, spends about 145 crystals a game on it (the Seeder and its loads) and harvests about 64 back from what it planted, so in games of about 15 rounds it does not yet pay for itself. Games ran about 2 rounds longer with it (13.1 to 15.0), and comebacks rose slightly.
+
+Candidates for retiring (to measure, not yet decided):
+- Units that overlap: the Twin Turret and the Twin Tank do the same job, one fixed, one mobile.
+- Units the evolved AI rarely buys (see `docs/evolution.md` once evolution is rerun).
+- Rule options kept only for testing: `turnOrder` "alternate", `capture.guarded`, `combat.returnFirePerTurn`, line-of-sight fog.
 
 Parked for testing, or for a sequel:
 - Separate attack and defence against ground and against air. Would shift the rings a lot, but doubles the numbers on every unit. Sequel.
 - Factory upgrades that change units: Optics (+1 sight), Armour plating (+5 defence, -1 move), Long barrels (+1 range, -5 attack). Flat boosts were rejected because they steepen the cost ladder.
-- Crystal transfer between allies: harvesters unloading at an ally's factory, and a Supply depot upgrade for direct transfers.
-- Engineer: lays anti-tank spikes (vehicles cannot cross; Infantry and air can) and clears rough ground. The rough-band test showed that terrain which only slows units makes no new rings; terrain has to block to make them.
+- Supply depot upgrade for sending crystals straight to an ally. Phil is unsure; useful when one player's factory is surrounded by crystals.
+- Engineer (parked for the time being): lays anti-tank spikes (vehicles cannot cross; Infantry and air can) and clears rough ground. The rough-band test showed that terrain which only slows units makes no new rings; terrain has to block to make them.
 - Engineers that rebuild ruins or build outposts.
 - Event cards (idea 8). Phil: wait.
 
