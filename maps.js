@@ -5,7 +5,7 @@
 import {
   key, parseKey, clusterCentre, clusterHexes, DIRECTION_NAMES, cheapestPaths, distance,
   neighbourKeys, toPixel,
-} from "./hex.js?v=0.77";
+} from "./hex.js?v=0.78";
 
 // Fixed map 1: 12 clusters, 84 hexes, about 11 hexes wide and 11 tall.
 // Paired clusters (point-reflected through the middle of the map) have the same number of
@@ -77,6 +77,8 @@ export function buildMap(def) {
     factories: def.factories.map((clusterId) => centres[clusterId]),
     // Unused factories, in pairs like the deposits: [{ at, pair }].
     neutralFactories: def.neutralFactories || [],
+    // Ruined factories, in sets like the deposits: [{ at, pair }].
+    ruins: def.ruins || [],
     starts: def.starts,
     deposits: def.deposits,
   };
@@ -538,6 +540,61 @@ function placeNeutralFactories(random, map, terrainRules, count) {
   return out;
 }
 
+// Ruins: ruined factories on contested ground, where every home factory is about as far away,
+// so no side is nearer its ruins. Two for each classic map's worth of blocks. A ruin keeps 3
+// hexes clear of homes, piles, unused factories and other ruins where it can, and 2 where
+// not (Phil, 31 October 2026); the homes' path costs to it differ by at most 1, or by 2 where
+// nothing else fits. On maps for more than two sides few hexes are even nearly equally far
+// from every home, so there each side gets a ruin at a matching distance from its own home,
+// as with the crystal piles (one set per classic map's worth of blocks). They are drawn from
+// their own random numbers, after everything else is placed, so adding them changed nothing
+// else on any map. Units can drive over them.
+const RUIN_SALT = 0x52f1a3;
+const RUINS_PER_CLASSIC_MAP = 2;
+const RUIN_MIN_DISTANCE = 2;
+// Tried in turn until there are enough ruins: [clearance, spread of the homes' path costs].
+const RUIN_FITS = [[3, 1], [2, 1], [3, 2], [2, 2]];
+const RUIN_SET_BAND = { distance: [RUIN_MIN_DISTANCE, Infinity], margin: 0 };
+const RUIN_CLEARANCES = [3, 2];
+
+function placeRuins(seed, map, terrainRules) {
+  const random = seededRandom((seed ^ RUIN_SALT) >>> 0);
+  const costs = map.factories.map((f) => pathCosts(map, terrainRules, f));
+  const blocks = new Set(Object.values(map.hexes).map((h) => h.cluster)).size;
+  const count = RUINS_PER_CLASSIC_MAP * Math.max(1, Math.round(blocks / CLASSIC_BLOCKS));
+  const taken = [...map.factories.flatMap((f) => [f, ...neighbourKeys(f)]),
+    ...map.deposits.map((d) => d.at), ...(map.neutralFactories || []).map((f) => f.at)];
+  const ruins = [];
+  if (map.factories.length > 2) {
+    const band = { ...RUIN_SET_BAND,
+      distance: [RUIN_SET_BAND.distance[0], halfWayCost(map, costs) + 1] };
+    const sets = count / RUINS_PER_CLASSIC_MAP;
+    for (const spacing of RUIN_CLEARANCES) {
+      while (ruins.length < sets * map.factories.length) {
+        const sites = siteSet(random, costs, [...taken, ...ruins.map((r) => r.at)], band,
+          { spacing, allowed: (k) => isOpen(map, terrainRules, k) });
+        if (!sites) break;
+        ruins.push(...sites.map((at) => ({ at, pair: ruins.length })));
+      }
+    }
+    return ruins;
+  }
+  for (const [clearance, spread] of RUIN_FITS) {
+    const fits = (k) => {
+      const away = costs.map((c) => c[k]);
+      return isOpen(map, terrainRules, k) && away.every((c) => c >= RUIN_MIN_DISTANCE) &&
+        Math.max(...away) - Math.min(...away) <= spread &&
+        [...taken, ...ruins.map((r) => r.at)].every((t) => distance(t, k) >= clearance);
+    };
+    while (ruins.length < count) {
+      const free = Object.keys(map.hexes).filter(fits).sort();
+      if (!free.length) break;
+      ruins.push({ at: pick(random, free), pair: null });
+    }
+  }
+  return ruins;
+}
+
 // Starting hexes: the free neighbours of each factory nearest the enemy.
 function startHexes(map, terrainRules, count) {
   return map.factories.map((f, p) => {
@@ -579,7 +636,9 @@ export function generateMap(seed, terrainRules, startUnits, shape = "classic", s
     if (!deposits) continue;
     map.deposits = deposits;
     map.starts = startHexes(map, terrainRules, startUnits);
-    if (!mapProblems(map, terrainRules).length) return map;
+    if (mapProblems(map, terrainRules).length) continue;
+    map.ruins = placeRuins(seed, map, terrainRules);
+    return map;
   }
   throw new Error(`No fair map found for seed ${seed}`);
 }
@@ -848,7 +907,9 @@ function generateMultiSideMap(seed, terrainRules, startUnits, shape, sides) {
     if (!deposits) continue;
     map.deposits = deposits;
     map.starts = middleStartHexes(map, terrainRules, layout, startUnits);
-    if (!multiSideProblems(map, terrainRules, costs).length) return map;
+    if (multiSideProblems(map, terrainRules, costs).length) continue;
+    map.ruins = placeRuins(seed, map, terrainRules);
+    return map;
   }
   throw new Error(`No fair ${sides}-sided map found for seed ${seed}`);
 }

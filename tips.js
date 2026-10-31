@@ -119,6 +119,13 @@ const TIPS = {
     title: "Repairs",
     text: "Move the medic next to a damaged unit and choose Repair to give it back a life.",
   }),
+  ruins: (rules) => ({
+    title: "Ruins",
+    text: "A ruined factory. Infantry next to it can search it once, which uses their " +
+      "turn: there may be a stash of crystals (up to " + `${rules.ruins.crystals[1]}), a ` +
+      `unit to join you (worth up to ${rules.ruins.unitMaxCost}), or an enemy unit hiding ` +
+      "in the rubble. After that it is just rubble.",
+  }),
   explosion: (rules) => ({
     title: "Crystal explosion",
     text: `A crystal pile sat at ${rules.crystals.explodeAt} too long and exploded: its ` +

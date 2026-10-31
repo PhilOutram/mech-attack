@@ -7,32 +7,33 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.77";
-import { mapById, seededRandom } from "./maps.js?v=0.77";
+import { RULES } from "./rules-config.js?v=0.78";
+import { mapById, seededRandom } from "./maps.js?v=0.78";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
+  searchTargets,
   canSetUp, canPackUp, buildSites, buildableTypes, unitStats, livesAfterHit,
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.77";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.77";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.77";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.77";
-import { distance } from "./hex.js?v=0.77";
+} from "./engine.js?v=0.78";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.78";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.78";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.78";
+import { distance } from "./hex.js?v=0.78";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.77";
-import { confirmDialog } from "./dialog.js?v=0.77";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.77";
-import { showTip, showNote } from "./tips.js?v=0.77";
+} from "./board.js?v=0.78";
+import { confirmDialog } from "./dialog.js?v=0.78";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.78";
+import { showTip, showNote } from "./tips.js?v=0.78";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.77";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.77";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.77";
-import { joinGame as joinRemote } from "./net.js?v=0.77";
+} from "./campaign.js?v=0.78";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.78";
+import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.78";
+import { joinGame as joinRemote } from "./net.js?v=0.78";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -49,7 +50,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.77";
+const ASSET_VERSION = "0.78";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route at this many milliseconds a hex, so
@@ -1297,6 +1298,18 @@ function showEvents(events, before, after) {
         `${RULES.units[after.units[e.unitId]?.type || "infantry"].name}.`);
     } else if (e.type === "resumeTurn" && e.player !== me) {
       lines.push(`${playerName(e.player)} took their turn back and is playing on.`);
+    } else if (e.type === "search" && (seen(e.at) || after.units[e.unitId]?.owner === me)) {
+      any = true;
+      const found = e.unitType ? RULES.units[e.unitType].name : "";
+      const what = {
+        crystals: `a stash of ${e.amount} crystals.`,
+        unit: `a ${found}, which joins the searchers' side.`,
+        enemy: `an enemy ${found} hiding in the rubble!`,
+        nothing: "nothing of use.",
+      }[e.outcome];
+      lines.push(`${unitName(before, e.unitId)} searched the ruin: ${what}`);
+      if (e.outcome === "enemy") effects.push({ at: e.at, size: 0.75 });
+      sound([e.outcome === "crystals" ? "harvest" : "capture", 1]);
     } else if (e.type === "labIncome" && e.player === me) {
       lines.push(`Crystal labs made ${e.amount} crystals.`);
     } else if (e.type === "knockedOut") {
@@ -1365,6 +1378,7 @@ function nudgeEndTurn() {
     u.owner === me && !unitStats(view, u).isFactory);
   const busy = (u) => Object.keys(reachableHexes(view, u.id)).length ||
     attackTargets(view, u.id).length || harvestTargets(view, u.id).length ||
+    searchTargets(view, u.id).length ||
     healTargets(view, u.id).length || dropSites(view, u.id).length ||
     canSetUp(view, u.id) || canPackUp(view, u.id);
   if (!army.length || army.some(busy)) return;
@@ -1434,6 +1448,7 @@ const MODES = {
   move: { label: "Move", style: "move" },
   fire: { label: "Fire", style: "fire" },
   harvest: { label: "Harvest", style: "harvest" },
+  search: { label: "Search ruin", style: "harvest" },
   heal: { label: "Repair", style: "heal" },
   drop: { label: "Drop off", style: "move" },
 };
@@ -1445,6 +1460,7 @@ function targetsFor(view, mode, unitId) {
       ...crystalTargets(view, unitId), ...darkTargets(view, unitId)];
   }
   if (mode === "harvest") return harvestTargets(view, unitId);
+  if (mode === "search") return searchTargets(view, unitId);
   if (mode === "heal") return healTargets(view, unitId).map((id) => view.units[id].at);
   if (mode === "drop") return dropSites(view, unitId);
   if (mode === "build") {
@@ -1472,6 +1488,7 @@ function actionFor(view, mode, unitId, k) {
     return { type: "attack", unitId, at: k };
   }
   if (mode === "harvest") return { type: "harvest", unitId, at: k };
+  if (mode === "search") return { type: "search", unitId, at: k };
   if (mode === "heal") return { type: "heal", unitId, targetId: unitOn.id };
   if (mode === "drop") return { type: "drop", unitId, at: k };
   if (mode === "build") return { type: "build", unitType: ui.buildType, at: k };
@@ -1586,6 +1603,7 @@ function terrainTips(view) {
   const seen = new Set(Object.keys(view.visible).map((k) => view.map.hexes[k].terrain));
   if (seen.has("mountain") || seen.has("chasm")) tip("mountain");
   if (seen.has("rocky")) tip("rough");
+  if ((view.map.ruins || []).some((r) => !r.searched && view.visible[r.at])) tip("ruins");
 }
 
 // Tips for infantry next to a factory: yours, able to break in next turn, or the enemy's,
@@ -1605,11 +1623,12 @@ function onPanelClick(event) {
   if (!button || button.disabled || !myTurn()) return;
   const { order, type } = button.dataset;
   const unitId = ui.selectedId;
-  // With only one pile in reach there is nothing to choose, so Harvest acts at once.
+  // With only one pile (or ruin) in reach there is nothing to choose, so Harvest (or Search)
+  // acts at once.
   const view = viewFor(state, me);
-  const piles = order === "harvest" ? targetsFor(view, "harvest", unitId) : [];
-  if (piles.length === 1) {
-    act(actionFor(view, "harvest", unitId, piles[0]));
+  const choices = ["harvest", "search"].includes(order) ? targetsFor(view, order, unitId) : [];
+  if (choices.length === 1) {
+    act(actionFor(view, order, unitId, choices[0]));
   } else if (MODES[order]) {
     ui.mode = order;
     render();
@@ -1917,6 +1936,7 @@ function renderPanel(view) {
   let orders = "";
   for (const mode in MODES) {
     if (mode === "harvest" && !stats.storage) continue;
+    if (mode === "search" && !(view.rules.ruins?.searchers || []).includes(unit.type)) continue;
     if (mode === "heal" && !stats.healing) continue;
     if (mode === "fire" && !stats.attack) continue;
     if (mode === "drop" && !stats.carries) continue;

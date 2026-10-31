@@ -5,7 +5,7 @@ import { FIXED_MAP_1, buildMap } from "../maps.js";
 import {
   newGame, applyAction, legalActions, viewFor, reachableHexes, attackTargets, healTargets,
   harvestTargets, defenceOf, crushingMoves, darkTargets, crystalTargets, refreshKnowledge,
-  boomHexes,
+  boomHexes, searchTargets,
 } from "../engine.js";
 import { distance } from "../hex.js";
 import { scenario, TEST_RADIUS } from "./helpers.js";
@@ -562,11 +562,11 @@ describe("combat", () => {
 });
 
 describe("units that fire twice", () => {
-  // Three Green Infantry next to a Blue Heavy Tank.
+  // Three Green Infantry next to a Blue Twin Tank.
   const swarm = [unit("a", "infantry", GREEN, "0,-1"), unit("b", "infantry", GREEN, "1,-1"),
     unit("c", "infantry", GREEN, "-1,0")];
 
-  test("a Heavy Tank fires twice a turn, at two different targets", () => {
+  test("a Twin Tank fires twice a turn, at two different targets", () => {
     let s = scenario({ units: [unit("h", "heavyTank", BLUE, "0,0"), ...swarm] });
     s = play(s, attack("h", "a"));
     assert.equal(s.units.a, undefined, "20 destroys Infantry");
@@ -1220,5 +1220,66 @@ describe("winning", () => {
     s = { ...s, rules: { ...s.rules, roundCap: 1 } };
     s = play(s, END, END);
     assert.deepEqual(s.result, { winner: null, reason: "roundCap", round: 2 });
+  });
+});
+
+describe("ruins (Phil, 31 October 2026)", () => {
+  const RUIN = "0,-1";
+  const withRuin = (units, outcomes) => {
+    const s = scenario({ units: [...units, unit("g", "tank", GREEN, "3,-6")],
+      rules: outcomes ? { ruins: { ...RULES.ruins, outcomes } } : {} });
+    s.map = { ...s.map, ruins: [{ at: RUIN, pair: null }] };
+    return s;
+  };
+  const search = (unitId) => ({ type: "search", unitId, at: RUIN });
+
+  test("only Infantry next to a ruin can search it, once", () => {
+    let s = withRuin([unit("i", "infantry", BLUE, "0,0"), unit("t", "tank", BLUE, "1,-1"),
+      unit("j", "infantry", BLUE, "0,2")]);
+    const view = viewFor(s, BLUE);
+    assert.deepEqual(searchTargets(view, "i"), [RUIN]);
+    assert.deepEqual(searchTargets(view, "t"), [], "a Tank cannot search");
+    assert.deepEqual(searchTargets(view, "j"), [], "too far away");
+    s = play(s, search("i"));
+    assert.ok(s.units.i.acted, "searching uses the unit's action");
+    assert.deepEqual(viewFor(s, BLUE).map.ruins, [{ at: RUIN, searched: true }]);
+    s = play(s, END, END);
+    assert.deepEqual(searchTargets(viewFor(s, BLUE), "i"), [], "rubble cannot be searched");
+  });
+
+  test("a search can find crystals", () => {
+    const s = withRuin([unit("i", "infantry", BLUE, "0,0")], { crystals: 1 });
+    const before = s.players[BLUE].crystals;
+    const after = play(s, search("i"));
+    const found = after.events.find((e) => e.type === "search");
+    assert.equal(found.outcome, "crystals");
+    assert.ok(found.amount >= RULES.ruins.crystals[0] && found.amount <= RULES.ruins.crystals[1]);
+    assert.equal(after.players[BLUE].crystals, before + found.amount);
+  });
+
+  test("a search can find a unit for the searcher, next to the ruin", () => {
+    const s = play(withRuin([unit("i", "infantry", BLUE, "0,0")], { unit: 1 }), search("i"));
+    const found = s.events.find((e) => e.type === "search");
+    assert.equal(found.outcome, "unit");
+    const unitFound = s.units[found.newUnitId];
+    assert.equal(unitFound.owner, BLUE);
+    assert.ok(RULES.units[unitFound.type].cost <= RULES.ruins.unitMaxCost);
+    assert.ok(distance(unitFound.at, RUIN) <= 1);
+  });
+
+  test("a search can turn up a small enemy unit hiding in the rubble", () => {
+    const s = play(withRuin([unit("i", "infantry", BLUE, "0,0")], { enemy: 1 }), search("i"));
+    const found = s.events.find((e) => e.type === "search");
+    assert.equal(found.outcome, "enemy");
+    const enemy = s.units[found.newUnitId];
+    assert.equal(enemy.owner, GREEN);
+    assert.ok(RULES.units[enemy.type].cost <= RULES.ruins.enemyMaxCost);
+    assert.ok(RULES.units[enemy.type].attack > 0);
+  });
+
+  test("a ruin on ground the player has not explored cannot be seen or searched", () => {
+    const s = withRuin([unit("i", "infantry", BLUE, "0,0")]);
+    s.players[BLUE].explored = {};
+    assert.deepEqual(viewFor(s, BLUE).map.ruins, []);
   });
 });

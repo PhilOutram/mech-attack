@@ -125,9 +125,12 @@ const TWO_SIDED_HASHES = {
   "map-9-5-6-6-5": "456e2a902482f25b9786c2cf2f3d56a879a55df6310945e8dbb0b83360bbed49",
 };
 
+// Ruins (31 October 2026) were added on top, from their own random numbers: everything else on
+// the maps is as it was.
 test("two-sided maps are unchanged", () => {
   for (const id in TWO_SIDED_HASHES) {
-    const json = JSON.stringify(mapById(id, RULES));
+    const { ruins, ...rest } = mapById(id, RULES);
+    const json = JSON.stringify(rest);
     assert.equal(createHash("sha256").update(json).digest("hex"), TWO_SIDED_HASHES[id], id);
   }
 });
@@ -211,4 +214,17 @@ test("the fairness checks catch an unfair set on a map for more sides", () => {
   for (const k of hemmed.starts[2]) hemmed.hexes[k].terrain = "mountain";
   problems = mapProblems(hemmed, RULES.terrain);
   assert.ok(problems.some((p) => p.endsWith("is hemmed in")), problems.join("; "));
+});
+
+test("ruins sit on open contested ground, clear of homes, piles and unused factories", () => {
+  for (const id of ["map-1", "map-5-3-4-4-3", "map-12-4-5-5-4", "map-21-4-5-6-5-4"]) {
+    const map = mapById(id, RULES);
+    assert.ok(map.ruins.length > 0, `${id} has ruins`);
+    const others = [...map.factories, ...map.deposits.map((d) => d.at),
+      ...map.neutralFactories.map((f) => f.at)];
+    for (const { at } of map.ruins) {
+      assert.notEqual(RULES.terrain[map.hexes[at].terrain].moveCost, null, `${id} ${at} is open`);
+      for (const k of others) assert.ok(distance(k, at) >= 2, `${id} ${at} is clear of ${k}`);
+    }
+  }
 });

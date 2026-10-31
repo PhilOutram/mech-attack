@@ -1,8 +1,16 @@
-export const VERSION = "v0.77";
+export const VERSION = "v0.78";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.78",
+    date: "2026-10-31",
+    notes: [
+      "Ruins on the map: Infantry can search one for crystals or a unit, or find an enemy.",
+      "The Heavy Tank is now called the Twin Tank.",
+    ],
+  },
   {
     version: "v0.77",
     date: "2026-10-31",

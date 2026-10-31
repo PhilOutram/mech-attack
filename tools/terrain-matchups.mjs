@@ -7,10 +7,10 @@
 // Writes docs/balance/terrain-counters.json and prints the rings.
 // Usage (from the project folder): node tools/terrain-matchups.mjs [--games 4]
 import { writeFileSync } from "node:fs";
-import { RULES } from "../rules-config.js?v=0.77";
-import { MISSIONS } from "../campaign.js?v=0.77";
-import { measureCounters } from "./matchups.mjs?v=0.77";
-import { findCycles, duelUnits } from "./duels.mjs?v=0.77";
+import { RULES } from "../rules-config.js?v=0.78";
+import { MISSIONS } from "../campaign.js?v=0.78";
+import { measureCounters } from "./matchups.mjs?v=0.78";
+import { findCycles, duelUnits } from "./duels.mjs?v=0.78";
 
 const DEFAULT_GAMES = 4;
 // A matchup score at or above this counts as the answering unit beating the enemy.

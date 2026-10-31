@@ -11,11 +11,11 @@ Two measures:
 
 Unit against unit, the ground units form a ladder: the bigger, dearer unit wins almost every duel (Heavy Cannon beats everything on the ground). Rings come from three places only.
 
-1. **The air layer.** Almost every ring is the same shape: the Anti-Aircraft Jeep beats the Attack Helicopter, the helicopter beats a ground unit, and that ground unit (it cannot be hit by the Jeep, which only hits air) beats the Jeep. Infantry and Scout Bikes close the ring cheaply; Tanks, Heavy Tanks, Heavy Cannons, Blast Cannons and Sonic Tanks close it on most ground. The Fighter makes a second air ring: Infantry beat Fighters (which cannot hit ground), Fighters beat helicopters, helicopters beat Infantry.
-2. **Range against units that cannot move.** With a spotter, a Tank kills a Turret's neighbour from out of reach: Turret beats Tank, Tank beats Blast Cannon, Blast Cannon (range 4 with a spotter, outside the Turret's 3) beats Turret.
+1. **The air layer.** Almost every ring is the same shape: the Anti-Aircraft Jeep beats the Attack Helicopter, the helicopter beats a ground unit, and that ground unit (it cannot be hit by the Jeep, which only hits air) beats the Jeep. Infantry and Scout Bikes close the ring cheaply; Tanks, Twin Tanks, Heavy Cannons, Blast Cannons and Sonic Tanks close it on most ground. The Fighter makes a second air ring: Infantry beat Fighters (which cannot hit ground), Fighters beat helicopters, helicopters beat Infantry.
+2. **Range against units that cannot move.** With a spotter: the Turret beats the Tank (the Tank's range of 2 is inside the Turret's 3), the Tank beats the Blast Cannon, and the Blast Cannon beats the Turret by firing from 4, beyond the Turret's reach, which it can only do when a spotter shows it the target.
 3. **Ground.** Rings among ground units alone appear only on particular ground:
    - Open plain: Infantry beat Artillery (they close in under its minimum range of 2), Artillery beats Scout Bikes, Scout Bikes beat Infantry.
-   - A mountain ridge with one pass: Artillery beats the Blast Cannon, the Blast Cannon beats the Sonic Tank and the Heavy Tank, and both of those beat Artillery. In the pass the defenders' ranged fire meets the attackers one at a time.
+   - A mountain ridge with one pass: Artillery beats the Blast Cannon, the Blast Cannon beats the Sonic Tank and the Twin Tank, and both of those beat Artillery. In the pass the defenders' ranged fire meets the attackers one at a time.
    - Rocky ground (defence +5) adds the Sonic Tank > Attack Helicopter > Blast Cannon ring in duels.
 
 ## Gaps

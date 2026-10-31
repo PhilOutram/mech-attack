@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder ruined factory (31 October 2026), until Phil's art: a broken grey hall with
+       a snapped chimney, a gaping doorway, cracks and rubble. -->
+  <g stroke="#241f1c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M14 80 L14 47 L25 41 L30 51 L41 37 L47 47 L57 32 L62 44 L73 39 L86 49 L86 80 Z"
+      fill="#8d837c"/>
+    <path d="M64 41 L64 19 L75 19 L75 25 L71 29 L75 34 L73 39" fill="#6e6560"/>
+    <path d="M29 80 L29 61 L41 61 L41 80" fill="#352e2a"/>
+    <path d="M52 52 L58 60 L54 66 L61 74" fill="none"/>
+    <path d="M73 55 L69 62 L74 68" fill="none"/>
+    <path d="M18 56 L23 60" fill="none"/>
+    <path d="M8 86 L15 79 L24 82 L21 88 Z" fill="#7a716b"/>
+    <path d="M44 88 L50 80 L60 84 L57 90 Z" fill="#9a918a"/>
+    <path d="M76 88 L83 81 L93 86 L88 91 Z" fill="#7a716b"/>
+  </g>
+</svg>

@@ -78,7 +78,7 @@ export const RULES = {
     // each at a different target; it cannot move once it has fired. Answers to Infantry swarms,
     // so short range: only the hexes next to it. Stats provisional.
     heavyTank: {
-      name: "Heavy Tank", cost: 90, move: 3, defence: 35, attack: 20,
+      name: "Twin Tank", cost: 90, move: 3, defence: 35, attack: 20,
       range: [1, 1], storage: 0, healing: 0, sight: 3,
       shots: 2, needs: "heavyWorks",
     },
@@ -165,6 +165,21 @@ export const RULES = {
   // - guarded (option for testing): not while one of the owner's units stands next to it.
   // - unusedFactoryCrystals: crystals in an unused factory's store, paid to the first player
   //   to capture it (replaces income from captured factories; provisional).
+  // Ruins (Phil, 31 October 2026): ruined factories, placed on generated maps in fair sets
+  // and seen once their block is turned over. Infantry next to one (or on it) can search it
+  // once, which uses their action; then it is rubble. What a search turns up, by chance
+  // (outcomes): a small enemy unit hiding in the rubble (cost at most enemyMaxCost, joining
+  // the enemy side whose home is nearest), a unit for the searcher (cost at most unitMaxCost,
+  // from the units this game allows), or a stash of crystals between the two crystals
+  // figures, in steps of crystalStep. All provisional.
+  ruins: {
+    searchers: ["infantry"],
+    outcomes: { enemy: 0.3, unit: 0.35, crystals: 0.35 },
+    enemyMaxCost: 30,
+    unitMaxCost: 40,
+    crystals: [10, 40],
+    crystalStep: 10,
+  },
   capture: { homeFactories: true, guarded: false, mustStartNextTo: true,
     unusedFactoryCrystals: 25 },
 

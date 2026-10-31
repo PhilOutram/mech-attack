@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.77";
+} from "./hex.js?v=0.78";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -101,6 +101,8 @@ export function newGame({
     nextUnitId: 1,
     crystals: {},
     hits: {},
+    // Ruins already searched (now rubble), by hex.
+    searched: {},
     // New piles that spawn after each turn this round (drawn at the start of the round).
     spawnsPerTurn: 0,
     result: null,
@@ -413,7 +415,10 @@ export function viewFor(state, player) {
     rules: state.rules,
     // Factory sites are public, like setting up across the table. Deposit sites are not.
     map: { id: state.map.id, name: state.map.name, hexes, factories: state.map.factories,
-      neutralFactories: state.map.neutralFactories || [] },
+      neutralFactories: state.map.neutralFactories || [],
+      // Ruins on ground this player has explored, and whether each has been searched.
+      ruins: (state.map.ruins || []).filter((r) => me.explored[r.at])
+        .map((r) => ({ at: r.at, searched: Boolean((state.searched || {})[r.at]) })) },
     round: state.round,
     phases: state.phases,
     phaseIndex: state.phaseIndex,
@@ -685,6 +690,16 @@ export function harvestTargets(view, unitId) {
     onTop ? k === unit.at : distance(unit.at, k) === 1);
 }
 
+// The ruins a unit can search: only searchers (rules.ruins), next to the ruin or on it, with
+// their action not yet used, and only ruins not yet searched. Works on a view too.
+export function searchTargets(view, unitId) {
+  const unit = view.units[unitId];
+  const ruins = view.rules.ruins;
+  if (!unit || unit.acted || !ruins || !ruins.searchers.includes(unit.type)) return [];
+  return (view.map.ruins || []).filter((r) => !r.searched && distance(unit.at, r.at) <= 1)
+    .map((r) => r.at);
+}
+
 // Crystals are unloaded at any of the owner's factories.
 function nextToOwnFactory(state, unit) {
   return factoriesOf(state, unit.owner).some((f) => distance(unit.at, f.at) === 1);
@@ -788,6 +803,7 @@ export function legalActions(state, player = state.current) {
       actions.push({ type: "heal", unitId: id, targetId });
     }
     for (const at of harvestTargets(view, id)) actions.push({ type: "harvest", unitId: id, at });
+    for (const at of searchTargets(view, id)) actions.push({ type: "search", unitId: id, at });
     if (canUnload(view, id)) actions.push({ type: "unload", unitId: id });
     if (canSetUp(view, id)) actions.push({ type: "setUp", unitId: id });
     if (canPackUp(view, id)) actions.push({ type: "packUp", unitId: id });
@@ -819,6 +835,7 @@ const HANDLERS = {
   blast: applyBlast,
   heal: applyHeal,
   harvest: applyHarvest,
+  search: applySearch,
   unload: applyUnload,
   setUp: applySetUp,
   packUp: applyPackUp,
@@ -1241,6 +1258,70 @@ function applyPackUp(state, { unitId }, actor) {
   unit.setUp = false;
   finishAction(unit);
   state.events.push({ type: "packUp", unitId });
+}
+
+// Infantry search a ruin (Phil, 31 October 2026); see rules.ruins. It uses their action.
+function applySearch(state, { unitId, at }, actor) {
+  const unit = ownUnit(state, unitId, actor);
+  if (!searchTargets(viewFor(state, actor), unitId).includes(at)) {
+    illegal(`${unitId} cannot search ${at}`);
+  }
+  finishAction(unit);
+  state.searched = { ...(state.searched || {}), [at]: true };
+  const event = { type: "search", unitId, at, outcome: "nothing" };
+  const found = searchOutcome(state, actor, at);
+  if (found.crystals) {
+    state.players[actor].crystals += found.crystals;
+    Object.assign(event, { outcome: "crystals", amount: found.crystals });
+  } else if (found.unitType) {
+    const placed = addUnit(state, found.unitType, found.owner, found.at);
+    finishAction(placed);
+    Object.assign(event, { outcome: found.owner === actor ? "unit" : "enemy",
+      newUnitId: placed.id, unitType: found.unitType, owner: found.owner });
+  }
+  state.events.push(event);
+}
+
+// What a search turns up: { crystals }, { unitType, owner, at } or {} for nothing (no room
+// next to the ruin, no unit that fits, or no enemy to hide one).
+function searchOutcome(state, actor, at) {
+  const ruins = state.rules.ruins;
+  const weights = Object.entries(ruins.outcomes);
+  let roll = random(state) * weights.reduce((sum, [, w]) => sum + w, 0);
+  const [kind] = weights.find(([, w]) => (roll -= w) < 0) || weights[weights.length - 1];
+  if (kind === "crystals") {
+    const [least, most] = ruins.crystals;
+    const steps = Math.floor((most - least) / ruins.crystalStep) + 1;
+    return { crystals: least + ruins.crystalStep * Math.floor(random(state) * steps) };
+  }
+  const allowed = state.rules.allowedUnits;
+  const fits = (type, maxCost) => {
+    const stats = state.rules.units[type];
+    return stats.cost !== null && stats.cost <= maxCost && stats.move > 0 && !stats.isFactory &&
+      (!allowed || allowed.includes(type));
+  };
+  const owner = kind === "unit" ? actor : nearestEnemy(state, actor, at);
+  const types = Object.keys(state.rules.units).filter((type) => (kind === "unit"
+    ? fits(type, ruins.unitMaxCost)
+    : fits(type, ruins.enemyMaxCost) && state.rules.units[type].attack > 0 &&
+      (state.rules.units[type].hits || "ground") !== "air"));
+  const byHex = occupancy(state);
+  const room = [at, ...neighbourKeys(at).sort()].find((k) => state.map.hexes[k] &&
+    terrainRules(state, k).moveCost !== null && !byHex[k]);
+  if (owner === null || !types.length || !room) return {};
+  return { unitType: types[Math.floor(random(state) * types.length)], owner, at: room };
+}
+
+// The enemy side whose home factory is nearest a hex, or null.
+function nearestEnemy(state, player, at) {
+  let best = null;
+  state.players.forEach((other, p) => {
+    if (other.out || allied(state, player, p)) return;
+    const home = state.units[other.factoryId];
+    const d = home ? distance(home.at, at) : Infinity;
+    if (best === null || d < best.d) best = { p, d };
+  });
+  return best ? best.p : null;
 }
 
 function applyBuild(state, { unitType, at }, actor) {

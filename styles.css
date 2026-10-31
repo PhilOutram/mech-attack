@@ -728,6 +728,13 @@ h1 {
   fill: #fff4c2;
 }
 
+/* A searched ruin is rubble. */
+.board .ruin.rubble {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.board .ruins image,
 .board .units image,
 .board .crystals image,
 .board .effects image {

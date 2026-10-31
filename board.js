@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel, distance, neighbourKeys } from "./hex.js?v=0.77";
-import { unitStats, defenceOf } from "./engine.js?v=0.77";
+import { parseKey, toPixel, distance, neighbourKeys } from "./hex.js?v=0.78";
+import { unitStats, defenceOf } from "./engine.js?v=0.78";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -263,6 +263,20 @@ function drawFog(view) {
   return out;
 }
 
+// Ruined factories on explored ground; a searched one is rubble, drawn faded.
+const RUIN_SCALE = 0.85;
+
+function drawRuins(view) {
+  let out = "";
+  for (const ruin of view.map.ruins || []) {
+    const [x, y] = hexCentre(ruin.at);
+    const size = HEX_HEIGHT * RUIN_SCALE;
+    out += image("units/ruin.svg", x, y, size, size,
+      `class="ruin${ruin.searched ? " rubble" : ""}"`);
+  }
+  return out;
+}
+
 function drawCrystals(view) {
   let out = "";
   for (const k in view.crystals) {
@@ -472,6 +486,7 @@ const preloaded = [];
 export function preloadArt() {
   if (preloaded.length) return;
   const files = ["units/crystals.svg", "units/explosion.svg", "units/sonic-boom.png",
+    "units/ruin.svg",
     ...Object.keys(UPGRADE_BADGES).map(upgradeImage)];
   // Every combination of factory upgrades, for each owner and for nobody.
   const combos = [[]];
@@ -498,7 +513,8 @@ function drawNotes(notes) {
 }
 
 // The board's layers, bottom to top.
-const LAYERS = ["terrain", "fog", "crystals", "overlays", "units", "effects", "notes", "hits"];
+const LAYERS = ["terrain", "ruins", "fog", "crystals", "overlays", "units", "effects", "notes",
+  "hits"];
 // Layers the game changes directly between draws (a moving unit's token is hidden), so they
 // are always drawn afresh.
 const ALWAYS_DRAWN = ["units", "effects"];
@@ -515,6 +531,7 @@ export function renderBoard(group, {
   }
   const markup = {
     terrain: () => drawTerrain(view),
+    ruins: () => drawRuins(view),
     fog: () => drawFog(view),
     crystals: () => drawCrystals(view),
     overlays: () => drawOverlays(overlays),

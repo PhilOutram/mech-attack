@@ -11,10 +11,10 @@ import {
   reachableHexes, attackTargets, healTargets, harvestTargets, canUnload, canSetUp, canPackUp,
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
-  canBoard, allied, crystalTargets, boomHexes,
-} from "./engine.js?v=0.77";
-import { neighbourKeys, distance } from "./hex.js?v=0.77";
-import { COUNTERS } from "./counters.js?v=0.77";
+  canBoard, allied, crystalTargets, boomHexes, searchTargets,
+} from "./engine.js?v=0.78";
+import { neighbourKeys, distance } from "./hex.js?v=0.78";
+import { COUNTERS } from "./counters.js?v=0.78";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
@@ -181,6 +181,7 @@ export function chooseAction(view, personality = DEFAULT_PERSONALITY, counters =
     firstUnload(ctx) ||
     captureDrop(ctx) ||
     bestHarvest(ctx) ||
+    searchRuin(ctx) ||
     wreckPile(ctx) ||
     labUpgrade(ctx) ||
     bestBuild(ctx) ||
@@ -460,6 +461,16 @@ function isHarvester(unit) {
 function gatherers({ view, army }) {
   const harvesters = army.filter(isHarvester);
   return harvesters.length ? harvesters : army.filter((u) => unitStats(view, u).storage > 0);
+}
+
+// Infantry next to a ruin search it when they have nothing better to do.
+function searchRuin(ctx) {
+  const { view } = ctx;
+  for (const unit of unitsOf(view, view.viewer)) {
+    const [at] = searchTargets(view, unit.id);
+    if (at) return { type: "search", unitId: unit.id, at };
+  }
+  return null;
 }
 
 function bestHarvest(ctx) {

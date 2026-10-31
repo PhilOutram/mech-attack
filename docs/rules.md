@@ -89,7 +89,7 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 ### Chinook and Turret (Phil, 29 October 2026)
 - The Chinook is a flying transporter. It carries 2 places of passengers: Infantry take 1, any ground vehicle 2 (unit stat `size`), so one vehicle or two Infantry. The Transporter carries Infantry only (`loads`). Like the other air units it needs an Airfield.
 - The Turret is a gun emplacement, built next to a factory like any unit, that never moves.
-- Two guns (Phil, 29 October 2026): the Twin Turret and the Heavy Tank fire twice a turn (unit stat `shots`), each shot at a different target, and only at the hexes next to them. They answer swarms of Infantry: 20 destroys an Infantry, and Infantry fire back for 10, too little to hurt them. A unit that has fired cannot move that turn. Stats provisional.
+- Two guns (Phil, 29 October 2026): the Twin Turret and the Twin Tank fire twice a turn (unit stat `shots`), each shot at a different target, and only at the hexes next to them. They answer swarms of Infantry: 20 destroys an Infantry, and Infantry fire back for 10, too little to hurt them. A unit that has fired cannot move that turn. Stats provisional.
 
 | Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
 |---|---|---|---|---|---|---|---|
@@ -98,7 +98,7 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 | Chinook | 55 | 5 | 15 | – | – | 3 | Flies; carries 1 vehicle or 2 Infantry |
 | Turret | 50 | 0 | 35 | 25 | 1–3 | 3 | Never moves |
 | Twin Turret | 50 | 0 | 30 | 20 × 2 | 1 | 3 | Never moves; fires twice a turn at different targets next to it |
-| Heavy Tank | 90 | 3 | 35 | 20 × 2 | 1 | 3 | Needs Heavy works; fires twice a turn at different targets next to it |
+| Twin Tank | 90 | 3 | 35 | 20 × 2 | 1 | 3 | Needs Heavy works; fires twice a turn at different targets next to it |
 
 All the numbers are provisional, as is everything not listed as Phil's. The Turret's stats are scaled down from the "Turret (constructed)" row of the full unit table, and the Chinook's come from its "Transport" row.
 
@@ -221,6 +221,16 @@ Settled with Phil (28 October 2026): fog of war exposes a whole block at once, b
 - Classic maps follow the same pattern as fixed map 1, with the factories in opposite corners. Opposite blocks get the same number of mountains in different places; the cracked chasm sits in one of the two middle blocks, and the other gets a single-hex chasm and a mountain.
 - Every map must pass `mapProblems` in `maps.js`: every open hex reachable, at least 4 free hexes round each factory (unused ones too), each pair of starting piles and of unused factories the same path distance from its own and the enemy factory, and the middle pile the same distance from both. Layouts that fail are redrawn.
 - The simulator shows these checks are not enough on their own (see `docs/simulation.md`).
+
+## Ruins
+
+Settled with Phil (31 October 2026): ruined factories lie on generated maps, hidden until their block is turned over. Infantry next to a ruin (or on it) can search it once, which uses their turn; after that it is rubble. A search turns up one of:
+
+- a small enemy unit hiding in the rubble (cost 30 or less and able to hit ground, such as a Scout Bike), which joins the enemy side whose home is nearest;
+- a unit for the searcher's side (cost 40 or less, from the units the game allows);
+- a stash of refined crystals, 10 to 40.
+
+Provisional: the chances (enemy 30%, unit 35%, crystals 35%), the amounts, and the placing. Two ruins for each classic map's worth of blocks, on contested ground where the homes' path costs differ by at most 1 (2 where nothing else fits), kept 3 hexes clear of homes, piles, unused factories and each other where possible and 2 where not. On maps for more than two sides each side gets one at a matching distance from its home instead. Units can drive over ruins. Rules: `ruins` in `rules-config.js`; placing: `placeRuins` in `maps.js`. Later idea: engineers that rebuild a ruin into a factory or outpost.
 
 ## Quitting, surrender and undo
 
