@@ -98,9 +98,10 @@ export const RULES = {
     // Game 2 prices; all provisional. "hits": what the attack can hit (ground if not given).
     // "needs": the factory upgrade a factory must have to build the unit.
     // Blast Cannon: cluster bomb (enemies next to the target take splash x attack) and it
-    // fires every other turn (reload 1).
+    // fires every other turn (reload 1). Defence 15 (Phil, 31 October 2026; 10 in the unit
+    // table), so one Tank shot (25) takes one life, not both.
     blastCannon: {
-      name: "Blast Cannon", cost: 65, move: 3, defence: 10, attack: 40,
+      name: "Blast Cannon", cost: 65, move: 3, defence: 15, attack: 40,
       range: [2, 4], storage: 0, healing: 0, sight: 3,
       splash: 0.5, reload: 1, needs: "heavyWorks",
     },

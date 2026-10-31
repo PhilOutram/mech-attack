@@ -52,7 +52,7 @@ Stats start from the full unit table, with costs scaled to the Game 2 prices. Th
 
 | Unit | Ground or air | Hits | Cost | Move | Defence | Attack | Range | Ability |
 |---|---|---|---|---|---|---|---|---|
-| Blast Cannon | ground | ground | 65 | 3 | 10 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. |
+| Blast Cannon | ground | ground | 65 | 3 | 15 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. Defence 15, not the unit table's 10 (Phil, 31 October 2026), so one Tank shot no longer destroys it. |
 | Sonic Tank | ground | ground and air | 60 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
 | Anti-Aircraft Jeep | ground | air | 30 | 5 | 15 | 30 | 1–3 | |
 | Attack Helicopter | air | ground | 45 | 5 | 10 | 20 | 1–2 | |
