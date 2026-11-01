@@ -581,6 +581,14 @@ h1 {
   color: #ff8cc4;
 }
 
+.turn-orange {
+  color: #ff9a3c;
+}
+
+.turn-white {
+  color: #f4f4f4;
+}
+
 .game-crystals {
   display: flex;
   align-items: center;

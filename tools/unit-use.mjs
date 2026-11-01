@@ -5,11 +5,11 @@
 // It also counts how often the optional rules come into play: upgrades, captures, ruins,
 // transport, set-up, planting, giving crystals, blasting and crushing piles, repairs.
 // Usage: node tools/unit-use.mjs [--games 200] [--seed 1]
-import { RULES } from "../rules-config.js?v=0.83";
-import { mapById } from "../maps.js?v=0.83";
-import { newGame, applyAction, viewFor } from "../engine.js?v=0.83";
-import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.83";
-import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.83";
+import { RULES } from "../rules-config.js?v=0.84";
+import { mapById } from "../maps.js?v=0.84";
+import { newGame, applyAction, viewFor } from "../engine.js?v=0.84";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.84";
+import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.84";
 
 const DEFAULT_GAMES = 200;
 const MAX_ACTIONS = 200000;

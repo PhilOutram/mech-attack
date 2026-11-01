@@ -1,7 +1,7 @@
 // Minimal offline-first service worker.
 // Bump the version in CACHE whenever you change the cached files, and keep ASSETS
 // in sync with the files the app needs to work offline.
-const CACHE = "mech-attack-v0.83";
+const CACHE = "mech-attack-v0.84";
 const UNIT_TYPES = [
   "scout-bike", "tank", "heavy-cannon", "artillery", "light-harvester", "light-medic",
 ];
@@ -12,7 +12,7 @@ const TOKEN_TYPES = [
   "heavy-tank", "twin-turret", "crystal-seeder",
 ];
 // Player colours (more than two in multiplayer games).
-const COLOURS = ["blue", "green", "yellow", "purple", "pink"];
+const COLOURS = ["blue", "green", "yellow", "purple", "pink", "orange", "white"];
 const TILES = [
   "plain-1", "plain-2", "plain-3", "plain-4", "plain-5", "rocky-1", "rocky-2", "mountain-1",
   "chasm-n", "chasm-centre", "chasm-sw", "chasm-single",
@@ -24,36 +24,36 @@ const SOUND_FILES = [
 const ASSETS = [
   ".",
   "index.html",
-  "styles.css?v=0.83",
-  "app.js?v=0.83",
-  "version.js?v=0.83",
-  "units.js?v=0.83",
-  "game.js?v=0.83",
-  "dialog.js?v=0.83",
-  "maintenance.js?v=0.83",
-  "board.js?v=0.83",
-  "engine.js?v=0.83",
-  "ai.js?v=0.83",
-  "hex.js?v=0.83",
-  "maps.js?v=0.83",
-  "ai-personalities.js?v=0.83",
-  "ai-personalities-multi.js?v=0.83",
-  "rules-config.js?v=0.83",
-  "sound.js?v=0.83",
-  "tips.js?v=0.83",
-  "campaign.js?v=0.83",
-  "coop-campaign.js?v=0.83",
-  "counters.js?v=0.83",
-  "difficulty.js?v=0.83",
-  "multiplayer.js?v=0.83",
-  "net.js?v=0.83",
+  "styles.css?v=0.84",
+  "app.js?v=0.84",
+  "version.js?v=0.84",
+  "units.js?v=0.84",
+  "game.js?v=0.84",
+  "dialog.js?v=0.84",
+  "maintenance.js?v=0.84",
+  "board.js?v=0.84",
+  "engine.js?v=0.84",
+  "ai.js?v=0.84",
+  "hex.js?v=0.84",
+  "maps.js?v=0.84",
+  "ai-personalities.js?v=0.84",
+  "ai-personalities-multi.js?v=0.84",
+  "rules-config.js?v=0.84",
+  "sound.js?v=0.84",
+  "tips.js?v=0.84",
+  "campaign.js?v=0.84",
+  "coop-campaign.js?v=0.84",
+  "counters.js?v=0.84",
+  "difficulty.js?v=0.84",
+  "multiplayer.js?v=0.84",
+  "net.js?v=0.84",
   "manifest.webmanifest",
   "icon.png",
   "favicon.png",
   "icon-maskable.png",
   "apple-touch-icon.png",
   "splash.jpg",
-  "tiles/tiles.json?v=0.83",
+  "tiles/tiles.json?v=0.84",
   ...TILES.map((t) => `tiles/${t}.png`),
   ...UNIT_TYPES.map((u) => `units/${u}.png`),
   ...TOKEN_TYPES.flatMap((u) => COLOURS.map((colour) => `units/${u}-${colour}.svg`)),

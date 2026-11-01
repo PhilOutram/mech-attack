@@ -1,4 +1,4 @@
-// Makes yellow, purple and pink unit tokens from the blue and green ones.
+// Makes yellow, purple, pink, orange and white unit tokens from the blue and green ones.
 // For each units/<unit>-blue.svg it finds the team colours by comparing the file with
 // units/<unit>-green.svg: any colour used in the blue file but never in the green file belongs
 // to the team. Each team colour is mapped to the same shade of the new base hue, keeping its
@@ -22,6 +22,9 @@ const TARGETS = {
   purple: { base: "#8a3ccf", word: "PURPLE", title: "Purple" },
   // A fifth side, for co-op games of four humans against the AI.
   pink: { base: "#e8489a", word: "PINK", title: "Pink" },
+  // Sixth and seventh sides: orange sits between pink and yellow, white has no hue at all.
+  orange: { base: "#f07000", word: "ORANGE", title: "Orange" },
+  white: { base: "#d8d8d8", word: "WHITE", title: "White" },
 };
 
 const PNG_SIGNATURE   = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);

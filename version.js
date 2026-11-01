@@ -1,8 +1,18 @@
-export const VERSION = "v0.83";
+export const VERSION = "v0.84";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.84",
+    date: "2026-11-01",
+    notes: [
+      "Two more player colours, orange and white, for every unit and factory. Multiplayer " +
+        "games can now have 6 sides, the most the largest map takes; white is ready for a " +
+        "bigger map.",
+      "The Turret's base has the same camouflage as the Twin Turret's.",
+    ],
+  },
   {
     version: "v0.83",
     date: "2026-11-01",

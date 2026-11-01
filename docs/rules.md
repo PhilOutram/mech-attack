@@ -133,7 +133,7 @@ Option for testing, off: `capture.guarded` (a factory with one of its owner's un
 Fixed map 1 has 12 seven-hex clusters (84 hexes), with the factories in opposite corners 11 moves apart. The two halves have the same mountain counts and pile distances but different layouts, so exploring one side tells you nothing exact about the other. Generated maps follow the same pattern (see Maps).
 
 ### Colours
-In a single-player game you play blue and the AI plays green. Multiplayer games add yellow, purple and pink (provisional; red would be lost on the red ground, and grey looks like an unused factory).
+In a single-player game you play blue and the AI plays green. Multiplayer games add yellow, purple, pink and orange, in that order, for up to 6 sides; white is the seventh colour, for when a map takes 7 sides (provisional; red would be lost on the red ground, and grey looks like an unused factory, which is why the seventh is a bright white).
 
 ### Multiplayer
 Settled with Phil, 29 October 2026; the plan and what is still open are in `docs/multiplayer.md`.

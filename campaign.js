@@ -3,10 +3,10 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.83";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.83";
-import { distance, cheapestPaths } from "./hex.js?v=0.83";
-import { LEVELS } from "./difficulty.js?v=0.83";
+import { RULES } from "./rules-config.js?v=0.84";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.84";
+import { distance, cheapestPaths } from "./hex.js?v=0.84";
+import { LEVELS } from "./difficulty.js?v=0.84";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 // The highest rank each mission has been won at: { mission index: rank id }.

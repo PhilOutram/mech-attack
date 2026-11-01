@@ -39,7 +39,7 @@ For turn-based play on one device, the same device is host and every player; a "
 ### 2. Maps for 3 and 4 sides
 - Three or four home positions spread evenly: homes at three corners of a triangular layout, or four corners of a square one.
 - The fairness checks compare every side's distances to piles and unused factories, not just blue's and green's.
-- New colours: yellow, purple and pink (red would be lost on the red ground), made from the blue art by `tools/recolour-tokens.mjs` and `tools/recolour-factories.py`.
+- New colours: yellow, purple and pink, then orange and white (Phil, 1 November 2026: two more colours). Red would be lost on the red ground. All are made from the blue art by `tools/recolour-tokens.mjs` and `tools/recolour-factories.py`. Games take up to 6 sides, the most any map has room for, so white is ready for a larger map but not yet used.
 
 ### 3. The AI
 - It picks a target opponent each turn: the weakest, the most dangerous, or the nearest, weighed by new genes, so evolution can find what wins.

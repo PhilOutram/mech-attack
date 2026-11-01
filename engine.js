@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.83";
+} from "./hex.js?v=0.84";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -33,7 +33,7 @@ import {
 // - players[p].lost counts that player's destroyed units by type.
 //
 // Sides, teams and turns (format 8):
-// - A game has 2 to 5 sides (players[p]), each with a colour and a team. Players on the same
+// - A game has 2 to 7 sides (players[p]), each with a colour and a team. Players on the same
 //   team are allies: they cannot fire on or overrun each other. A player whose factories all
 //   have no Comms keeps their view to themselves; two allies who both have Comms in one of
 //   their factories see everything either of them sees.
@@ -48,7 +48,7 @@ import {
 
 // Saved games in any other format are not loaded.
 export const STATE_FORMAT = 8;
-export const PLAYER_COLOURS = ["blue", "green", "yellow", "purple", "pink"];
+export const PLAYER_COLOURS = ["blue", "green", "yellow", "purple", "pink", "orange", "white"];
 
 // ---------------------------------------------------------------------------------------
 // Setting up

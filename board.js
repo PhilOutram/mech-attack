@@ -1,7 +1,7 @@
 // Draws the game board as SVG from one player's view of the game, plus what the UI wants
 // highlighted. No rules here: everything shown comes from the engine's view.
-import { parseKey, toPixel, distance, neighbourKeys } from "./hex.js?v=0.83";
-import { unitStats, defenceOf } from "./engine.js?v=0.83";
+import { parseKey, toPixel, distance, neighbourKeys } from "./hex.js?v=0.84";
+import { unitStats, defenceOf } from "./engine.js?v=0.84";
 
 // Hex corner radius in SVG units. Tiles are drawn 2 x HEX_SIZE wide.
 export const HEX_SIZE = 50;
@@ -27,6 +27,8 @@ export const PLAYER_COLOURS = {
   2: { name: "Yellow", file: "yellow", ring: "#f2c230" },
   3: { name: "Purple", file: "purple", ring: "#a35ce0" },
   4: { name: "Pink", file: "pink", ring: "#ff6fb5" },
+  5: { name: "Orange", file: "orange", ring: "#ff8a1f" },
+  6: { name: "White", file: "white", ring: "#f4f4f4" },
 };
 // Ring round an unused factory, which belongs to nobody.
 const NEUTRAL_RING = "#b9b2a8";
