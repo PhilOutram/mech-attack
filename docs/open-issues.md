@@ -31,6 +31,7 @@ One page to check at any time: problems not yet solved, decisions waiting for Ph
 - **Up to 8 sides,** once the new colours are drawn. Since v0.84 there are 7 colours (white waits for a map that takes 7 sides); games have at most 6 sides.
 - **Ruin art** to replace the placeholder.
 - **Refresh `Unit Table.xlsx`** from the current stats (back it up first).
+- **Engineers building scout posts** that give sight round them (idea, Phil, 1 November 2026; in the ideas log with the other Engineer ideas).
 - **An AI that knows a mission's objective**, so `tools/team-trials.mjs` can judge the missions that need a plan, and so AI allies help with the objective rather than just fighting.
 
 ## On hold
