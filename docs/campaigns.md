@@ -84,7 +84,7 @@ Code: the missions are in `team-campaign-2.js`, `team-campaign-3.js` and `team-c
 ### New rules the team campaigns brought in
 
 - **No turn without warning** (Phil, 1 November 2026): a side that turns on you is always announced two rounds before, at the start of your turn. Betrayals are unsettling if they come out of nowhere, so there are few of them: Guests, Corran's Choice and Gifts turn an ally against you, and Kaldra's Price ends a truce openly.
-- **Arrivals use the game's own units and the edge of the board** (Phil, 1 November 2026): raids come in by Chinook and drop their Infantry as any Chinook does; other reinforcements come on at the back of the board behind their side's home; units that change sides between AI players, and Infantry hiding in old factories, are explained in the story notes. Nothing changes the landscape.
+- **Arrivals use the game's own units and the edge of the board** (Phil, 1 November 2026): raids come in by Chinook and drop their Infantry as any Chinook does; other reinforcements come on at the back of the board behind their side's home; units that change sides between AI players, and Infantry hiding in old factories, are explained in the story notes. Nothing changes the landscape. Crystals given in the story (Varr's convoy in Dry Landing, Sable's harvest share in Water Rights) go straight into your store with a note (Phil, 1 November 2026).
 
 - **Turret overwatch** (`docs/rules.md`).
 - **Role kits** (`rules.roleKits`): Vanguard, Bastion, Skywing and Foundry, each limiting what its player can build and buy.
