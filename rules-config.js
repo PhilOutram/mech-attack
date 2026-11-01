@@ -70,9 +70,13 @@ export const RULES = {
     },
     // Turret (Phil, 29 October 2026): a gun emplacement built next to a factory. It never
     // moves. Stats provisional, scaled down from the "Turret (constructed)" row.
+    // Overwatch (Phil, 31 October 2026; provisional): both Turrets also fire at an enemy that
+    // moves into their range, once at each unit, up to their shots, between phases (see
+    // fireOverwatch in engine.js).
     turret: {
       name: "Turret", cost: 50, move: 0, defence: 35, attack: 25,
       range: [1, 3], storage: 0, healing: 0, sight: 3,
+      overwatch: true,
     },
     // Two guns (Phil, 29 October 2026): "shots" is how many times a unit fires in a turn,
     // each at a different target; it cannot move once it has fired. Answers to Infantry swarms,
@@ -87,7 +91,7 @@ export const RULES = {
     twinTurret: {
       name: "Twin Turret", cost: 50, move: 0, defence: 30, attack: 20,
       range: [1, 1], storage: 0, healing: 0, sight: 3,
-      shots: 2,
+      shots: 2, overwatch: true,
     },
     // The VIP of the campaign mission "The Maid's March": tougher Infantry who can never be
     // built.
@@ -190,6 +194,36 @@ export const RULES = {
   // the enemy side whose home is nearest), a unit for the searcher (cost at most unitMaxCost,
   // from the units this game allows), or a stash of crystals between the two crystals
   // figures, in steps of crystalStep. All provisional.
+  // Role kits (Phil, 31 October 2026; what is in each is provisional, 1 November 2026): in a
+  // team mission each human can be given a role. A kit limits the units the player can build
+  // ("builds") and the factory upgrades they can buy ("upgrades"), even from factories they
+  // capture, so allies have to cover for each other. The mission sets what each starts with.
+  roleKits: {
+    vanguard: {
+      name: "Vanguard", role: "Fast assault: takes factories and carries the fight.",
+      builds: ["infantry", "scoutBike", "tank", "transporter", "lightMedic", "lightHarvester"],
+      upgrades: ["comms"],
+    },
+    bastion: {
+      name: "Bastion", role: "Holds ground: Turrets, Twin Tanks and the Heavy Cannon.",
+      builds: ["turret", "twinTurret", "heavyTank", "heavyCannon", "antiAircraftJeep",
+        "infantry", "lightHarvester"],
+      upgrades: ["heavyWorks", "comms"],
+    },
+    skywing: {
+      name: "Skywing", role: "Rules the air: scouts, strikes and airlifts.",
+      builds: ["spotterDrone", "attackHelicopter", "fighter", "chinook", "scoutBike",
+        "lightHarvester"],
+      upgrades: ["airfield", "comms"],
+    },
+    foundry: {
+      name: "Foundry", role: "Crystals and the big guns: labs, seeders and siege weapons.",
+      builds: ["lightHarvester", "crystalSeeder", "artillery", "blastCannon", "sonicTank",
+        "lightMedic", "scoutBike"],
+      upgrades: ["lab", "heavyWorks", "comms"],
+    },
+  },
+
   ruins: {
     searchers: ["infantry"],
     outcomes: { enemy: 0.3, unit: 0.35, crystals: 0.35 },

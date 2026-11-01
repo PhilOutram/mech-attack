@@ -86,6 +86,8 @@ v0.54: AI sides in games with 3 or more sides use personalities evolved in 3- an
 
 ## Co-op campaigns (Phil, 29 and 30 October 2026)
 
+Replaced in v0.84 by the team campaigns, one each for 2, 3 and 4 players (`docs/campaigns.md`). What follows is how the first co-op campaign came about.
+
 Built in v0.57 as `coop-campaign.js`: "Red Dust: Together", five missions for 2 or 3 humans at the same time against the AI, on the Multi-player tab of the Campaign menu. Each mission sets how many humans play it (Phil, 30 October 2026: the number is not chosen): Pincer and Kharon Rising are for 3, the rest for 2. The host picks a mission (any their device has unlocked) and who plays where; the others join with the code. Each mission sets its AI sides (scaled to the number of humans, as co-op games are), any special starting units or upgrades, and its objective; the team wins or loses together, and a win is recorded on every player's device. Each mission is played on the same generated map every time for its number of sides.
 
 The plan it was built from:

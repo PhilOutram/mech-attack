@@ -7,8 +7,8 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.84";
-import { mapById, seededRandom } from "./maps.js?v=0.84";
+import { RULES } from "./rules-config.js?v=0.85";
+import { mapById, seededRandom } from "./maps.js?v=0.85";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   searchTargets, unloadFactories, seedLoads, plantSites,
@@ -16,24 +16,26 @@ import {
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.84";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.84";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.84";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.84";
-import { distance } from "./hex.js?v=0.84";
+} from "./engine.js?v=0.85";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.85";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.85";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.85";
+import { distance } from "./hex.js?v=0.85";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.84";
-import { confirmDialog } from "./dialog.js?v=0.84";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.84";
-import { showTip, showNote } from "./tips.js?v=0.84";
+} from "./board.js?v=0.85";
+import { confirmDialog } from "./dialog.js?v=0.85";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.85";
+import { showTip, showNote } from "./tips.js?v=0.85";
 import {
   MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.84";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.84";
-import { COOP_MISSIONS, markCoopMissionDone } from "./coop-campaign.js?v=0.84";
-import { joinGame as joinRemote } from "./net.js?v=0.84";
+} from "./campaign.js?v=0.85";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.85";
+import {
+  campaignById, teamMissionOf, missionTick, missionSteps, factionOf, markTeamMissionDone,
+} from "./team-campaigns.js?v=0.85";
+import { joinGame as joinRemote } from "./net.js?v=0.85";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -50,7 +52,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.84";
+const ASSET_VERSION = "0.85";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route at this many milliseconds a hex, so
@@ -319,7 +321,8 @@ function isClient() {
 // A player's name in messages: their colour, or in a single-player game the AI's commander.
 function playerName(p) {
   if (!isMultiplayer() && p === AI_PLAYER) return opponentName();
-  return PLAYER_COLOURS[p].name;
+  const side = factionOf(state, p);
+  return side ? side.name : PLAYER_COLOURS[p].name;
 }
 
 // "Green", "Green and Yellow", "Green, Yellow and Purple".
@@ -371,8 +374,8 @@ function shapeOf(mapId) {
 // Opens the game screen: the saved game when resume is set, otherwise a new game on mapId, or
 // campaign mission number mission (0-based).
 // level: the difficulty level's id (see difficulty.js), for a game that is not a mission.
-// multiplayer: { seats, sides, phases, mapId, setup, rules, coop } for a multiplayer game on
-// this device (see multiplayer.js; coop: { mission } for a co-op campaign mission), and
+// multiplayer: { seats, sides, phases, mapId or map, setup, rules, team } for a multiplayer
+// game on this device (see multiplayer.js; team: a team campaign mission, see teamPlan), and
 // linkTo the link to other devices when some seats are remote.
 export async function openGame({
   resume = false, mapId = "fixed-1", mission = null, level = null, multiplayer = null,
@@ -383,15 +386,20 @@ export async function openGame({
   state = resume ? loadSave() : null;
   link = linkTo;
   let briefing = false;
-  let coopBriefing = false;
+  let teamBriefing = false;
   if (!state && multiplayer) {
     const seed = Math.floor(Math.random() * MAX_SEED);
     const rules = multiplayer.rules || RULES;
-    const map = mapById(multiplayer.mapId, rules);
+    const map = multiplayer.map || mapById(multiplayer.mapId, rules);
     state = { ...newGame({ rules, map, seed, sides: multiplayer.sides,
       phases: multiplayer.phases, setup: multiplayer.setup || null }), seats: multiplayer.seats };
-    if (multiplayer.coop) state.coop = multiplayer.coop;
-    coopBriefing = Boolean(multiplayer.coop);
+    if (multiplayer.team) {
+      state.team = multiplayer.team;
+      // The mission's opening moves (posts handed out, guards placed) happen before anyone
+      // plays.
+      state = missionTick(state).state;
+      teamBriefing = true;
+    }
     save();
   }
   if (!state) {
@@ -420,7 +428,7 @@ export async function openGame({
   aiPersonality = isMultiplayer() ? DEFAULT_PERSONALITY : opponentPersonality(state);
   aiPersonalities = {};
   me = isMultiplayer() ? firstLocalHuman() : HUMAN;
-  els.objective.hidden = !m && !coopMissionOf(state);
+  els.objective.hidden = !m && !teamMission(state);
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null });
   facing = {};
@@ -441,7 +449,7 @@ export async function openGame({
   fitBoard();
   // Tips wait until the mission briefing has been read; the mission's top tip comes first,
   // then the welcome, then tips for what is on the board.
-  ui.briefing = briefing;
+  ui.briefing = briefing || teamBriefing;
   tip("welcome");
   render();
   if (briefing && !(await showBriefing(m, state.campaign.mission))) {
@@ -449,7 +457,7 @@ export async function openGame({
     leaveGame();
     return;
   }
-  ui.briefing = false;
+  if (!teamBriefing) ui.briefing = false;
   if (briefing && m.tip) showNote(m.tip, RULES);
   if (!m && !resume && !isMultiplayer()) {
     const chosen = levelById(state.level);
@@ -463,7 +471,8 @@ export async function openGame({
     sendStart();
     link.onRejoin = (seat) => sendStart(seat);
   }
-  if (coopBriefing) await showCoopBriefing();
+  if (teamBriefing) await showTeamBriefing();
+  ui.briefing = false;
   render();
   nextTurn(false);
 }
@@ -485,7 +494,7 @@ export async function joinGame({ linkTo, start, onLeave }) {
   if (!wired) wire(onLeave);
   link = linkTo;
   me = start.seat;
-  state = clientState(start.view, start.seats, { coop: start.coop, coopSteps: start.steps });
+  state = clientState(start.view, start.seats, { team: start.team, teamSteps: start.steps });
   aiPersonality = DEFAULT_PERSONALITY;
   Object.assign(ui, { selectedId: null, mode: null, buildType: null, busy: false,
     effects: [], messages: ["Tap one of your units to give it orders."], moving: null,
@@ -495,7 +504,7 @@ export async function joinGame({ linkTo, start, onLeave }) {
   pendingTips = [];
   history = [];
   undosLeft = 0;
-  els.objective.hidden = !coopMissionOf(state);
+  els.objective.hidden = !teamMission(state);
   els.screen.hidden = false;
   els.over.hidden = true;
   preloadArt();
@@ -505,17 +514,19 @@ export async function joinGame({ linkTo, start, onLeave }) {
   save();
   sayGameCode();
   tip("welcome");
-  if (coopMissionOf(state)) await showCoopBriefing();
+  ui.briefing = Boolean(teamMission(state));
+  if (ui.briefing) await showTeamBriefing();
+  ui.briefing = false;
   render();
   nextTurn(false);
 }
 
 // A client's copy of the game: its own view, with the seats as seen from this device (every
-// other human is remote), and for a co-op mission which one and how far its steps are done
+// other human is remote), and for a team mission which one and how far its steps are done
 // (worked out by the host, which has the whole game).
-function clientState(view, seats, { coop = null, coopSteps = null } = {}) {
+function clientState(view, seats, { team = null, teamSteps = null } = {}) {
   return { ...view, seats: seats.map((seat, p) => ({ ...seat, remote: p !== me })),
-    coop, coopSteps };
+    team, teamSteps };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -526,36 +537,80 @@ function missionOf(s) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Co-op campaign missions (coop-campaign.js)
+// Team campaign missions (team-campaigns.js)
 
-function coopMissionOf(s) {
-  return s && s.coop ? COOP_MISSIONS[s.coop.mission] : null;
+function teamMission(s) {
+  return s && s.team ? teamMissionOf(s) : null;
+}
+
+// "The Varr Contract 3: Guests", or "Team 3: Guests" where room is short.
+function teamMissionTitle(long = true) {
+  const campaign = campaignById(state.team.campaign);
+  const m = teamMission(state);
+  return long ? `${campaign.name} ${state.team.mission + 1}: ${m.title}`
+    : `Team ${state.team.mission + 1}: ${m.title}`;
 }
 
 const humanTeam = () => state.players.map((_, p) => p).filter((p) => !isAiSeat(p));
-const aiTeam = () => state.players.map((_, p) => p).filter(isAiSeat);
+// AI sides on the humans' team now (allies can change sides during a mission), and the rest.
+const allySides = () => state.players.map((_, p) => p).filter((p) => isAiSeat(p) &&
+  !state.players[p].out && state.players[p].team === state.players[humanTeam()[0]].team);
+const enemySides = () => state.players.map((_, p) => p).filter((p) => isAiSeat(p) &&
+  !state.players[p].out && !allySides().includes(p));
 
-// How far each step of a co-op mission is done: worked out from the whole game on the device
+// How far each step of a team mission is done: worked out from the whole game on the device
 // holding it, and passed on to the others.
-function coopSteps() {
-  const m = coopMissionOf(state);
+function teamSteps() {
+  const m = teamMission(state);
   if (!m || !m.steps) return null;
-  if (isClient()) return state.coopSteps || m.steps.map(() => false);
-  return m.steps.map((step) => step.done(state));
+  if (isClient()) return state.teamSteps || m.steps.map(() => false);
+  return missionSteps(state);
 }
 
-// The mission's story and objective, and who is playing, before it starts.
-function showCoopBriefing() {
-  const m = coopMissionOf(state);
-  const index = state.coop.mission;
-  const humans = humanTeam().map((p) => (p === me ? `${playerName(p)} (you)` : playerName(p)));
+// A side as the briefing names it: its faction and leader, and its colour on the board.
+function sideLabel(p) {
+  const side = factionOf(state, p);
+  const colour = PLAYER_COLOURS[p].name.toLowerCase();
+  return side ? `${side.name}, led by ${side.leader} (${colour})` : playerName(p);
+}
+
+// The mission's story and objective, who is playing (with their role kits), and who is with
+// and against them, before it starts.
+function showTeamBriefing() {
+  const m = teamMission(state);
+  const kitOf = (p) => state.players[p].kit && RULES.roleKits[state.players[p].kit];
+  const humans = humanTeam().map((p) => {
+    const name = p === me ? `${playerName(p)} (you)` : playerName(p);
+    const kit = kitOf(p);
+    return kit ? `${name}: ${kit.name}. ${kit.role}` : name;
+  });
+  // With role kits, a line for each player; otherwise their names in a row.
+  const team = humanTeam().some(kitOf) ? `\n${humans.join("\n")}` : ` ${humans.join(", ")}.`;
+  const allies = allySides();
+  const kits = humanTeam().some(kitOf)
+    ? "\n\nRole kits: each of you can build and buy only what your kit allows." : "";
   return confirmDialog({
-    title: `Co-op mission ${index + 1}: ${m.title}`,
-    text: `${m.story}\n\nObjective: ${m.objective}\n\nYour team: ${humans.join(", ")}. ` +
-      `Against you: ${namesOf(aiTeam())}.`,
+    title: teamMissionTitle(),
+    text: `${m.story}\n\nObjective: ${m.objective}\n\nYour team:${team}` +
+      `${allies.length ? `\nWith you: ${allies.map(sideLabel).join("; ")}.` : ""}` +
+      `\nAgainst you: ${enemySides().map(sideLabel).join("; ")}.${kits}`,
     confirm: "Start",
     cancel: null,
   });
+}
+
+// Story notes from a team mission's script: shown here, and sent to the other devices with
+// the next update.
+let notesForOthers = [];
+// Notes are shown one after another, never on top of each other.
+let notesShown = Promise.resolve();
+
+function tellNotes(notes) {
+  for (const note of notes) {
+    say(note.text);
+    notesShown = notesShown.then(() => confirmDialog({ title: note.title, text: note.text,
+      confirm: "OK", cancel: null }));
+  }
 }
 
 // The mission's story and objective before it starts, with the units it brings in (the first
@@ -655,13 +710,11 @@ async function handOver(p) {
 // A mission whose objective is met is won at once; one that can fail is lost at once. In a
 // co-op mission the whole team wins or loses together.
 function checkObjective() {
-  const coop = coopMissionOf(state);
-  if (coop && !state.result && !isClient()) {
-    const ended = (winners, reason) => {
-      state = { ...state, result: { winner: winners[0], winners, reason, round: state.round } };
-    };
-    if (coop.failed && coop.failed(state)) ended(aiTeam(), "missionFailed");
-    else if (coop.done && coop.done(state)) ended(humanTeam(), "objective");
+  if (teamMission(state) && !state.result && !isClient()) {
+    const { state: next, notes } = missionTick(state);
+    state = next;
+    tellNotes(notes);
+    notesForOthers.push(...notes);
     return;
   }
   const m = missionOf(state);
@@ -678,14 +731,14 @@ function checkObjective() {
 
 // The Objective button: the mission's story and objective, with its steps ticked off.
 function showObjective() {
-  const coop = coopMissionOf(state);
-  if (coop) {
-    const done = coopSteps();
-    const steps = coop.steps ? `\n\n${coop.steps.map((step, i) =>
+  const team = teamMission(state);
+  if (team) {
+    const done = teamSteps();
+    const steps = team.steps ? `\n\n${team.steps.map((step, i) =>
       `${done[i] ? "\u2714" : "\u2022"} ${step.text}`).join("\n")}` : "";
     confirmDialog({
-      title: `Co-op mission ${state.coop.mission + 1}: ${coop.title}`,
-      text: `Objective: ${coop.objective}${steps}\n\n${coop.story}`,
+      title: teamMissionTitle(),
+      text: `Objective: ${team.objective}${steps}\n\n${team.story}`,
       confirm: "OK",
       cancel: null,
     });
@@ -871,7 +924,8 @@ function undo() {
 // Empty when Demand surrender does not apply.
 function surrenderingSide() {
   if (!isMultiplayer()) return [AI_PLAYER];
-  if (isClient()) return [];
+  // A team mission is won by its objective, and its story may still turn allies into enemies.
+  if (isClient() || teamMission(state)) return [];
   const players = state.players.map((_, p) => p).filter((p) => !state.players[p].out);
   const enemies = players.filter((p) => !allied(state, p, me));
   const teams = new Set(enemies.map((p) => state.players[p].team));
@@ -1147,7 +1201,9 @@ function sleep(ms) {
 // "Your", "Green", "Unused": whose a unit is, in messages.
 function ownerWord(owner) {
   if (owner === me) return "Your";
-  return owner === null || owner === undefined ? "Unused" : PLAYER_COLOURS[owner].name;
+  if (owner === null || owner === undefined) return "Unused";
+  const side = factionOf(state, owner);
+  return side ? side.word : PLAYER_COLOURS[owner].name;
 }
 
 function unitName(view, unitId, fallbackType, owner) {
@@ -1184,17 +1240,22 @@ function showEvents(events, before, after) {
   let builtMs = 0;
   let any = false;
   for (const e of events) {
-    if (["fire", "returnFire", "splash", "lineHit"].includes(e.type)) {
+    if (["fire", "returnFire", "overwatch", "splash", "lineHit"].includes(e.type)) {
       const from = (before.units[e.unitId] || after.units[e.unitId] || {}).at;
-      const to = (before.units[e.targetId] || after.units[e.targetId] || {}).at;
+      // Overwatch hits a unit on its way, where it was then.
+      const to = e.at || (before.units[e.targetId] || after.units[e.targetId] || {}).at;
       if (!seen(from) && !seen(to)) continue;
       any = true;
       shooter = typeOf(e.unitId);
-      if (e.type === "fire" || e.type === "returnFire") sound(fireSound(typeOf(e.unitId)));
+      if (["fire", "returnFire", "overwatch"].includes(e.type)) {
+        sound(fireSound(typeOf(e.unitId)));
+      }
+      if (e.type === "overwatch") tip("overwatch");
       if (from && seen(from)) effects.push({ at: from, size: 0.42 });
       if (to && seen(to)) effects.push({ at: to, size: 0.75 });
 
       const verb = { fire: "fired on", returnFire: "returned fire on",
+        overwatch: "on overwatch fired on",
         splash: "caught in the blast:", lineHit: "also hit by the sonic boom:" }[e.type];
       lines.push(e.type === "splash" || e.type === "lineHit"
         ? `${unitName(before, e.targetId)} ${verb} ${e.attack}.`
@@ -1320,8 +1381,8 @@ function showEvents(events, before, after) {
       any = true;
       sound(["capture", 1]);
       const whose = e.from === null ? "an unused"
-        : e.from === me ? "your" : `${PLAYER_COLOURS[e.from].name}'s`;
-      lines.push(`${e.owner === me ? "Your" : `${PLAYER_COLOURS[e.owner].name}'s`} infantry ` +
+        : e.from === me ? "your" : `${ownerWord(e.from)}`;
+      lines.push(`${e.owner === me ? "Your" : ownerWord(e.owner)} infantry ` +
         "overran " +
         `${whose} factory${e.owner === me && e.crystals ? `: ${e.crystals} crystals ` +
           "in its store" : ""}.`);
@@ -1349,9 +1410,23 @@ function showEvents(events, before, after) {
       sound([e.outcome === "crystals" ? "harvest" : "capture", 1]);
     } else if (e.type === "labIncome" && e.player === me) {
       lines.push(`Crystal labs made ${e.amount} crystals.`);
+    } else if (e.type === "teamChange" && e.player !== me) {
+      // A team mission's script: an ally turning on you, or an enemy coming over.
+      any = true;
+      const friendly = after.players[me].team === e.team;
+      lines.push(`${playerName(e.player)} ${friendly ? "is on your side now"
+        : "has turned against you"}.`);
+      showBanner(`${playerName(e.player)} ${friendly ? "joins you" : "turns on you"}!`);
+    } else if (e.type === "unitsArrive" && e.unitIds.some((id) => seen(after.units[id]?.at))) {
+      any = true;
+      lines.push(`${ownerWord(e.player)} units have arrived.`);
+    } else if (e.type === "handOver" && e.unitIds.some((id) => seen(after.units[id]?.at))) {
+      any = true;
+      lines.push(`${e.player === null ? "Some units are" : `${ownerWord(e.player)} units are`}` +
+        " under new command.");
     } else if (e.type === "knockedOut") {
       any = true;
-      const who = e.player === me ? "You are" : `${PLAYER_COLOURS[e.player].name} is`;
+      const who = e.player === me ? "You are" : `${playerName(e.player)} is`;
       lines.push(`${who} out of the game: ${REASONS[e.reason]}.`);
       knockedOut.push(e.player);
     } else if (e.type === "upgrade" && seen(e.at)) {
@@ -1793,9 +1868,8 @@ function renderSoundButton() {
 
 function renderBar(view) {
   const m = missionOf(state);
-  const coop = coopMissionOf(state);
   const name = m ? `Mission ${state.campaign.mission + 1}: ${m.title}`
-    : coop ? `Co-op ${state.coop.mission + 1}: ${coop.title}` : view.map.name;
+    : teamMission(state) ? teamMissionTitle(false) : view.map.name;
   els.round.innerHTML = `<span class="map-name">${name} · </span>Round ${view.round}`;
   const others = view.active.filter((p) => p !== me);
   const mine = view.active.includes(me);
@@ -1930,10 +2004,10 @@ function undoButton() {
 function renderPanel(view) {
   const unit = view.units[ui.selectedId];
   if (!unit) {
-    const m = missionOf(state) || coopMissionOf(state);
+    const m = missionOf(state) || teamMission(state);
     let objective = m ? `<p class="panel-objective">Objective: ${m.objective}</p>` : "";
     if (m && m.steps) {
-      const done = coopMissionOf(state) ? coopSteps() : m.steps.map((step) => step.done(state));
+      const done = teamMission(state) ? teamSteps() : m.steps.map((step) => step.done(state));
       objective += `<ol class="mission-steps">${m.steps.map((step, i) =>
         `<li${done[i] ? ' class="done"' : ""}>${step.text}</li>`).join("")}</ol>`;
     }
@@ -2033,17 +2107,19 @@ function showMultiplayerOver() {
   else if (mineWon) els.overTitle.textContent = winners.length > 1 ? "Your team wins" : "You win";
   else els.overTitle.textContent = `${namesOf(winners)} ${winners.length > 1 ? "win" : "wins"}`;
   els.overText.textContent = `The last of the others: ${REASONS[reason]} (round ${round}).`;
-  // A co-op mission: won or failed together, and a win recorded on every player's device.
-  const coop = coopMissionOf(state);
-  if (coop) {
+  // A team mission: won or failed together, and a win recorded on every player's device.
+  const team = teamMission(state);
+  if (team) {
     const won = winners.some((p) => !isAiSeat(p));
+    const campaign = campaignById(state.team.campaign);
+    const last = state.team.mission + 1 >= campaign.missions.length;
     els.overTitle.textContent = won ? "Mission complete" : "Mission failed";
-    if (won) markCoopMissionDone(state.coop.mission);
+    if (won) markTeamMissionDone(state.team.campaign, state.team.mission);
     els.overText.textContent = won
-      ? `Objective met (round ${round}).${state.coop.mission + 1 < COOP_MISSIONS.length
-        ? " The next co-op mission is unlocked." : " Kharon is yours."}`
-      : `${reason === "missionFailed" ? coop.failText : `Your team was beaten: ` +
-        `${REASONS[reason]}.`} (round ${round})`;
+      ? `Objective met (round ${round}). ${last ? campaign.epilogue
+        : "The next mission is unlocked."}`
+      : `${reason === "missionFailed" && team.failText ? team.failText
+        : `Your team was beaten: ${REASONS[reason]}.`} (round ${round})`;
   }
   els.again.hidden = true;
   els.newMap.hidden = true;
@@ -2127,7 +2203,7 @@ function sendStart(only = null) {
   seatsOf(state).forEach((seat, p) => {
     if (seat.remote && (only === null || only === p)) {
       link.send(p, { type: "start", seat: p, seats: seatsOf(state), view: viewFor(state, p),
-        coop: state.coop || null, steps: coopSteps() });
+        team: state.team || null, steps: teamSteps() });
     }
   });
 }
@@ -2136,17 +2212,20 @@ function sendStart(only = null) {
 // could see (so a device never learns what its player cannot see). ref: the request a
 // remote player's action answered, sent back to them.
 function sendUpdates(ref = null, from = null) {
+  const notes = notesForOthers;
+  notesForOthers = [];
   if (!link || link.role !== "host") return;
   seatsOf(state).forEach((seat, p) => {
     if (!seat.remote) return;
     const view = viewFor(state, p);
     link.send(p, { type: "update", view, events: visibleEvents(state.events, view),
-      ref: p === from ? ref : null, steps: coopSteps() });
+      ref: p === from ? ref : null, steps: teamSteps(), notes });
   });
 }
 
 // Events every player hears about, wherever they happen.
-const EVENTS_FOR_ALL = ["endTurn", "resumeTurn", "newRound", "knockedOut", "gameOver"];
+const EVENTS_FOR_ALL = ["endTurn", "resumeTurn", "newRound", "knockedOut", "gameOver",
+  "teamChange"];
 
 // The events a player could see: those on hexes they can see, or about their own units.
 function visibleEvents(events, view) {
@@ -2223,7 +2302,8 @@ async function clientReceive(message) {
   } else if (message.type === "update") {
     const before = state;
     state = clientState(message.view, seatsOf(state),
-      { coop: state.coop, coopSteps: message.steps });
+      { team: state.team, teamSteps: message.steps });
+    tellNotes(message.notes || []);
     save();
     showEvents(message.events, before, state);
     ui.busy = true;
@@ -2249,7 +2329,7 @@ async function clientReceive(message) {
     // Back after a dropped connection: the host sends the whole game again. Anything sent
     // while the connection was down was lost.
     state = clientState(message.view, message.seats,
-      { coop: message.coop, coopSteps: message.steps });
+      { team: message.team, teamSteps: message.steps });
     for (const answer of waiting.values()) answer(false);
     waiting.clear();
     ui.busy = false;

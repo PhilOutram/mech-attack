@@ -5,11 +5,11 @@
 // It also counts how often the optional rules come into play: upgrades, captures, ruins,
 // transport, set-up, planting, giving crystals, blasting and crushing piles, repairs.
 // Usage: node tools/unit-use.mjs [--games 200] [--seed 1]
-import { RULES } from "../rules-config.js?v=0.84";
-import { mapById } from "../maps.js?v=0.84";
-import { newGame, applyAction, viewFor } from "../engine.js?v=0.84";
-import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.84";
-import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.84";
+import { RULES } from "../rules-config.js?v=0.85";
+import { mapById } from "../maps.js?v=0.85";
+import { newGame, applyAction, viewFor } from "../engine.js?v=0.85";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.85";
+import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.85";
 
 const DEFAULT_GAMES = 200;
 const MAX_ACTIONS = 200000;
@@ -18,7 +18,7 @@ const FIRST_GENERATED_MAP = 1;
 const DECIMALS = 2;
 const PERCENT = 100;
 // Events where a unit fires; the hits that follow are its.
-const SHOTS = ["fire", "fireBlind", "returnFire", "lineHit", "splash", "boom"];
+const SHOTS = ["fire", "fireBlind", "returnFire", "overwatch", "lineHit", "splash", "boom"];
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);

@@ -37,6 +37,13 @@ const TIPS = {
       "several units in the same turn add up. A unit attacked from next door fires back if " +
       `its range is ${rules.combat.returnFireMaxRange} or less.`,
   }),
+  overwatch: () => ({
+    title: "Overwatch",
+    text: "Turrets keep watch outside their own turn too. An enemy that moves into a " +
+      "Turret's range, where its owner can see, is fired on at once, even if the Turret has " +
+      "already fired that turn. A Turret has one overwatch shot between turns, a Twin Turret " +
+      "two, each at a different unit. A unit that survives carries on with its move.",
+  }),
   blastCrystals: () => ({
     title: "Blowing up crystals",
     text: "Crystal piles in range show yellow. Crystals are unstable: one shot destroys the " +

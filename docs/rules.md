@@ -89,6 +89,7 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 ### Chinook and Turret (Phil, 29 October 2026)
 - The Chinook is a flying transporter. It carries 2 places of passengers: Infantry take 1, any ground vehicle 2 (unit stat `size`), so one vehicle or two Infantry. The Transporter carries Infantry only (`loads`). Like the other air units it needs an Airfield.
 - The Turret is a gun emplacement, built next to a factory like any unit, that never moves.
+- Overwatch (Phil, 31 October 2026; details provisional, 1 November 2026): both Turrets also fire outside their own turn. An enemy unit that moves into a hex in a Turret's range, in its sight and line of sight, on ground the Turret's owner has turned over, is fired on there at the Turret's full attack. A Turret has one overwatch shot between one phase and the next, a Twin Turret two (`shots`), each at a different unit. Overwatch needs no action and does not use the Turret's own shot. The moving unit does not fire back; if it survives, it carries on with its move. Air units are safe, as Turrets hit ground only (`overwatch` stat; `fireOverwatch` in `engine.js`).
 - Two guns (Phil, 29 October 2026): the Twin Turret and the Twin Tank fire twice a turn (unit stat `shots`), each shot at a different target, and only at the hexes next to them. They answer swarms of Infantry: 20 destroys an Infantry, and Infantry fire back for 10, too little to hurt them. A unit that has fired cannot move that turn. Stats provisional.
 
 | Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
@@ -142,7 +143,21 @@ Settled with Phil, 29 October 2026; the plan and what is still open are in `docs
 - A player who loses while others play on is knocked out: their units go, their factories become unused with their crystals in store (shared between them; provisional: with no factory left, the crystals go to whoever overran their home), and their turns are skipped. The game ends when one team is left.
 - Players who move later than the first get extra crystals: the second-player bonus shared out by how late their turn comes (provisional).
 - Comms (see Factory upgrades) is the only way to see an ally's ground and units.
-- The co-op campaign, "Red Dust: Together" (Phil, 30 October 2026): five missions for 2 or 3 humans against the AI (each mission sets its number of players: Pincer and Kharon Rising are for 3) (Two Fronts, Supply Run, Pincer, Last Stand, Kharon Rising), with shared objectives. A win counts on every player's device; the host can start any mission they have unlocked.
+- Team campaigns (Phil, 1 November 2026; they replace the co-op campaign "Red Dust: Together"): one campaign each for 2, 3 and 4 players, ten missions each, against AI factions with their own leaders (`docs/campaigns.md`). A win counts on every player's device; the host can start any mission they have unlocked. In a team mission:
+  - AI sides can be allies, enemies, or at war with everyone, and the mission's script can change that during the game: an ally can turn on you, an enemy can come over (`changeTeam` in `engine.js`).
+  - The script can also bring in units or crystals, hand units and factories to another side, and open ground (Scenario changes in `engine.js`).
+  - The mission decides when the game ends (`rules.scriptedEnd`): a side with nothing left is knocked out, but the game goes on until the objective is met or failed. With every enemy beaten and nothing more to come in the story, the team wins.
+  - Some objectives must be met in the same round, such as factories overrun in one round; a factory remembers the round it was taken.
+  - Demand surrender is not offered: the objective decides the mission.
+- Role kits (Phil, 31 October 2026; contents provisional, 1 November 2026): in some team missions each human has a role, which limits the units they can build and the factory upgrades they can buy, even from factories they capture (`rules.roleKits`):
+
+  | Kit | Builds | Upgrades |
+  |---|---|---|
+  | Vanguard | Infantry, Scout Bike, Tank, Transporter, Light Medic, Light Harvester | Comms |
+  | Bastion | Turret, Twin Turret, Twin Tank, Heavy Cannon, Anti-Aircraft Jeep, Infantry, Light Harvester | Heavy works, Comms |
+  | Skywing | Spotter Drone, Attack Helicopter, Fighter, Chinook, Scout Bike, Light Harvester | Airfield, Comms |
+  | Foundry | Light Harvester, Crystal Seeder, Artillery, Blast Cannon, Sonic Tank, Light Medic, Scout Bike | Crystal lab, Heavy works, Comms |
+
 - Undo is only for games on one device (provisional). Demand surrender is offered whenever the other side is one team of AIs (Phil, 29 October 2026); the AI thinks for up to 8 seconds before answering.
 
 ### Rocky ground

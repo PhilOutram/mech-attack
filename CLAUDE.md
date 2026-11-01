@@ -9,6 +9,8 @@ The app is growing from a unit reference into:
 
 The design ideas, existing assets and open questions are in `docs/ideas-backlog.md`. Read it before any game-design or rules work.
 
+`docs/open-issues.md` is the short list of unresolved problems, decisions waiting for Phil and agreed work not yet started. Keep it current: add an item when something is left open, and move it out when it is settled.
+
 ## Working with Phil
 - Windows 11, PowerShell. Give commands in PowerShell syntax.
 - British English in all text, comments and UI.

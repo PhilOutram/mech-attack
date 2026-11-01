@@ -1512,6 +1512,38 @@ h1 {
   color: var(--text);
 }
 
+/* A team mission's set-up: each player's role kit, and the factions with and against them. */
+.mp-kit {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.mp-faction {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.mp-sides .mp-heading {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Each team campaign in the picker: its name, how many players, its intro and missions. */
+.team-campaign h3 {
+  margin: 1rem 0 0.25rem;
+}
+
+.team-campaign .campaign-intro {
+  margin-top: 0;
+}
+
 .mp-colour {
   display: inline-block;
   width: 0.9rem;
@@ -1631,7 +1663,7 @@ h1 {
   align-content: start;
 }
 
-/* How many players a co-op mission is for, under its name. */
+/* How many players a team campaign is for, under its name. */
 .mission-players {
   display: block;
   font-family: system-ui, sans-serif;
@@ -1735,7 +1767,6 @@ h1 {
   }
 }
 
-/* The co-op missions under the solo ones in the campaign picker. */
 /* The campaign picker's Solo and Multi-player tabs, kept at the top as the missions scroll. */
 .campaign-tabs {
   position: sticky;

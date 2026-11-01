@@ -48,7 +48,7 @@ Parked for testing, or for a sequel:
 - Engineers that rebuild ruins or build outposts.
 - Event cards (idea 8). Phil: wait.
 
-Approved earlier for the co-op campaigns (31 October); to be checked against this principle before building: crystal gifting, allied transport, role kits, turret deployer with overwatch, same-round objectives. Separate 2-, 3- and 4-player campaigns, and up to 8 players once the new colours are drawn.
+Approved earlier for the co-op campaigns (31 October): crystal gifting (built in v0.79); turret overwatch, role kits and same-round objectives (built in v0.84 with the 2-, 3- and 4-player team campaigns, Phil, 1 November 2026); riding an ally's transport (on the backlog, `docs/open-issues.md`). Up to 8 players once the new colours are drawn; v0.84 adds a sixth, orange, for team missions with six sides.
 
 ## Phil's ideas
 

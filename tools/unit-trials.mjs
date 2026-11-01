@@ -34,7 +34,7 @@ const ALWAYS_TRANSPORT = 1;
 const PERCENT = 100;
 const MAX_SEED = 2 ** 31;
 // Shots whose events name an attacker and a target.
-const SHOTS = ["fire", "fireBlind", "returnFire", "lineHit", "splash"];
+const SHOTS = ["fire", "fireBlind", "returnFire", "overwatch", "lineHit", "splash"];
 
 function parseArgs(argv) {
   const options = { games: DEFAULT_GAMES, seed: DEFAULT_SEED, out: DEFAULT_OUT, set: [] };

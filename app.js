@@ -1,19 +1,19 @@
 // Mech Attack - splash screen with a menu: play against the AI, or the units reference.
-import { VERSION, CHANGELOG } from "./version.js?v=0.84";
-import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.84";
-import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.84";
-import { confirmDialog } from "./dialog.js?v=0.84";
-import { showTip, resetTips } from "./tips.js?v=0.84";
-import { RULES } from "./rules-config.js?v=0.84";
-import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.84";
-import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.84";
-import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.84";
+import { VERSION, CHANGELOG } from "./version.js?v=0.85";
+import { GROUPS, STATS, UNITS, NOTES } from "./units.js?v=0.85";
+import { openGame, hasSavedGame, savedLink, recentMaps, newMapId } from "./game.js?v=0.85";
+import { confirmDialog } from "./dialog.js?v=0.85";
+import { showTip, resetTips } from "./tips.js?v=0.85";
+import { RULES } from "./rules-config.js?v=0.85";
+import { MISSIONS, missionsDone, missionRanks } from "./campaign.js?v=0.85";
+import { LEVELS, levelById, storedLevel, storeLevel } from "./difficulty.js?v=0.85";
+import { MAP_SIZES, MAP_SHAPES, shapeBlocks } from "./maps.js?v=0.85";
 import {
-  wireMultiplayer, showCoopSetup, rejoinGame, resumeHosted,
-} from "./multiplayer.js?v=0.84";
-import { COOP_MISSIONS, coopMissionsDone } from "./coop-campaign.js?v=0.84";
-import { unitImage } from "./board.js?v=0.84";
-import { watchMaintenance } from "./maintenance.js?v=0.84";
+  wireMultiplayer, showTeamSetup, rejoinGame, resumeHosted,
+} from "./multiplayer.js?v=0.85";
+import { TEAM_CAMPAIGNS, teamMissionsDone } from "./team-campaigns.js?v=0.85";
+import { unitImage } from "./board.js?v=0.85";
+import { watchMaintenance } from "./maintenance.js?v=0.85";
 
 // Register the service worker so the app is installable and works offline.
 // The relative path resolves correctly on the GitHub Pages /<slug>/ subpath.
@@ -132,12 +132,12 @@ function showCampaignNote() {
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight",
   "nine", "ten", "eleven", "twelve"];
 
-// The campaign picker's tabs: the solo missions or the co-op ones. The tab last shown is
+// The campaign picker's tabs: the solo missions or the team ones. The tab last shown is
 // remembered on this device.
 const CAMPAIGN_TAB_KEY = "mech-attack.campaign-tab";
 
 function showCampaignTab(tab) {
-  for (const name of ["solo", "coop"]) {
+  for (const name of ["solo", "team"]) {
     document.getElementById(`campaign-${name}`).hidden = name !== tab;
     document.getElementById(`campaign-tab-${name}`).setAttribute("aria-selected",
       String(name === tab));
@@ -151,7 +151,7 @@ function showCampaignTab(tab) {
 
 function storedCampaignTab() {
   try {
-    return localStorage.getItem(CAMPAIGN_TAB_KEY) === "coop" ? "coop" : "solo";
+    return localStorage.getItem(CAMPAIGN_TAB_KEY) === "team" ? "team" : "solo";
   } catch {
     return "solo";
   }
@@ -180,21 +180,27 @@ function showCampaign() {
     return `<li class="mission${i > done ? " locked" : ""}">` +
       `<span class="mission-name">${i + 1}. ${m.title}${best}</span>${action}</li>`;
   }).join("");
-  const coopDone = coopMissionsDone();
-  document.getElementById("coop-list").innerHTML = COOP_MISSIONS.map((m, i) => {
-    const action = i > coopDone ? `<span class="muted">Locked</span>`
-      : `<button type="button" class="start-btn mission-play" data-coop="${i}">` +
-        `${i < coopDone ? "Replay" : "Play"}</button>`;
-    return `<li class="mission${i > coopDone ? " locked" : ""}">` +
-      `<span class="mission-name">${i + 1}. ${m.title}` +
-      `<span class="mission-players">${m.humans} players</span></span>${action}</li>`;
+  document.getElementById("team-campaigns").innerHTML = TEAM_CAMPAIGNS.map((campaign) => {
+    const teamDone = teamMissionsDone(campaign.id);
+    const missions = campaign.missions.map((m, i) => {
+      const action = i > teamDone ? `<span class="muted">Locked</span>`
+        : `<button type="button" class="start-btn mission-play" ` +
+          `data-team="${campaign.id}" data-mission-index="${i}">` +
+          `${i < teamDone ? "Replay" : "Play"}</button>`;
+      return `<li class="mission${i > teamDone ? " locked" : ""}">` +
+        `<span class="mission-name">${i + 1}. ${m.title}</span>${action}</li>`;
+    }).join("");
+    return `<section class="team-campaign"><h3>${campaign.name}` +
+      `<span class="mission-players">${campaign.players} players</span></h3>` +
+      `<p class="campaign-intro">${campaign.intro}</p>` +
+      `<ul class="map-recent">${missions}</ul></section>`;
   }).join("");
   campaignPicker.hidden = false;
 }
 
-// A co-op mission: choose the players, then start or host it (multiplayer.js).
-document.getElementById("coop-list").addEventListener("click", async (e) => {
-  const button = e.target.closest("button[data-coop]");
+// A team mission: choose where each player plays, then start or host it (multiplayer.js).
+document.getElementById("team-campaigns").addEventListener("click", async (e) => {
+  const button = e.target.closest("button[data-team]");
   if (!button) return;
   const replace = !hasSavedGame() || await confirmDialog({
     title: "Start this mission?",
@@ -204,7 +210,7 @@ document.getElementById("coop-list").addEventListener("click", async (e) => {
   });
   if (!replace) return;
   campaignPicker.hidden = true;
-  showCoopSetup(Number(button.dataset.coop));
+  showTeamSetup(button.dataset.team, Number(button.dataset.missionIndex));
 });
 // Help: the units reference, and turning the tips back on (they show again as you play,
 // starting with the welcome).

@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.84";
+} from "./hex.js?v=0.85";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -44,7 +44,11 @@ import {
 //   phase, as before.
 // - A player who loses while others play on is knocked out (players[p].out): their units go,
 //   their factories become unused and share out their crystals, and their turns are skipped.
-//   The game ends when only one team is left.
+//   The game ends when only one team is left, unless rules.scriptedEnd is set: then a team
+//   campaign mission decides when it ends (team-campaigns.js), so a side can still change
+//   team after its enemies are beaten.
+// - A mission's script can change the game between actions (Scenario changes, below): a side
+//   changes team, crystals or units arrive, units change hands.
 
 // Saved games in any other format are not loaded.
 export const STATE_FORMAT = 8;
@@ -59,7 +63,9 @@ export const PLAYER_COLOURS = ["blue", "green", "yellow", "purple", "pink", "ora
 // units and crystals in rules.start for that game. A player whose home is unclaimed starts
 // with their home factory unused and must capture it with infantry first; a player with
 // noHome has no factory at all. upgrades are already fitted to the player's home factory.
-// starts, where given, replaces the map's start hexes for that player's units.
+// starts, where given, replaces the map's start hexes for that player's units. kits, where
+// given, names each player's role kit (rules.roleKits; null for none), which limits what
+// they can build and buy.
 //
 // sides: one entry per player, { team } (default: two sides, each its own team); the map
 // needs a factory site for each. phases: who acts together, as lists of players (default:
@@ -97,12 +103,13 @@ export function newGame({
       // Map blocks this player has turned over (fog mode "tiles").
       revealed: {},
       lost: {},
+      kit: (setup && setup.kits && setup.kits[p]) || null,
     })),
     units: {},
     nextUnitId: 1,
     crystals: {},
     hits: {},
-    // Ruins already searched (now rubble), by hex.
+    // Ruins already searched (now rubble), by hex: { by (the searching player), round }.
     searched: {},
     // New piles that spawn after each turn this round (drawn at the start of the round).
     spawnsPerTurn: 0,
@@ -778,18 +785,27 @@ export function canPackUp(view, unitId) {
 }
 
 // Whether a factory can build a unit type: a unit that needs an upgrade only from a factory
-// that has it.
+// that has it, and only for an owner whose role kit allows it.
 export function factoryBuilds(state, factory, type) {
   const stats = state.rules.units[type];
-  return unitAllowed(state, type) &&
+  return unitAllowed(state, type, factory.owner) &&
     (!stats.needs || factory.upgrades.includes(stats.needs));
 }
 
-// Whether a unit type can be built in this game: it has a cost, and the game's list of
-// allowed units (rules.allowedUnits, set by campaign missions; null = all) includes it.
-export function unitAllowed(state, type) {
+// A player's role kit (rules.roleKits), or null. Works on a view, for its own player.
+export function kitOf(state, player) {
+  const kit = player === null || player === undefined ? null : state.players[player].kit;
+  return kit ? state.rules.roleKits[kit] : null;
+}
+
+// Whether a unit type can be built in this game: it has a cost, the game's list of allowed
+// units (rules.allowedUnits, set by campaign missions; null = all) includes it, and so does
+// the player's role kit if they have one. The player is a view's own unless named.
+export function unitAllowed(state, type, player = state.isView ? state.viewer : null) {
   const allowed = state.rules.allowedUnits;
-  return state.rules.units[type].cost !== null && (!allowed || allowed.includes(type));
+  const kit = kitOf(state, player);
+  return state.rules.units[type].cost !== null && (!allowed || allowed.includes(type)) &&
+    (!kit || kit.builds.includes(type));
 }
 
 // Free hexes next to the player's factories where a new unit can be placed. With unitType,
@@ -806,21 +822,25 @@ export function buildSites(view, player, unitType = null) {
   return [...sites];
 }
 
-// Every unit type that can be built in this game, cheapest first.
-export function buildableTypes(state) {
-  return Object.keys(state.rules.units).filter((type) => unitAllowed(state, type))
+// Every unit type that can be built in this game (by the player, as in unitAllowed),
+// cheapest first.
+export function buildableTypes(state, player = state.isView ? state.viewer : null) {
+  return Object.keys(state.rules.units).filter((type) => unitAllowed(state, type, player))
     .sort((a, b) => state.rules.units[a].cost - state.rules.units[b].cost);
 }
 
 // The upgrades a factory has not bought yet, of those allowed in this game
-// (rules.allowedUpgrades; null = all). Comms is offered only to a player with allies.
+// (rules.allowedUpgrades; null = all) and by its owner's role kit. Comms is offered only to a
+// player with allies.
 export function upgradeOptions(state, factoryId) {
   const factory = state.units[factoryId];
   if (!factory || !factory.upgrades) return [];
   const allowed = state.rules.allowedUpgrades;
+  const kit = kitOf(state, factory.owner);
   const lonely = factory.owner === null || !alliesOf(state, factory.owner).length;
   return Object.keys(state.rules.factoryUpgrades).filter((u) =>
     !factory.upgrades.includes(u) && (!allowed || allowed.includes(u)) &&
+    (!kit || kit.upgrades.includes(u)) &&
     !(lonely && state.rules.factoryUpgrades[u].sharesVision));
 }
 
@@ -1006,6 +1026,9 @@ function applyMove(state, { unitId, to }, actor) {
   const from = unit.at;
   // Ground turned over by the move's last step: the unit may then go on with what is left.
   let revealedAtEnd = false;
+  // Overwatch fire on the unit along the way, told after the move itself.
+  const watchEvents = [];
+  let destroyed = false;
   // Each hex walked, with the move points it took.
   const walked = [];
   let stoppedBy = null;
@@ -1025,10 +1048,17 @@ function applyMove(state, { unitId, to }, actor) {
     spent += cost;
     walked.push({ k, cost });
     // Blocks come into sight along the way, not just at the end of the move.
-    if (!tilesFog(state)) continue;
-    const before = Object.keys(player.revealed).length;
-    revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
-    const turned = Object.keys(player.revealed).length > before;
+    let turned = false;
+    if (tilesFog(state)) {
+      const before = Object.keys(player.revealed).length;
+      revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
+      turned = Object.keys(player.revealed).length > before;
+    }
+    if (fireOverwatch(state, unit, k, watchEvents)) {
+      destroyed = true;
+      stoppedBy = "destroyed";
+      break;
+    }
     if (stopOnReveal && turned && i < route.path.length - 1) {
       stoppedBy = "revealed";
       break;
@@ -1036,7 +1066,7 @@ function applyMove(state, { unitId, to }, actor) {
     if (stopOnReveal && turned) revealedAtEnd = true;
   }
   // Never finish on a hex another unit is on, unless entering it.
-  while (walked.length) {
+  while (walked.length && !destroyed) {
     const last = walked[walked.length - 1].k;
     if (!byHex[last] || entering(last)) break;
     walked.pop();
@@ -1053,9 +1083,11 @@ function applyMove(state, { unitId, to }, actor) {
   // rest of its move (Phil, 31 October 2026: arriving counts too).
   const turnedOver = (stoppedBy === "revealed" && unit.at !== to) ||
     (revealedAtEnd && unit.at === to);
-  unit.continues = turnedOver && used > 0 && unit.moveUsed < unitStats(state, unit).move;
+  unit.continues = !destroyed && turnedOver && used > 0 &&
+    unit.moveUsed < unitStats(state, unit).move;
   state.events.push({ type: "move", unitId, from, to: unit.at, path, stoppedBy,
     moveLeft: unit.continues ? moveLeft(state, unit) : 0 });
+  state.events.push(...watchEvents);
 
   // Driving onto or over crystals destroys them; flying over them does not.
   if (state.rules.crystals.crushedByMovement && !flies) {
@@ -1067,6 +1099,7 @@ function applyMove(state, { unitId, to }, actor) {
     }
   }
 
+  if (destroyed) return;
   const there = byHex[unit.at];
   if (there && there !== unit) {
     if (canCapture(state, unit, there)) capture(state, unit, there);
@@ -1079,7 +1112,8 @@ function applyMove(state, { unitId, to }, actor) {
 }
 
 // The troops go into the factory and are used up; the factory keeps its damage and upgrades.
-// Crystals in an unused factory's store go to its new owner.
+// Crystals in an unused factory's store go to its new owner. The factory remembers the round
+// it was taken (for missions that need factories taken in the same round).
 function capture(state, unit, factory) {
   removeUnit(state, unit);
   const crystals = factory.store || 0;
@@ -1088,6 +1122,7 @@ function capture(state, unit, factory) {
     from: factory.owner, owner: unit.owner, at: factory.at, crystals });
   factory.owner = unit.owner;
   factory.store = 0;
+  factory.capturedRound = state.round;
 }
 
 function board(state, unit, transporter) {
@@ -1224,6 +1259,71 @@ export function firesBack(state, attacker, target) {
     stats.range[0] <= 1 &&
     stats.range[1] <= state.rules.combat.returnFireMaxRange &&
     (!stats.needsSetup || target.setUp);
+}
+
+// Overwatch (Phil, 31 October 2026; details provisional, 1 November 2026): a unit with the
+// stat "overwatch" (the Turrets) fires at an enemy that moves to a hex in its range, in its
+// sight and in clear line of sight, on ground its owner has turned over. Each overwatch unit
+// fires at most "shots" times (1 if not given) between one phase and the next, each time at
+// a different unit. It needs no action and does not use the unit's own shot in its turn. The
+// moving unit does not fire back, and if it survives it carries on with its move.
+// Returns whether the moving unit was destroyed. The events go into told, not state.events.
+function fireOverwatch(state, unit, k, told) {
+  const blocks = blocksSight(state);
+  const watching = Object.values(state.units).filter((t) =>
+    watches(state, t, unit, k, t.watched || [], blocks));
+  if (!watching.length) return false;
+  const events = state.events;
+  state.events = told;
+  unit.at = k;
+  for (const t of watching) {
+    t.watched = [...(t.watched || []), unit.id];
+    const attack = unitStats(state, t).attack;
+    state.events.push({ type: "overwatch", unitId: t.id, targetId: unit.id, at: k, attack });
+    hit(state, unit, attack);
+    if (!state.units[unit.id]) break;
+  }
+  state.events = events;
+  return !state.units[unit.id];
+}
+
+// Whether an overwatch unit t would fire at unit arriving on hex k, given the units it has
+// already fired at since the last phase. On a view, ground the owner has turned over is not
+// known, so it is taken to be turned over.
+function watches(state, t, unit, k, fired, blocks) {
+  const stats = unitStats(state, t);
+  if (!stats.overwatch || t.owner === null || !canTarget(state, t, unit)) return false;
+  const d = distance(t.at, k);
+  const revealed = state.players[t.owner].revealed;
+  return fired.length < (stats.shots || 1) && !fired.includes(unit.id) &&
+    d >= stats.range[0] && d <= stats.range[1] && d <= stats.sight &&
+    lineOfSight(t.at, k, blocks) &&
+    (!tilesFog(state) || !revealed || Boolean(revealed[blockOf(state, k)]));
+}
+
+// For each hex a unit can move to, the lives it would lose to overwatch on the way from the
+// overwatch units its owner can see (0 when none would fire). For the AI. Works on a view.
+export function overwatchLosses(view, unitId) {
+  const unit = view.units[unitId];
+  const out = {};
+  const watchers = unit ? Object.values(view.units).filter((t) =>
+    unitStats(view, t).overwatch && t.owner !== null && canTarget(view, t, unit)) : [];
+  if (!watchers.length) return out;
+  const options = routes(view, unit);
+  const blocks = blocksSight(view);
+  for (const k in options) {
+    const fired = new Map(watchers.map((t) => [t.id, t.watched || []]));
+    let total = 0;
+    for (const step of options[k].path) {
+      for (const t of watchers) {
+        if (!watches(view, t, unit, step, fired.get(t.id), blocks)) continue;
+        fired.set(t.id, [...fired.get(t.id), unit.id]);
+        total += unitStats(view, t).attack;
+      }
+    }
+    out[k] = total ? unit.lives - livesAfterHit(view, unit, total).lives : 0;
+  }
+  return out;
 }
 
 // Attacks on one unit within a turn add up. The total decides how many lives it has lost
@@ -1363,7 +1463,7 @@ function applySearch(state, { unitId, at }, actor) {
     illegal(`${unitId} cannot search ${at}`);
   }
   finishAction(unit);
-  state.searched = { ...(state.searched || {}), [at]: true };
+  state.searched = { ...(state.searched || {}), [at]: { by: actor, round: state.round } };
   const event = { type: "search", unitId, at, outcome: "nothing" };
   const found = searchOutcome(state, actor, at);
   if (found.crystals) {
@@ -1517,6 +1617,8 @@ function nextPhase(state) {
       unit.shotAt = [];
       if (unit.cooldown > 0) unit.cooldown -= 1;
     }
+    // Overwatch is ready again for the new phase.
+    for (const unit of Object.values(state.units)) if (unit.watched) unit.watched = [];
     return;
   }
 }
@@ -1643,7 +1745,7 @@ function settle(state, losers) {
   const left = state.players.map((_, p) => p)
     .filter((p) => !state.players[p].out && !lost.includes(p));
   const teams = new Set(left.map((p) => teamOf(state, p)));
-  if (teams.size <= 1) {
+  if (teams.size === 0 || (teams.size === 1 && !state.rules.scriptedEnd)) {
     state.result = { winner: left.length ? left[0] : null, reason: losers[0].reason,
       round: state.round };
     if (left.length > 1) state.result.winners = left;
@@ -1679,6 +1781,80 @@ function knockOut(state, p, reason) {
   player.crystals = 0;
   state.active = state.active.filter((x) => x !== p);
   if (state.current === p && state.active.length) state.current = state.active[0];
+}
+
+// ---------------------------------------------------------------------------------------
+// Scenario changes
+//
+// Made by a team campaign mission's script (team-campaigns.js), not by any player, between
+// actions. Each returns a new state, as applyAction does, with what happened added to the
+// events of the action just taken, so the game screen tells both.
+
+function scenarioChange(state, change) {
+  if (state.isView) throw new Error("Scenario changes apply to the full game state");
+  const next = cloneState(state);
+  next.events = [...state.events];
+  change(next);
+  refreshKnowledge(next);
+  checkResult(next);
+  return next;
+}
+
+// A side changes team: allies become enemies, or enemies allies.
+export function changeTeam(state, player, team) {
+  return scenarioChange(state, (next) => {
+    next.players[player].team = team;
+    next.events.push({ type: "teamChange", player, team });
+  });
+}
+
+export function giveCrystals(state, player, amount) {
+  return scenarioChange(state, (next) => {
+    next.players[player].crystals += amount;
+    next.events.push({ type: "crystalsArrive", player, amount });
+  });
+}
+
+// Units arrive for a player, each on the free open hex nearest near (ties broken by key), not
+// on a crystal pile. They can act from their owner's next turn.
+export function addUnits(state, player, types, near) {
+  return scenarioChange(state, (next) => {
+    const free = (k) => terrainRules(next, k).moveCost !== null && !unitAt(next, k) &&
+      !next.crystals[k];
+    const sites = Object.keys(next.map.hexes).filter(free)
+      .sort((a, b) => distance(near, a) - distance(near, b) || a.localeCompare(b));
+    const ids = [];
+    types.slice(0, sites.length).forEach((type, i) => {
+      const unit = addUnit(next, type, player, sites[i]);
+      finishAction(unit);
+      ids.push(unit.id);
+    });
+    next.events.push({ type: "unitsArrive", player, unitIds: ids, at: near });
+  });
+}
+
+// Hexes change terrain (a crater wall opening, a pass caving in). Units, piles and factories
+// on them stay. The map is replaced, not edited, so a state that shares it is unchanged.
+export function changeTerrain(state, hexes, terrain) {
+  return scenarioChange(state, (next) => {
+    const changed = hexes.filter((k) => next.map.hexes[k]);
+    next.map = { ...next.map, hexes: { ...next.map.hexes } };
+    for (const k of changed) next.map.hexes[k] = { ...next.map.hexes[k], terrain };
+    next.events.push({ type: "terrainChange", hexes: changed, terrain });
+  });
+}
+
+// Units (factories included) change hands, with whatever they carry.
+export function handOver(state, unitIds, player) {
+  return scenarioChange(state, (next) => {
+    const moved = unitIds.filter((id) => next.units[id]);
+    for (const id of moved) {
+      const unit = next.units[id];
+      next.units[id] = { ...unit, owner: player,
+        ...(unit.cargo ? { cargo: unit.cargo.map((c) => ({ ...c, owner: player })) } : {}) };
+    }
+    next.events.push({ type: "handOver", unitIds: moved, player });
+  });
 }
 
 // ---------------------------------------------------------------------------------------

@@ -12,9 +12,10 @@ import {
   buildSites, unitStats, unitsOf, defenceOf, livesAfterHit, firesBack, canHit, applyAction,
   viewFor, factoriesOf, factoryBuilds, upgradeOptions, canCapture, dropSites, unitAllowed,
   canBoard, allied, crystalTargets, boomHexes, searchTargets, seedLoads, plantSites,
-} from "./engine.js?v=0.84";
-import { neighbourKeys, distance } from "./hex.js?v=0.84";
-import { COUNTERS } from "./counters.js?v=0.84";
+  overwatchLosses,
+} from "./engine.js?v=0.85";
+import { neighbourKeys, distance } from "./hex.js?v=0.85";
+import { COUNTERS } from "./counters.js?v=0.85";
 
 // Harvesters wanted once this many crystal piles are known.
 const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
@@ -24,6 +25,8 @@ const KNOWN_PILES_FOR_EXTRA_HARVESTER = 3;
 const FACTORY_CLEAR_PENALTY = 3;
 // Stopping on crystals destroys them, so the AI avoids it unless nothing else gets closer.
 const CRUSH_PENALTY = 2;
+// How many steps further from its goal a unit will go to keep each life from overwatch fire.
+const OVERWATCH_LIFE_PENALTY = 4;
 // Units that explore the map, then watch the enemy factory. A scout that can fight turns to
 // enemies it can see within this many hexes.
 const SCOUT_TYPES = ["scoutBike", "spotterDrone"];
@@ -303,7 +306,8 @@ function context(view, personality, counters = COUNTERS) {
     enemyFighters: enemies.filter(isFighter),
     myFactory: view.units[view.players[me].factoryId],
     myFactories,
-    enemyFactorySite: target === null ? null : view.map.factories[target],
+    // With no opponent left (a team mission can go on after that), it stays at home.
+    enemyFactorySite: view.map.factories[target === null ? me : target],
   };
 }
 
@@ -973,8 +977,11 @@ function bestMove(ctx) {
     const crushing = (k) => (view.crystals[k] ? CRUSH_PENALTY : 0);
     const captures = Boolean(unitStats(view, unit).captures);
     const blocking = (k) => (!captures && siegeHexes.has(k) ? FACTORY_CLEAR_PENALTY : 0);
+    const watched = overwatchLosses(view, unit.id);
+    const overwatch = (k) => (watched[k] || 0) * OVERWATCH_LIFE_PENALTY;
     const score = (k) => (field[k] === undefined ? Infinity : field[k]) +
-      (careful ? dangerAt(ctx, k) : 0) + crowding(k) + crushing(k) + blocking(k);
+      (careful ? dangerAt(ctx, k) : 0) + crowding(k) + crushing(k) + blocking(k) +
+      overwatch(k);
     let best = null;
     let bestScore = score(unit.at);
     for (const k in reach) {

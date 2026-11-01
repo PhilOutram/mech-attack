@@ -1,8 +1,21 @@
-export const VERSION = "v0.84";
+export const VERSION = "v0.85";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.85",
+    date: "2026-11-01",
+    notes: [
+      "Team campaigns: ten missions each for 2, 3 and 4 players, replacing the co-op campaign.",
+      "Four AI factions, each with a leader: Kaldra, Director Varr, Mother Sable and Echo.",
+      "Allies can turn on you mid-mission; enemies can come over; old factories can wake.",
+      "Turret overwatch: Turrets fire at enemies moving into range, even outside their turn.",
+      "Role kits: in some missions each player can build only their own kit's units.",
+      "Some objectives must be met in the same round, such as factories taken together.",
+      "The AI now steers clear of Turret overwatch where it can.",
+    ],
+  },
   {
     version: "v0.84",
     date: "2026-11-01",

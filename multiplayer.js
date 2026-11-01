@@ -6,13 +6,14 @@
 // - Same time (co-op): 2 to 4 humans, one device each, on one team against one or two AI sides.
 //   The humans play at the same time; then the AI team takes its turn. The AI starts with more
 //   for each human it faces (see coopSetup).
-import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.84";
-import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.84";
-import { hostGame, joinGame as joinRemote } from "./net.js?v=0.84";
-import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.84";
-import { PLAYER_COLOURS } from "./board.js?v=0.84";
-import { RULES } from "./rules-config.js?v=0.84";
-import { COOP_MISSIONS, coopPlan } from "./coop-campaign.js?v=0.84";
+import { shapesForSides, MAP_SHAPES, MULTI_SIDE_SHAPES } from "./maps.js?v=0.85";
+import { LEVELS, DEFAULT_LEVEL } from "./difficulty.js?v=0.85";
+import { hostGame, joinGame as joinRemote } from "./net.js?v=0.85";
+import { openGame, joinGame as openJoinedGame } from "./game.js?v=0.85";
+import { PLAYER_COLOURS } from "./board.js?v=0.85";
+import { RULES } from "./rules-config.js?v=0.85";
+import { campaignById, teamPlan } from "./team-campaigns.js?v=0.85";
+import { FACTIONS, HUMAN_TEAM } from "./team-scenario.js?v=0.85";
 
 const MIN_SIDES = 2;
 const MAX_TURN_SIDES = 4;
@@ -60,49 +61,67 @@ export function wireMultiplayer({ leaveTo }) {
     e.preventDefault();
     join($("mp-code").value);
   });
-  $("coop-cancel").addEventListener("click", () => { $("coop-setup").hidden = true; });
-  $("coop-start").addEventListener("click", startCoop);
-  $("coop-setup").addEventListener("change", (e) => {
+  $("team-cancel").addEventListener("click", () => { $("team-setup").hidden = true; });
+  $("team-start").addEventListener("click", startTeam);
+  $("team-setup").addEventListener("change", (e) => {
     const { human } = e.target.dataset;
-    if (human !== undefined) coop.where[human] = e.target.value;
-    renderCoop();
+    if (human !== undefined) team.where[human] = e.target.value;
+    renderTeam();
   });
 }
 
 // ---------------------------------------------------------------------------------------
-// A co-op campaign mission: where each of its humans plays (the mission sets how many)
+// A team campaign mission: where each of its humans plays (the campaign sets how many)
 
-const coop = { mission: 0, where: [HERE, REMOTE] };
+const team = { campaign: null, mission: 0, where: [HERE, REMOTE], plan: null };
 
-export function showCoopSetup(mission) {
-  coop.mission = mission;
-  coop.where = [HERE, ...Array.from({ length: COOP_MISSIONS[mission].humans - 1 },
-    () => REMOTE)];
-  renderCoop();
-  $("coop-setup").hidden = false;
+export function showTeamSetup(campaignId, mission) {
+  Object.assign(team, { campaign: campaignId, mission,
+    where: [HERE, ...Array.from({ length: campaignById(campaignId).players - 1 },
+      () => REMOTE)],
+    // The plan builds the mission's map, so it is made once, not at every change.
+    plan: teamPlan(campaignId, mission) });
+  renderTeam();
+  $("team-setup").hidden = false;
 }
 
-function renderCoop() {
-  const m = COOP_MISSIONS[coop.mission];
-  const plan = coopPlan(coop.mission, coop.where.length);
-  $("coop-title").textContent = `Co-op mission ${coop.mission + 1}: ${m.title}`;
-  $("coop-objective").textContent = `${m.objective} Against you: ` +
-    `${plan.seats.length - coop.where.length} AI side` +
-    `${plan.seats.length - coop.where.length > 1 ? "s" : ""}.`;
-  $("coop-players").innerHTML = coop.where.map((where, p) => `<li>${colourChip(p)}` +
-    `<select data-human="${p}">${kindOptions(where, true)}</select></li>`).join("");
-  const here = coop.where.includes(HERE);
-  $("coop-problem").textContent = here ? "" : "At least one player must be on this device.";
-  $("coop-start").disabled = !here;
-  $("coop-start").textContent = coop.where.includes(REMOTE) ? "Host game" : "Start";
+// An AI side for the set-up screen: its colour, faction and leader.
+function factionChip(plan, p) {
+  const side = FACTIONS[plan.team.factions[p]];
+  return `<li><span class="mp-colour" style="background:${PLAYER_COLOURS[p].ring}"></span>` +
+    `<span class="mp-faction">${side.name}, led by ${side.leader}</span></li>`;
 }
 
-function startCoop() {
-  const plan = coopPlan(coop.mission, coop.where.length);
-  plan.seats = plan.seats.map((seat, p) => (p < coop.where.length
-    ? { kind: "human", remote: coop.where[p] === REMOTE } : seat));
+function renderTeam() {
+  const campaign = campaignById(team.campaign);
+  const m = campaign.missions[team.mission];
+  const { plan } = team;
+  $("team-title").textContent = `${campaign.name} ${team.mission + 1}: ${m.title}`;
+  $("team-objective").textContent = m.objective;
+  $("team-players").innerHTML = team.where.map((where, p) => {
+    const kit = plan.setup.kits[p] && RULES.roleKits[plan.setup.kits[p]];
+    return `<li>${colourChip(p)}${kit ? `<span class="mp-kit">${kit.name}</span>` : ""}` +
+      `<select data-human="${p}">${kindOptions(where, true)}</select></li>`;
+  }).join("");
+  const ais = plan.seats.map((_, p) => p).filter((p) => p >= team.where.length);
+  const allies = ais.filter((p) => plan.sides[p].team === HUMAN_TEAM);
+  const enemies = ais.filter((p) => !allies.includes(p));
+  $("team-allies").innerHTML = allies.length ? `<li class="mp-heading">With you</li>` +
+    allies.map((p) => factionChip(plan, p)).join("") : "";
+  $("team-enemies").innerHTML = `<li class="mp-heading">Against you</li>` +
+    enemies.map((p) => factionChip(plan, p)).join("");
+  const here = team.where.includes(HERE);
+  $("team-problem").textContent = here ? "" : "At least one player must be on this device.";
+  $("team-start").disabled = !here;
+  $("team-start").textContent = team.where.includes(REMOTE) ? "Host game" : "Start";
+}
+
+function startTeam() {
+  const plan = { ...team.plan };
+  plan.seats = plan.seats.map((seat, p) => (p < team.where.length
+    ? { kind: "human", remote: team.where[p] === REMOTE } : seat));
   chosen = plan;
-  $("coop-setup").hidden = true;
+  $("team-setup").hidden = true;
   const remoteSeats = plan.seats.map((seat, s) => (seat.remote ? s : null))
     .filter((s) => s !== null);
   if (!remoteSeats.length) {
