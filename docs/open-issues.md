@@ -21,6 +21,8 @@ One page to check at any time: problems not yet solved, decisions waiting for Ph
 - **Turret overwatch details** (v0.84, provisional): it fires automatically, once at each unit between phases (twice for the Twin Turret, at different units); the unit carries on if it survives and does not fire back; it needs the Turret's owner to have turned over the ground. Units that arrive by script, are built or are dropped off are not fired on.
 - **Role kit contents** (v0.84, provisional): which units and upgrades each of Vanguard, Bastion, Skywing and Foundry gets (`docs/rules.md`).
 - **Orange and white players** (v0.84, provisional), made by the recolour tools from the blue art, not drawn. Phil may want to draw his own. Team missions with six sides use orange.
+- **Scripted effects with no rule behind them** (v0.85): old factories waking for the Lattice (What Sleeps Below), crater walls opening when relays fall in the same round (Ashfall, Echo), relays going dark (The Lamplighters), and units or crystals simply arriving. Phil, 1 November 2026: stick to the game's own mechanics; tunnelling has gone, these are waiting for his word.
+- **Map variety in the team campaigns:** every mission has its own generated layout, but only two outlines: the 24-block 4-5-6-5-4 for 3 or 4 sides and the 37-block hexagon for 5 or 6. All ten 4-player missions are on the hexagon.
 - **Team campaign difficulty:** every mission needs playing by people. The AI trials cannot judge missions that need a plan (strikes in the same round, waiting by an ally's factory, leaving a camp standing).
 
 ## Backlog: agreed, not started

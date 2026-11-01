@@ -2,11 +2,11 @@
 // factions and their leaders, reshaping a mission's map, what a mission checks, and what its
 // script can change. Pure functions of the map or the game state, no DOM, so the game screen,
 // the tests and tools/team-trials.mjs all run missions the same way.
-import { RULES } from "./rules-config.js?v=0.85";
+import { RULES } from "./rules-config.js?v=0.86";
 import {
   changeTeam, giveCrystals, addUnits, handOver, changeTerrain, unitsOf, factoriesOf, unitStats,
-} from "./engine.js?v=0.85";
-import { distance, parseKey, toPixel, key } from "./hex.js?v=0.85";
+} from "./engine.js?v=0.86";
+import { distance, parseKey, toPixel, key } from "./hex.js?v=0.86";
 
 export const HUMAN_TEAM = 0;
 export const ENEMY_TEAM = 1;
@@ -203,6 +203,12 @@ export function humansHold(state, ctx, at) {
   return ctx.humans.includes(ownerAt(state, at));
 }
 
+// Whether the factory on a site belongs to the humans or one of their AI allies.
+export function teamHolds(state, at) {
+  const owner = ownerAt(state, at);
+  return owner !== null && state.players[owner].team === HUMAN_TEAM;
+}
+
 export function homeHeld(state, p) {
   return state.units[state.players[p].factoryId]?.owner === p;
 }
@@ -278,9 +284,36 @@ export function standing(state, p) {
 // ---------------------------------------------------------------------------------------
 // What a mission's script can change (see the Scenario changes in engine.js)
 
+// A side never changes team without warning (Phil, 1 November 2026: betrayals are unsettling
+// if they come out of nowhere): a note this many rounds before, at the start of the humans'
+// turn.
+export const TURN_WARNING_ROUNDS = 2;
+
+export function warning(id, round, note) {
+  return { id, note,
+    when: (state) => state.phaseIndex === 0 && state.round >= round - TURN_WARNING_ROUNDS };
+}
+
 export const betray = (state, p, team) => changeTeam(state, p, team);
 export const reinforce = (state, p, types, near) =>
   (state.players[p].out ? state : addUnits(state, p, types, near));
+
+// How far from their target airdropping Chinooks arrive: more than a Chinook's move, so they
+// need a turn in the air before they can drop, and the defenders get two turns to shoot them
+// down.
+export const AIRDROP_DISTANCE = 7;
+
+// Chinooks arrive loaded with Infantry, on the far side of a target hex from the middle of the
+// map. The AI flies loaded Chinooks to the nearest factory it can take and drops the Infantry
+// straight in (Phil, 1 November 2026: arrivals use the game's own units and rules).
+export function airdrop(state, p, chinooks, passengers, target) {
+  if (state.players[p].out) return state;
+  const sites = Object.keys(state.map.hexes).filter((k) =>
+    distance(k, target) === AIRDROP_DISTANCE &&
+    state.rules.terrain[state.map.hexes[k].terrain].moveCost !== null);
+  sites.sort((a, b) => distance(b, "0,0") - distance(a, "0,0") || a.localeCompare(b));
+  return addUnits(state, p, Array(chinooks).fill("chinook"), sites[0] || target, passengers);
+}
 export const gift = (state, p, amount) => giveCrystals(state, p, amount);
 export const openGround = (state, hexes) => changeTerrain(state, hexes, "plain");
 

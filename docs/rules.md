@@ -149,6 +149,8 @@ Settled with Phil, 29 October 2026; the plan and what is still open are in `docs
   - The mission decides when the game ends (`rules.scriptedEnd`): a side with nothing left is knocked out, but the game goes on until the objective is met or failed. With every enemy beaten and nothing more to come in the story, the team wins.
   - Some objectives must be met in the same round, such as factories overrun in one round; a factory remembers the round it was taken.
   - Demand surrender is not offered: the objective decides the mission.
+  - A side never changes team without warning: a note two rounds before, at the start of the humans' turn (Phil, 1 November 2026).
+  - Enemy raids arrive as the game's own units: Chinooks loaded with Infantry, which then fly in and drop them as any Chinook does (Phil, 1 November 2026; the tunnelling of v0.85 is gone).
 - Role kits (Phil, 31 October 2026; contents provisional, 1 November 2026): in some team missions each human has a role, which limits the units they can build and the factory upgrades they can buy, even from factories they capture (`rules.roleKits`):
 
   | Kit | Builds | Upgrades |

@@ -24,12 +24,12 @@
 //   team wins by knocking out every side not on it.
 // - failed(state, ctx) (optional): the mission is lost. It is always lost if every human is
 //   knocked out.
-import { RULES } from "./rules-config.js?v=0.85";
-import { mapById, shapesForSides } from "./maps.js?v=0.85";
-import { HUMAN_TEAM, FACTIONS, arrangeHomes } from "./team-scenario.js?v=0.85";
-import { DUO_CAMPAIGN } from "./team-campaign-2.js?v=0.85";
-import { TRIO_CAMPAIGN } from "./team-campaign-3.js?v=0.85";
-import { QUARTET_CAMPAIGN } from "./team-campaign-4.js?v=0.85";
+import { RULES } from "./rules-config.js?v=0.86";
+import { mapById, shapesForSides } from "./maps.js?v=0.86";
+import { HUMAN_TEAM, FACTIONS, arrangeHomes } from "./team-scenario.js?v=0.86";
+import { DUO_CAMPAIGN } from "./team-campaign-2.js?v=0.86";
+import { TRIO_CAMPAIGN } from "./team-campaign-3.js?v=0.86";
+import { QUARTET_CAMPAIGN } from "./team-campaign-4.js?v=0.86";
 
 const PROGRESS_KEY = "mech-attack.team-campaigns";
 

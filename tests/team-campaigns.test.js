@@ -73,12 +73,16 @@ test("the opening script runs before anyone plays", () => {
   }
 });
 
-test("an ally who turns on the humans becomes an enemy at the round set", () => {
+test("an ally turns on the humans at the round set, warned two rounds before", () => {
   let { state } = missionGame("duo", 2);
   const varr = contextOf(state).side("syndicate");
   assert.equal(state.players[varr].team, HUMAN_TEAM);
-  // Jump to the start of the round when Varr turns: the script fires once, with a note.
-  state = { ...state, round: 6, phaseIndex: 0 };
+  // Two rounds before Varr turns: a warning, and Varr still an ally.
+  const warned = missionTick({ ...state, round: 4, phaseIndex: 0 });
+  assert.equal(warned.notes.length, 1);
+  assert.equal(warned.state.players[varr].team, HUMAN_TEAM);
+  // The start of the round when Varr turns: the script fires once, with a note.
+  state = { ...warned.state, round: 6, phaseIndex: 0 };
   const { state: after, notes } = missionTick(state);
   assert.equal(after.players[varr].team, ENEMY_TEAM);
   assert.equal(notes.length, 1);
@@ -131,4 +135,25 @@ test("with rules.scriptedEnd the game goes on when one team is left", () => {
 
 test("every team campaign has an intro and an epilogue", () => {
   for (const c of TEAM_CAMPAIGNS) assert.ok(c.intro && c.epilogue, c.name);
+});
+
+test("Chinooks can arrive loaded with Infantry, and the AI drops them into a factory", () => {
+  const state = scenario({ units: [] });
+  const arrived = addUnits(state, 1, ["chinook"], "0,0", ["infantry", "infantry", "infantry"]);
+  const chinook = Object.values(arrived.units).find((u) => u.type === "chinook");
+  assert.deepEqual(chinook.cargo.map((c) => c.type), ["infantry", "infantry"], "room for two");
+  assert.ok(!Object.values(arrived.units).some((u) => u.type === "infantry"));
+});
+
+test("every side that turns on the humans is warned two rounds before", () => {
+  for (const c of TEAM_CAMPAIGNS) {
+    c.missions.forEach((m, index) => {
+      const ids = (m.script || []).map((item) => item.id);
+      for (const id of ["turn", "overseer"]) {
+        if (!ids.includes(id)) continue;
+        assert.ok(ids.some((w) => w.toLowerCase().includes("warning")),
+          `${c.name} ${index + 1}: ${m.title}`);
+      }
+    });
+  }
 });

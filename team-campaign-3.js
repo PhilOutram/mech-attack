@@ -2,14 +2,14 @@
 // colonies settle beside the ruins of the first colony. The Ashborn go from raiders to
 // allies; Sable's son Corran sells them to the Lattice and then learns what Echo really
 // wants; General Kaldra becomes an ally of necessity. All figures are provisional.
-import { RULES } from "./rules-config.js?v=0.85";
+import { RULES } from "./rules-config.js?v=0.86";
 import {
   HUMAN_TEAM, ENEMY_TEAM, THIRD_TEAM, human, faction, siteNear, addFactory, spreadRuins,
   ringOfMountains, freeHexNear, hexesWithin, mirror, humansHold, homesHeld, homeHeld,
   lostCount, teamCrystals, ruinsSearchedBy, unitAlive, takenThisRound, roundStarted, betray,
-  reinforce, giftEach, takeFactory, openGround,
-} from "./team-scenario.js?v=0.85";
-import { distance } from "./hex.js?v=0.85";
+  reinforce, giftEach, takeFactory, openGround, warning,
+} from "./team-scenario.js?v=0.86";
+import { distance } from "./hex.js?v=0.86";
 
 // Targets and counts, kept next to the text that names them.
 const RUINS_TO_SEARCH = 5;
@@ -217,6 +217,9 @@ export const TRIO_CAMPAIGN = {
           act: (state, ctx) => sites(ctx, POSTS).reduce((s, at) =>
             takeFactory(s, at, ctx.side("splinter"), ["twinTurret", "infantry",
               "infantry"]), state) },
+        warning("turnWarning", CORRAN_TURNS_ROUND, "Sable: \"Corran has stopped " +
+          "answering me. His people are loading their guns and pointing them at your " +
+          "factories. Whatever he is planning, it will be soon.\""),
         { id: "turn",
           when: (state) => humanPhase(state) && state.round >= CORRAN_TURNS_ROUND,
           act: (state, ctx) => sites(ctx, POSTS).reduce((s, at) =>
@@ -355,6 +358,8 @@ export const TRIO_CAMPAIGN = {
         { id: "start", when: () => true,
           act: (state, ctx) => ["relay1", "relay2"].reduce((s, name) =>
             takeFactory(s, ctx.sites[name], ctx.side("lattice"), ["twinTurret"]), state) },
+        warning("strikeWarning", ECHO_STRIKES_ROUND, "Kaldra's spies: Lattice aircraft are " +
+          "massing over Corran's camp. Echo will turn on him in two rounds."),
         { id: "echoStrikes",
           when: (state) => humanPhase(state) && state.round >= ECHO_STRIKES_ROUND,
           act: (state, ctx) => {

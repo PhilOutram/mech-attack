@@ -5,8 +5,9 @@
 import {
   HUMAN_TEAM, ENEMY_TEAM, THIRD_TEAM, human, faction, siteNear, addFactory, wallBetween,
   ringOfMountains, freeHexNear, humansHold, homesHeld, homeHeld, ownerAt, isOut,
-  lostCount, hasUnit, roundStarted, betray, reinforce, giftEach, takeFactory,
-} from "./team-scenario.js?v=0.85";
+  lostCount, hasUnit, roundStarted, betray, reinforce, giftEach, takeFactory, teamHolds,
+  warning,
+} from "./team-scenario.js?v=0.86";
 
 // Targets and counts, kept next to the text that names them.
 const CONVOY_CRYSTALS = 15;
@@ -145,6 +146,9 @@ export const DUO_CAMPAIGN = {
           act: (state, ctx) => sites(ctx, ["postBlue", "postGreen"]).reduce((s, at) =>
             takeFactory(s, at, ctx.side("syndicate"), ["turret", "infantry", "infantry"]),
           state) },
+        warning("turnWarning", GUESTS_TURN_ROUND, "Kaldra, on an open channel: \"Varr " +
+          "has been talking to my quartermaster about your factories. I would not turn your " +
+          "backs on her posts.\" Something is coming within two rounds."),
         { id: "turn",
           when: (state) => humanPhase(state) && state.round >= GUESTS_TURN_ROUND,
           act: (state, ctx) => betray(state, ctx.side("syndicate"), ENEMY_TEAM),
@@ -314,18 +318,18 @@ export const DUO_CAMPAIGN = {
     },
     {
       title: "The Director's Last Deal",
-      story: "Varr comes back on her knees: the Lattice turned on her too. She offers her " +
-        "army against its node in the Glass Canyon. Kaldra is blunt: \"The moment that node " +
-        "falls, she runs, with every crystal she stole.\" Have Infantry waiting by Varr's " +
-        "factory before you strike: when the node falls, take her factory that same round.",
-      objective: "Overrun the Lattice node (its home factory), then Varr's home factory in " +
-        "the same round, before she can run.",
+      story: "Varr has holed up in the Glass Canyon with every crystal she stole, right " +
+        "beside the Lattice's node, and her guns fire on everyone. Kaldra is blunt: \"The " +
+        "moment her factory or the node falls, she runs, and the crystals go with her.\" " +
+        "Get Infantry ready by both, then take them in the same round.",
+      objective: "Overrun the Lattice node (its home factory) and Varr's home factory in the " +
+        "same round, before she can run.",
       failText: "Varr got away with the crystals.",
       map: { seed: 83, slots: [0, 1, 2, 4, 3] },
       humans: human({ units: ["lightHarvester", "scoutBike", "tank", "infantry", "infantry"] }),
       ais: [
-        faction("syndicate", { team: HUMAN_TEAM, crystals: 100,
-          units: ["turret", "infantry", "scoutBike", "lightHarvester"] }),
+        faction("syndicate", { team: THIRD_TEAM, crystals: 120,
+          units: ["turret", "turret", "infantry", "scoutBike", "lightHarvester"] }),
         faction("consortium", { team: HUMAN_TEAM }),
         faction("lattice", { level: "marshal", crystals: 160,
           upgrades: ["airfield", "heavyWorks"],
@@ -335,13 +339,13 @@ export const DUO_CAMPAIGN = {
       script: [
         { id: "flee",
           when: (state, ctx) => humanPhase(state) &&
-            ownerAt(state, home(state, ctx.side("lattice"))) !== ctx.side("lattice"),
-          act: (state, ctx) => betray(state, ctx.side("syndicate"), ENEMY_TEAM),
-          note: "\"Lovely doing business.\" Varr's Transporters are loading crystals. Take her " +
-            "factory before this round ends, or she is gone." },
+            (ownerAt(state, home(state, ctx.side("lattice"))) !== ctx.side("lattice") ||
+              ownerAt(state, home(state, ctx.side("syndicate"))) !== ctx.side("syndicate")),
+          note: "Varr's Transporters are loading crystals. Take the other factory before this " +
+            "round ends, or she is gone." },
       ],
-      done: (state, ctx) => ctx.fired("flee") !== undefined &&
-        humansHold(state, ctx, home(state, ctx.side("syndicate"))),
+      done: (state, ctx) => ["lattice", "syndicate"].every((side) =>
+        teamHolds(state, home(state, ctx.side(side)))),
       failed: (state, ctx) => !homesHeld(state, ctx) ||
         (ctx.fired("flee") !== undefined && state.round > ctx.fired("flee")),
     },

@@ -41,6 +41,7 @@ Measured 1 November 2026 (v0.83, hand-tuned AI, 300 games on map 1); Phil playin
 - Phil, 1 November 2026: a unit with sight 4 parked at the edge of the explored ground cannot see into the face-down blocks beside it, because a block turns over only when a unit is on it or next to it (`fog.revealRange` 1). An enemy can sit there unseen and pounce. Tried turning over every block in a unit's sight (`fog.revealRange` null): game length unchanged (15.8 rounds), captures up (175 to 226 games) and the first player went from winning 12% of decided games to 77%. So exploration speed decides who moves first on map 1; the second-player edge above is tied to it.
 
 Parked for testing, or for a sequel:
+- Tunnelling (Phil, 1 November 2026, from the first draft of the team campaigns): units that travel underground and come up inside an enemy base. Not a game mechanic; the missions use Chinook airdrops instead.
 - Separate attack and defence against ground and against air. Would shift the rings a lot, but doubles the numbers on every unit. Sequel.
 - Factory upgrades that change units: Optics (+1 sight), Armour plating (+5 defence, -1 move), Long barrels (+1 range, -5 attack). Flat boosts were rejected because they steepen the cost ladder.
 - Supply depot upgrade for sending crystals straight to an ally. Phil is unsure; useful when one player's factory is surrounded by crystals.

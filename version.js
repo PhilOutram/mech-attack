@@ -1,8 +1,18 @@
-export const VERSION = "v0.85";
+export const VERSION = "v0.86";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.86",
+    date: "2026-11-01",
+    notes: [
+      "Team missions: every betrayal is now warned two rounds before it happens.",
+      "The Director's Last Deal: Varr is at war with everyone from the start, not a false ally.",
+      "Gifts: the gift factories stay yours; Lattice Chinooks bring Infantry to take them.",
+      "Breach: Lattice Chinooks airdrop Infantry from round 4, in place of tunnelling.",
+    ],
+  },
   {
     version: "v0.85",
     date: "2026-11-01",

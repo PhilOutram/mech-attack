@@ -5,22 +5,25 @@
 import {
   HUMAN_TEAM, ENEMY_TEAM, human, faction, siteNear, addFactory, wallBetween, ringOfMountains,
   freeHexNear, hexesWithin, mirror, humansHold, homesHeld, homeHeld, factoryAt, lostCount,
-  takenThisRound, roundStarted, betray, reinforce, takeFactory, defect, openGround,
-} from "./team-scenario.js?v=0.85";
-import { handOver } from "./engine.js?v=0.85";
-import { distance, parseKey, key } from "./hex.js?v=0.85";
+  takenThisRound, roundStarted, betray, reinforce, takeFactory, defect, openGround, warning,
+  airdrop,
+} from "./team-scenario.js?v=0.86";
+import { handOver } from "./engine.js?v=0.86";
+import { distance, parseKey, key } from "./hex.js?v=0.86";
 
 // Targets and counts, kept next to the text that names them.
 const FOUR_CORNERS_ROUNDS = 10;
 const RAIDERS_TO_DESTROY = 12;
 const GIFT_DISTANCE = 3;
 const GIFTS_TURN_ROUND = 6;
+const GIFTS_HOLD_ROUND = 12;
 const NEST_DISTANCE = 4;
 const TRUCE_WARNING_ROUND = 3;
 const TRUCE_ENDS_ROUND = 5;
 const KALDRA_ROUNDS = 14;
 const BREACH_ROUNDS = 14;
 const BREACH_EVERY = 2;
+const BREACH_FIRST_ROUND = 4;
 const LATTICE_TO_DESTROY = 20;
 const ASHBORN_ARRIVE_ROUND = 7;
 const OVERSEER_ROUND = 4;
@@ -138,7 +141,8 @@ export const QUARTET_CAMPAIGN = {
         "your colonies, free, with a Syndicate crew to look after it. \"Call it an " +
         "investment in the Accord.\" Kaldra sent one line when she heard: \"Ask her who " +
         "built them.\"",
-      objective: "Hold all four gift factories, and your homes, once the truth comes out.",
+      objective: `Keep all four gift factories, and your homes, until round ` +
+        `${GIFTS_HOLD_ROUND}.`,
       failText: "One of your home factories was overrun.",
       map: {
         seed: 53,
@@ -158,23 +162,24 @@ export const QUARTET_CAMPAIGN = {
             const given = takeFactory(s, ctx.sites[name], ctx.humans[i]);
             return reinforce(given, ctx.side("syndicate"), ["infantry"], ctx.sites[name]);
           }, state) },
+        warning("turnWarning", GIFTS_TURN_ROUND, "Your scouts have seen Lattice Chinooks " +
+          "on Varr's landing pads, and her crews keep looking up at the sky. Kaldra: \"Ask " +
+          "her who they are for.\" Whatever she has planned will happen within two rounds."),
         { id: "turn",
           when: (state) => humanPhase(state) && state.round >= GIFTS_TURN_ROUND,
-          act: (state, ctx) => {
-            let s = betray(state, ctx.side("syndicate"), ENEMY_TEAM);
-            for (const at of sites(ctx, GIFTS)) {
-              s = takeFactory(s, at, ctx.side("lattice"), ["twinTurret", "infantry"],
-                { evenIfOwned: true });
-            }
-            return s;
-          },
-          note: "Every gift factory shuts down at once, then starts again under a new " +
-            "master. Echo: \"Thank you for looking after them.\" Varr's crews have taken " +
-            "the Lattice's side. Take the factories back." },
+          act: (state, ctx) => sites(ctx, GIFTS).reduce((s, at) =>
+            airdrop(s, ctx.side("lattice"), 1, ["infantry", "infantry"], at),
+          betray(state, ctx.side("syndicate"), ENEMY_TEAM)),
+          note: "Varr's crews have turned their guns on you, and a Lattice Chinook full of " +
+            "Infantry is heading for each gift factory. Echo: \"Thank you for looking after " +
+            "them.\" Shoot the Chinooks down before they can drop." },
       ],
-      steps: GIFTS.map((name, i) => ({ text: `Hold the ${ordinal(i)} gift factory`,
-        done: (state, ctx) => ctx.fired("turn") !== undefined &&
-          humansHold(state, ctx, ctx.sites[name]) })),
+      steps: [
+        ...GIFTS.map((name, i) => ({ text: `Hold the ${ordinal(i)} gift factory`,
+          done: (state, ctx) => humansHold(state, ctx, ctx.sites[name]) })),
+        { text: `Reach round ${GIFTS_HOLD_ROUND}`,
+          done: (state) => state.round >= GIFTS_HOLD_ROUND },
+      ],
       failed: (state, ctx) => !homesHeld(state, ctx),
     },
     {
@@ -286,15 +291,17 @@ export const QUARTET_CAMPAIGN = {
     },
     {
       title: "Breach",
-      story: "The Lattice has been tunnelling. Its units are coming up inside your bases, a " +
-        "different colony every other round, with no warning but the ground shaking. Twin " +
-        "Turrets and Twin Tanks by your factories will decide this. The Ashborn know the " +
-        "old tunnels and are on their way.",
+      story: "The Lattice has taken the Consortium's old airfields. From round 4, every " +
+        "other round, two of its Chinooks come in low over one of your colonies, four " +
+        "Infantry aboard, to drop them straight into a factory. Anti-Aircraft Jeeps, Fighters " +
+        "and Infantry, which all hit aircraft, will decide this; Twin Turrets deal with " +
+        "anyone who lands. The " +
+        "Ashborn are on their way.",
       objective: `Destroy ${LATTICE_TO_DESTROY} Lattice units, and hold your homes until ` +
         `round ${BREACH_ROUNDS}.`,
       failText: "One of your home factories was overrun.",
       map: { seed: 97 },
-      humans: human({ units: ["lightHarvester", "scoutBike", "tank", "heavyTank"],
+      humans: human({ units: ["lightHarvester", "scoutBike", "infantry", "heavyTank"],
         upgrades: ["heavyWorks"] }),
       ais: [
         faction("lattice", { level: "marshal", crystals: 200,
@@ -304,20 +311,18 @@ export const QUARTET_CAMPAIGN = {
           units: ["scoutBike", "lightHarvester"] }),
       ],
       script: [
-        { id: "tunnel", repeat: true,
-          when: (state) => humanPhase(state) && state.round % BREACH_EVERY === 0,
-          act: (state, ctx) => {
-            const target = ctx.humans[(state.round / BREACH_EVERY) % ctx.humans.length];
-            return reinforce(state, ctx.side("lattice"),
-              ["infantry", "infantry", "infantry", "tank", "tank"], siteBeside(state, target));
-          },
-          note: "The ground shakes: Lattice units have broken through inside one of your " +
-            "bases." },
+        { id: "airdrop", repeat: true,
+          when: (state) => humanPhase(state) && state.round >= BREACH_FIRST_ROUND &&
+            state.round % BREACH_EVERY === 0,
+          act: (state, ctx) => airdrop(state, ctx.side("lattice"), 2,
+            ["infantry", "infantry"], home(state, breachTarget(state, ctx))),
+          note: (state, ctx) => `Two Lattice Chinooks are coming in low from beyond ` +
+            `${colourName(state, breachTarget(state, ctx))}'s base, with Infantry aboard.` },
         { id: "ashborn",
           when: (state) => humanPhase(state) && state.round >= ASHBORN_ARRIVE_ROUND,
           act: (state, ctx) => reinforce(state, ctx.side("ashborn"),
             ["sonicTank", "sonicTank", "infantry", "infantry"], "0,0"),
-          note: "The Ashborn have come up the old tunnels with two Sonic Tanks." },
+          note: "The Ashborn have ridden in across the dunes with two Sonic Tanks." },
       ],
       steps: [
         { text: `Destroy ${LATTICE_TO_DESTROY} Lattice units`, done: (state, ctx) =>
@@ -349,6 +354,9 @@ export const QUARTET_CAMPAIGN = {
             "lightHarvester"] }),
       ],
       script: [
+        warning("overseerWarning", OVERSEER_ROUND, "Kaldra: \"Some of my officers have " +
+          "stopped answering. If the Overseer can turn them, it will do it soon. Keep your " +
+          "guns near my factory.\""),
         { id: "overseer",
           when: (state) => humanPhase(state) && state.round >= OVERSEER_ROUND,
           act: (state, ctx) => defect(state, ctx.side("consortium"), ctx.side("lattice"),
@@ -425,12 +433,13 @@ function between(a, b) {
   return key(Math.round((aq + bq) / 2), Math.round((ar + br) / 2));
 }
 
-// Where units tunnelling into a player's base come up: an open hex two steps from their home.
-const TUNNEL_DISTANCE = 2;
+// The colony Breach's Chinooks go for this round: each in turn, every other round.
+function breachTarget(state, ctx) {
+  return ctx.humans[(state.round / BREACH_EVERY) % ctx.humans.length];
+}
 
-function siteBeside(state, p) {
-  const at = home(state, p);
-  const free = hexesWithin(state.map, at, TUNNEL_DISTANCE).filter((k) =>
-    state.rules.terrain[state.map.hexes[k].terrain].moveCost !== null);
-  return free.sort()[0] || at;
+// "Blue", "Green": a player's colour, for the story's notes.
+function colourName(state, p) {
+  const colour = state.players[p].colour;
+  return colour.charAt(0).toUpperCase() + colour.slice(1);
 }

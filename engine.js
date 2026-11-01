@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.85";
+} from "./hex.js?v=0.86";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -1816,8 +1816,9 @@ export function giveCrystals(state, player, amount) {
 }
 
 // Units arrive for a player, each on the free open hex nearest near (ties broken by key), not
-// on a crystal pile. They can act from their owner's next turn.
-export function addUnits(state, player, types, near) {
+// on a crystal pile. They can act from their owner's next turn. Any that carry (Chinooks,
+// Transporters) arrive loaded with the cargo types, as many as fit.
+export function addUnits(state, player, types, near, cargo = []) {
   return scenarioChange(state, (next) => {
     const free = (k) => terrainRules(next, k).moveCost !== null && !unitAt(next, k) &&
       !next.crystals[k];
@@ -1828,6 +1829,13 @@ export function addUnits(state, player, types, near) {
       const unit = addUnit(next, type, player, sites[i]);
       finishAction(unit);
       ids.push(unit.id);
+      for (const passengerType of unit.cargo ? cargo : []) {
+        const passenger = addUnit(next, passengerType, player, sites[i]);
+        delete next.units[passenger.id];
+        if (canBoard(next, passenger, unit)) {
+          unit.cargo = [...unit.cargo, { ...passenger, at: null }];
+        }
+      }
     });
     next.events.push({ type: "unitsArrive", player, unitIds: ids, at: near });
   });
