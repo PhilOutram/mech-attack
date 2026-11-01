@@ -1,10 +1,10 @@
 // How the AI uses the Crystal Seeder: games played AI against AI, counting Seeders built,
 // crystals loaded and planted, and planted piles later harvested.
 // Usage: node tools/seeder-check.mjs [--games 100] [--seed 1] [--map map-1]
-import { RULES } from "../rules-config.js?v=0.82";
-import { newGame, applyAction, viewFor } from "../engine.js?v=0.82";
-import { chooseAction } from "../ai.js?v=0.82";
-import { mapById } from "../maps.js?v=0.82";
+import { RULES } from "../rules-config.js?v=0.83";
+import { newGame, applyAction, viewFor } from "../engine.js?v=0.83";
+import { chooseAction } from "../ai.js?v=0.83";
+import { mapById } from "../maps.js?v=0.83";
 
 const DEFAULT_GAMES = 100;
 const MAX_ACTIONS   = 200000;

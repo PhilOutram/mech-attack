@@ -10,7 +10,7 @@ Produced by `node tools/matchups.mjs --games 4`. For each enemy unit and each un
 | Artillery | Attack Helicopter (1), Twin Tank (0.92), Heavy Cannon (0.83) | Scout Bike (-0.81) |
 | Light Harvester | Scout Bike (1), Tank (1), Twin Tank (1) | Twin Turret (0) |
 | Spotter Drone | Sonic Tank (1), Infantry (0.97), Anti-Aircraft Jeep (0.95) | Scout Bike (0) |
-| Infantry | Tank (1), Heavy Cannon (1), Twin Tank (1) | Fighter (-0.96) |
+| Infantry | Tank (1), Heavy Cannon (1), Twin Tank (1) | Fighter (-0.88) |
 | Transporter | Attack Helicopter (1), Tank (0.96), Scout Bike (0.92) | Turret (0) |
 | Chinook | Attack Helicopter (1), Infantry (0.89), Scout Bike (0) | Scout Bike (0) |
 | Turret | Attack Helicopter (0.75), Turret (0), Twin Turret (0) | Tank (-1) |
@@ -19,7 +19,7 @@ Produced by `node tools/matchups.mjs --games 4`. For each enemy unit and each un
 | Blast Cannon | Attack Helicopter (1), Heavy Cannon (0.83), Twin Tank (0.58) | Scout Bike (-0.92) |
 | Sonic Tank | Heavy Cannon (1), Twin Tank (1), Tank (0.92) | Scout Bike (-0.93) |
 | Anti-Aircraft Jeep | Twin Tank (1), Infantry (0.94), Tank (0.93) | Attack Helicopter (-0.75) |
-| Attack Helicopter | Sonic Tank (1), Anti-Aircraft Jeep (0.79), Fighter (0.44) | Artillery (-1) |
-| Fighter | Infantry (0.89), Scout Bike (0), Tank (0) | Attack Helicopter (-0.56) |
+| Attack Helicopter | Sonic Tank (0.79), Anti-Aircraft Jeep (0.79), Fighter (0.71) | Artillery (-1) |
+| Fighter | Infantry (0.93), Sonic Tank (0.33), Scout Bike (0) | Attack Helicopter (-0.71) |
 | Crystal Seeder | Infantry (1.01), Scout Bike (1), Tank (1) | Artillery (0) |
 | Light Medic | Scout Bike (1), Tank (1), Attack Helicopter (1) | Turret (0) |

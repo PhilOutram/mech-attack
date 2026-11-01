@@ -36,6 +36,10 @@ Candidates for retiring (measured 31 October 2026 on v0.81, `docs/balance/unit-u
 
 What evolution found instead: Infantry. The evolved personalities build Infantry for about half their units, overrun about 3 factories a game, and beat the hand-tuned AI about 80% of the time. Sides that built Infantry won 201 games and lost 21. If anything is too strong, it is the cheap Infantry rush, not the Tank.
 
+Measured 1 November 2026 (v0.83, hand-tuned AI, 300 games on map 1); Phil playing games out before deciding:
+- Phil asked whether Infantry move 2 (was 3) would curb the rush and give transports a job. Factory captures fell from 177 to 122 games, games ran longer (15.4 to 18.6 rounds) and 7 games reached the round limit (none before). The AI hardly boards transports, so this cannot show whether transports gain value; only real games can.
+- Phil, 1 November 2026: a unit with sight 4 parked at the edge of the explored ground cannot see into the face-down blocks beside it, because a block turns over only when a unit is on it or next to it (`fog.revealRange` 1). An enemy can sit there unseen and pounce. Tried turning over every block in a unit's sight (`fog.revealRange` null): game length unchanged (15.8 rounds), captures up (175 to 226 games) and the first player went from winning 12% of decided games to 77%. So exploration speed decides who moves first on map 1; the second-player edge above is tied to it.
+
 Parked for testing, or for a sequel:
 - Separate attack and defence against ground and against air. Would shift the rings a lot, but doubles the numbers on every unit. Sequel.
 - Factory upgrades that change units: Optics (+1 sight), Armour plating (+5 defence, -1 move), Long barrels (+1 range, -5 attack). Flat boosts were rejected because they steepen the cost ladder.

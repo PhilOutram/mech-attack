@@ -123,14 +123,16 @@ export const RULES = {
     // Attack Helicopter hits air as well as ground, and the Fighter costs 45 (was 60) (Phil,
     // 31 October 2026). The helicopter then costs 55 (was 45): it was the best answer to 7 of
     // the 18 enemy types. The price hardly mattered, so later that day defence 5 (was 10) and
-    // attack 15 (was 20): average counter score 0.70 down to 0.60 (provisional).
+    // attack 15 (was 20): average counter score 0.70 down to 0.60. Defence back to 10 (Phil,
+    // 1 November 2026), so one Infantry shot takes one life, not both. Fighter 35 (was 45).
+    // All provisional.
     attackHelicopter: {
-      name: "Attack Helicopter", cost: 55, move: 5, defence: 5, attack: 15,
+      name: "Attack Helicopter", cost: 55, move: 5, defence: 10, attack: 15,
       range: [1, 2], storage: 0, healing: 0, sight: 3,
       air: true, hits: "both", needs: "airfield",
     },
     fighter: {
-      name: "Fighter", cost: 45, move: 7, defence: 15, attack: 30,
+      name: "Fighter", cost: 35, move: 7, defence: 15, attack: 30,
       range: [1, 4], storage: 0, healing: 0, sight: 4,
       air: true, hits: "air", needs: "airfield",
     },

@@ -55,8 +55,8 @@ Stats start from the full unit table, with costs scaled to the Game 2 prices. Th
 | Blast Cannon | ground | ground | 65 | 3 | 15 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. Defence 15, not the unit table's 10 (Phil, 31 October 2026), so one Tank shot no longer destroys it. |
 | Sonic Tank | ground | ground and air | 60 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
 | Anti-Aircraft Jeep | ground | air | 30 | 5 | 15 | 30 | 1–3 | |
-| Attack Helicopter | air | ground and air | 55 | 5 | 5 | 15 | 1–2 | Hits air as well as ground; cost 55, was 45 (Phil, 31 October 2026). Defence 5 and attack 15 (were 10 and 20) the same day, provisional: the dearer price hardly changed how well it did. |
-| Fighter | air | air | 45 | 7 | 15 | 30 | 1–4 | Cost 45, was 60 (Phil, 31 October 2026). |
+| Attack Helicopter | air | ground and air | 55 | 5 | 10 | 15 | 1–2 | Hits air as well as ground; cost 55, was 45 (Phil, 31 October 2026). Attack 15 (was 20) the same day, provisional: the dearer price hardly changed how well it did. Defence 10 (Phil, 1 November 2026; 5 for a day), so one Infantry shot takes one life, not both. |
+| Fighter | air | air | 35 | 7 | 15 | 30 | 1–4 | Cost 35 (Phil, 1 November 2026; was 60, then 45 on 31 October). |
 
 Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
 
