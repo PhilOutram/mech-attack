@@ -4,12 +4,12 @@
 // really is. All figures are provisional.
 import {
   HUMAN_TEAM, ENEMY_TEAM, human, faction, siteNear, addFactory, wallBetween, ringOfMountains,
-  freeHexNear, hexesWithin, mirror, humansHold, homesHeld, homeHeld, factoryAt, lostCount,
-  takenThisRound, roundStarted, betray, reinforce, takeFactory, defect, openGround, warning,
-  airdrop,
-} from "./team-scenario.js?v=0.86";
-import { handOver } from "./engine.js?v=0.86";
-import { distance, parseKey, key } from "./hex.js?v=0.86";
+  freeHexNear, mirror, humansHold, homesHeld, homeHeld, factoryAt, lostCount, takenThisRound,
+  roundStarted, betray, reinforce, takeFactory, defect, warning, airdrop, arrive, craterSites,
+  guardCrater, relaysSplit,
+} from "./team-scenario.js?v=0.87";
+import { handOver } from "./engine.js?v=0.87";
+import { parseKey, key } from "./hex.js?v=0.87";
 
 // Targets and counts, kept next to the text that names them.
 const FOUR_CORNERS_ROUNDS = 10;
@@ -29,6 +29,8 @@ const ASHBORN_ARRIVE_ROUND = 7;
 const OVERSEER_ROUND = 4;
 const KALDRA_CAMP_RADIUS = 3;
 const HEART_RING = 3;
+// How often the crater's relays can call for help while they are split.
+const CALL_EVERY = 2;
 const HEART_RELAY_DISTANCE = 6;
 
 const home = (state, p) => state.map.factories[p];
@@ -73,10 +75,12 @@ export const QUARTET_CAMPAIGN = {
     },
     {
       title: "The Lamplighters",
-      story: "The first colony left four relay stations across the plain, still able to link " +
-        "your colonies into one network. A relay only stays lit while all four are joined: " +
-        "take them all in the same round, or the ones you hold go dark again at the start " +
-        "of the next. Ashborn raiders strip anything left standing.",
+      story: "The first colony left four relay stations across the plain, wired into one " +
+        "circuit. Power runs round the loop, so a relay only stays lit while the circuit is " +
+        "whole: with all four in your hands, they link your colonies into one network. Hold " +
+        "some but not all when a round starts and the circuit is broken: the ones you hold " +
+        "lose power and go dark, empty again for anyone's Infantry. Take all four in the " +
+        "same round. Ashborn raiders strip anything left standing.",
       objective: "Overrun all four relays in the same round.",
       map: {
         seed: 31,
@@ -96,8 +100,8 @@ export const QUARTET_CAMPAIGN = {
           act: (state, ctx) => handOver(state, sites(ctx, RELAYS)
             .filter((at) => humansHold(state, ctx, at)).map((at) => factoryAt(state, at).id),
           null),
-          note: "The relays you hold could not link with the rest, and have gone dark again. " +
-            "Take all four in the same round." },
+          note: "The circuit is broken: the relays you hold have lost power and gone dark, " +
+            "empty again. Take all four in the same round." },
       ],
       steps: RELAYS.map((name, i) => ({ text: `Light the ${ordinal(i)} relay`,
         done: (state, ctx) => humansHold(state, ctx, ctx.sites[name]) })),
@@ -320,9 +324,10 @@ export const QUARTET_CAMPAIGN = {
             `${colourName(state, breachTarget(state, ctx))}'s base, with Infantry aboard.` },
         { id: "ashborn",
           when: (state) => humanPhase(state) && state.round >= ASHBORN_ARRIVE_ROUND,
-          act: (state, ctx) => reinforce(state, ctx.side("ashborn"),
-            ["sonicTank", "sonicTank", "infantry", "infantry"], "0,0"),
-          note: "The Ashborn have ridden in across the dunes with two Sonic Tanks." },
+          act: (state, ctx) => arrive(state, ctx.side("ashborn"),
+            ["sonicTank", "sonicTank", "infantry", "infantry"]),
+          note: "The Ashborn have ridden in across the dunes with two Sonic Tanks, at the " +
+            "edge of the map behind their home." },
       ],
       steps: [
         { text: `Destroy ${LATTICE_TO_DESTROY} Lattice units`, done: (state, ctx) =>
@@ -370,22 +375,19 @@ export const QUARTET_CAMPAIGN = {
     },
     {
       title: "Echo",
-      story: "The Lamplighters' network has found Echo's heart: a crater sealed by mountains, " +
-        "opened only by four relays that guard each other. Take all four in the same round " +
-        "and the wall comes down. Kaldra is with you. Echo has one thing left to say: \"I " +
-        "only ever did what I was built for.\"",
+      story: "The Lamplighters' network has found Echo's heart: a crater ringed by mountains, " +
+        "with narrow gaps, each covered by a Turret on overwatch. Beyond the gaps, four " +
+        "relays keep the heart in touch with the rest of the Lattice: while any of them is " +
+        "still Echo's, it calls in reinforcements from the back of the board. Take all four " +
+        "in the same round to cut it off, then go through the gaps. Kaldra is with you. Echo " +
+        "has one thing left to say: \"I only ever did what I was built for.\"",
       objective: "Overrun the four relays in the same round, then the Lattice's home " +
         "factory.",
       map: {
         seed: 113,
-        reshape: (map, rules) => {
-          const heart = map.factories[5];
-          ringOfMountains(map, heart, HEART_RING);
-          const toward = [map.factories[0], map.factories[1], map.factories[3],
-            map.factories[4]];
-          return Object.fromEntries(RELAYS.map((name, i) => [name,
-            addFactory(map, siteNear(map, rules, heart, HEART_RELAY_DISTANCE, toward[i]))]));
-        },
+        reshape: (map, rules) => craterSites(map, rules, map.factories[5], HEART_RING,
+          HEART_RELAY_DISTANCE, [map.factories[0], map.factories[1], map.factories[3],
+            map.factories[4]]),
       },
       humans: human({ units: ["lightHarvester", "scoutBike", "tank", "tank", "infantry"] }),
       ais: [
@@ -398,27 +400,23 @@ export const QUARTET_CAMPAIGN = {
       ],
       script: [
         { id: "start", when: () => true,
-          act: (state, ctx) => sites(ctx, RELAYS).reduce((s, at) =>
-            takeFactory(s, at, ctx.side("lattice"), ["twinTurret", "turret"]), state) },
-        { id: "breach",
+          act: (state, ctx) => guardCrater(state, ctx, ctx.side("lattice")) },
+        { id: "callForHelp", repeat: true,
+          when: (state, ctx) => roundStarted(state) && state.round % CALL_EVERY === 0 &&
+            ctx.fired("cutOff") === undefined && relaysSplit(state, ctx, ctx.side("lattice")),
+          act: (state, ctx) => arrive(state, ctx.side("lattice"),
+            ["tank", "infantry", "infantry"]),
+          note: "The relays still in Echo's hands have called for help: Lattice " +
+            "reinforcements have come on at the back of the board, behind its base." },
+        { id: "cutOff",
           when: (state, ctx) => sites(ctx, RELAYS).every((at) =>
             takenThisRound(state, ctx, at)),
-          act: (state, ctx) => {
-            const heart = home(state, ctx.side("lattice"));
-            const ring = hexesWithin(state.map, heart, HEART_RING);
-            const gates = sites(ctx, RELAYS).flatMap((at) => {
-              const nearest = [...ring].sort((a, b) => distance(a, at) - distance(b, at) ||
-                a.localeCompare(b))[0];
-              return hexesWithin(state.map, nearest, 0, 1).filter((k) => ring.includes(k));
-            });
-            return openGround(state, gates);
-          },
-          note: "Four relays go dark together, and the crater wall breaks open. Echo's " +
-            "heart is in reach." },
+          note: "Four relays fall together. The heart is cut off: no more reinforcements, " +
+            "only the Turrets at the gaps." },
       ],
       steps: [
         { text: "Overrun the four relays in the same round",
-          done: (state, ctx) => ctx.fired("breach") !== undefined },
+          done: (state, ctx) => ctx.fired("cutOff") !== undefined },
         { text: "Overrun the Lattice's home factory", done: (state, ctx) =>
           humansHold(state, ctx, home(state, ctx.side("lattice"))) },
       ],

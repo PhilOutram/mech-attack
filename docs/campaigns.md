@@ -1,6 +1,6 @@
 # Campaigns and strategies
 
-What each campaign mission sets up, which units it leans on and which strategy it is built round, followed by every strategy we can think of for Mech Attack and where (if anywhere) a mission already asks for it. Written 31 October 2026 (v0.76). Mission details live in `campaign.js` (solo) and `team-campaign-2.js`, `-3.js` and `-4.js` (team); all figures are provisional.
+Each campaign's story as a short narrative is in `docs/stories.md`. What each campaign mission sets up, which units it leans on and which strategy it is built round, followed by every strategy we can think of for Mech Attack and where (if anywhere) a mission already asks for it. Written 31 October 2026 (v0.76). Mission details live in `campaign.js` (solo) and `team-campaign-2.js`, `-3.js` and `-4.js` (team); all figures are provisional.
 
 ## Solo campaign: Red Dust (11 missions)
 
@@ -46,9 +46,9 @@ Code: the missions are in `team-campaign-2.js`, `team-campaign-3.js` and `team-c
 | 4 | Sable's Valley | Ashborn (at war with everyone), Varr | Overrun Varr's home; the Ashborn home must not fall, to Varr or to you | Restraint: defending a side that fires on you | Sable joins you at round 7 if her home still stands |
 | 5 | High Road | Ashborn (ally), Varr | Destroy Varr's two Heavy Cannons and every Syndicate Turret | Role kits: Skywing (Blue), Foundry (Green). Artillery with Spotter Drones over a mountain wall; helicopters, which Turrets cannot hit | The only pass is under Varr's guns |
 | 6 | Kaldra's Word | Kaldra (ally, besieged), Varr | Overrun both siege camps in the same round; Kaldra's garrison must hold | A relief force timed to strike together | The old enemy asks for help |
-| 7 | What Sleeps Below | Kaldra (ally), Lattice | Hold 3 of the 4 old factories at the start of round 11 | Infantry spread fast; AA against helicopters | Old factories wake for the Lattice at rounds 3, 5, 7 and 9 unless you hold them |
+| 7 | What Sleeps Below | Kaldra (ally), Lattice | Hold 3 of the 4 old factories at the start of round 11 | Infantry spread fast; AA against helicopters | Lattice Infantry hiding in the old factories take one at rounds 3, 5, 7 and 9 unless you hold it, and spend its stored crystals on an Attack Helicopter and a Twin Turret |
 | 8 | The Director's Last Deal | Varr (at war with everyone), Kaldra (ally), Lattice | Overrun the Lattice's home and Varr's in the same round | Infantry ready by both factories | Varr runs the moment either factory falls |
-| 9 | The Long Night | Kaldra (ally), Ashborn (ally), Lattice | Hold your homes and Kaldra's until round 15 | Turret overwatch, Twin Turrets, AA Jeeps | Lattice waves every 3 rounds; Ashborn Sonic Tanks arrive at round 8 |
+| 9 | The Long Night | Kaldra (ally), Ashborn (ally), Lattice | Hold your homes and Kaldra's until round 15 | Turret overwatch, Twin Turrets, AA Jeeps | Lattice waves come on at the back of the board every 3 rounds; Ashborn Sonic Tanks come on behind Blue's base at round 8 |
 | 10 | The Heart of Kharon | Kaldra (ally), Ashborn (ally), Lattice | Overrun three relays, then the Lattice's home in a crater ringed by mountains | Everything | Echo's last words |
 
 ### 3 players: Ashfall
@@ -64,14 +64,14 @@ Code: the missions are in `team-campaign-2.js`, `team-campaign-3.js` and `team-c
 | 7 | The Broker | Kaldra (ally), Varr (at war with everyone), Corran | Destroy 3 Syndicate Crystal Seeders; bank 300 crystals between you | Crystal denial, harvester raids, economy | Kaldra offers a truce |
 | 8 | Sky Burial | Kaldra (ally), Lattice | Shoot down 12 Lattice aircraft; keep your homes | Role kits: Skywing, Bastion, Foundry. Fighters and AA Jeeps | Two helicopters arrive every 3 rounds |
 | 9 | Embers | Corran, Lattice, Ashborn (ally) | Overrun both Lattice relays | Restraint again: leave Corran's camp standing | Kaldra's spies warn you at round 2; Echo turns on Corran at round 4; he joins you at round 6 if his camp stands |
-| 10 | Ashfall | Sable (ally), Corran (ally), Lattice | Take three relays in the same round to open the crater wall, then the Lattice's home | Everything; a Chinook can drop Infantry over the wall | Mother and son ride together |
+| 10 | Ashfall | Sable (ally), Corran (ally), Lattice | Take three relays in the same round, then the Lattice's home in a crater with narrow gaps, each guarded by a Turret | Everything; Artillery against the gap Turrets; a Chinook can drop Infantry over the ring | While the relays are split, Lattice reinforcements come on at the back of the board every other round; mother and son ride together |
 
 ### 4 players: The Kharon Accord
 
 | # | Mission | Other sides | Objective | Leans on | Twist |
 |---|---|---|---|---|---|
 | 1 | Four Corners | Kaldra | Destroy 12 Consortium units; hold every home until round 10 | Comms; sending help between colonies | Four fronts at once |
-| 2 | The Lamplighters | Ashborn | Overrun all four relays in the same round | Timing: one relay each | Relays held when a round starts without the rest go dark again |
+| 2 | The Lamplighters | Ashborn | Overrun all four relays in the same round | Timing: one relay each | The relays are one circuit: any you hold when a round starts without the rest lose power and go dark, empty again |
 | 3 | Division of Labour | Kaldra | Overrun Kaldra's home, in a crater with two ways in | Role kits: all four. Artillery outranging Turret overwatch | None of you can do it alone |
 | 4 | Gifts | Varr (ally), Lattice | Keep all four gift factories, and your homes, until round 12 | Infantry and anti-aircraft near your factories | Warned at round 4: at round 6 Varr's crews turn, and a Lattice Chinook full of Infantry heads for each gift factory |
 | 5 | Ghost Signal | Kaldra (ally), Lattice | Overrun four hidden drone nests | Scouting: Spotter Drones, Scout Bikes; AA | Find them first |
@@ -79,12 +79,12 @@ Code: the missions are in `team-campaign-2.js`, `team-campaign-3.js` and `team-c
 | 7 | Kaldra's Price | Kaldra (ally), Lattice | Destroy Kaldra's two Heavy Cannons; hold your homes until round 14 | Repositioning before the truce ends | Kaldra warns at round 3 and ends the truce at round 5, to your face |
 | 8 | Breach | Lattice, Ashborn (ally) | Destroy 20 Lattice units; hold your homes until round 14 | Infantry, AA Jeeps and Fighters against Chinooks; Twin Turrets for anyone who lands | From round 4, every other round, two Lattice Chinooks with four Infantry come in over a colony; the Ashborn arrive at round 7 |
 | 9 | The Overseer's Code | Kaldra (ally), Lattice | Keep Kaldra's home standing; overrun the Lattice's citadel | Defending an ally | The Consortium's war computer runs on Echo's code: Kaldra warns you at round 2, and at round 4 her units near her factory defect to the Lattice |
-| 10 | Echo | Kaldra (ally), Lattice | Take four relays in the same round to open the crater, then the Lattice's home | Everything | "I only ever did what I was built for." |
+| 10 | Echo | Kaldra (ally), Lattice | Take four relays in the same round, then the Lattice's home in a crater with narrow gaps, each guarded by a Turret | Everything | While the relays are split, reinforcements come on at the back of the board every other round. "I only ever did what I was built for." |
 
 ### New rules the team campaigns brought in
 
 - **No turn without warning** (Phil, 1 November 2026): a side that turns on you is always announced two rounds before, at the start of your turn. Betrayals are unsettling if they come out of nowhere, so there are few of them: Guests, Corran's Choice and Gifts turn an ally against you, and Kaldra's Price ends a truce openly.
-- **Arrivals use the game's own units** (Phil, 1 November 2026): enemy raids come in by Chinook and drop their Infantry as any Chinook does, so anti-aircraft and Infantry can stop them.
+- **Arrivals use the game's own units and the edge of the board** (Phil, 1 November 2026): raids come in by Chinook and drop their Infantry as any Chinook does; other reinforcements come on at the back of the board behind their side's home; units that change sides between AI players, and Infantry hiding in old factories, are explained in the story notes. Nothing changes the landscape.
 
 - **Turret overwatch** (`docs/rules.md`).
 - **Role kits** (`rules.roleKits`): Vanguard, Bastion, Skywing and Foundry, each limiting what its player can build and buy.
@@ -108,7 +108,7 @@ Won, lost and stalled (reached the 40-round limit) out of 5 games (4 for the 4-p
 | | 6 | Kaldra's Word | 1 | 3 | 1 | 23.6 | Needs a plan (same round); Kaldra once fell in 2 rounds, now fixed |
 | | 7 | What Sleeps Below | 0 | 5 | 0 | 11.0 | The AI does not race for the old factories |
 | | 8 | The Director's Last Deal | 0 | 2 | 3 | 38.2 | Needs a plan (Infantry ready by both factories) |
-| | 9 | The Long Night | 2 | 4 | 0 | 13.0 | Waves tuned from 5 wins to none and back to 2 of 6 |
+| | 9 | The Long Night | 2 | 3 | 0 | 14.2 | v0.87: waves from the back of the board, one helicopter fewer |
 | | 10 | The Heart of Kharon | 0 | 0 | 5 | 41.0 | Finale; the AI does not break the crater |
 | Ashfall | 1 | Strangers in the Ruins | 3 | 0 | 2 | 21.4 | |
 | | 2 | Water Rights | 5 | 0 | 0 | 13.0 | The Ashborn got a Crystal lab after collapsing in 5 rounds |
@@ -119,7 +119,7 @@ Won, lost and stalled (reached the 40-round limit) out of 5 games (4 for the 4-p
 | | 7 | The Broker | 3 | 0 | 2 | 31.2 | |
 | | 8 | Sky Burial | 2 | 3 | 0 | 22.2 | Role kits |
 | | 9 | Embers | 0 | 2 | 3 | 37.8 | Needs a plan (leave Corran's camp standing) |
-| | 10 | Ashfall | 0 | 0 | 5 | 41.0 | Needs a plan (same round) |
+| | 10 | Ashfall | 0 | 3 | 2 | 36.2 | Needs a plan (same round); v0.87 crater with guarded gaps |
 | The Kharon Accord | 1 | Four Corners | 4 | 0 | 0 | 17.8 | Opening mission |
 | | 2 | The Lamplighters | 0 | 0 | 4 | 41.0 | Needs a plan (same round) |
 | | 3 | Division of Labour | 0 | 0 | 4 | 41.0 | Role kits: the AI cannot capture without the Vanguard leading |
@@ -127,9 +127,9 @@ Won, lost and stalled (reached the 40-round limit) out of 5 games (4 for the 4-p
 | | 5 | Ghost Signal | 1 | 0 | 3 | 40.0 | The AI rarely finds the nests |
 | | 6 | The Crossing | 0 | 0 | 4 | 41.0 | Needs a plan (Chinook airlift) |
 | | 7 | Kaldra's Price | 2 | 0 | 2 | 35.5 | |
-| | 8 | Breach | 4 | 2 | 0 | 13.5 | Of 6. Chinook airdrops since v0.86: from round 2 they won every game, so they start at round 4 |
+| | 8 | Breach | 3 | 2 | 0 | 13.8 | Chinook airdrops since v0.86: from round 2 they won every game, so they start at round 4 |
 | | 9 | The Overseer's Code | 4 | 0 | 1 | 33.2 | |
-| | 10 | Echo | 0 | 0 | 4 | 41.0 | Needs a plan (same round) |
+| | 10 | Echo | 0 | 4 | 1 | 35.4 | Of 5. Needs a plan (same round); v0.87 crater with guarded gaps |
 
 ## Strategies, and where the campaigns use them
 

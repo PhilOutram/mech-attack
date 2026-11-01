@@ -2,11 +2,11 @@
 // factions and their leaders, reshaping a mission's map, what a mission checks, and what its
 // script can change. Pure functions of the map or the game state, no DOM, so the game screen,
 // the tests and tools/team-trials.mjs all run missions the same way.
-import { RULES } from "./rules-config.js?v=0.86";
+import { RULES } from "./rules-config.js?v=0.87";
 import {
-  changeTeam, giveCrystals, addUnits, handOver, changeTerrain, unitsOf, factoriesOf, unitStats,
-} from "./engine.js?v=0.86";
-import { distance, parseKey, toPixel, key } from "./hex.js?v=0.86";
+  changeTeam, giveCrystals, addUnits, handOver, unitsOf, factoriesOf, unitStats,
+} from "./engine.js?v=0.87";
+import { distance, parseKey, toPixel, key, neighbourKeys } from "./hex.js?v=0.87";
 
 export const HUMAN_TEAM = 0;
 export const ENEMY_TEAM = 1;
@@ -153,18 +153,46 @@ export function exposeHome(map, p, radius) {
   setTerrain(map, hexesWithin(map, map.factories[p], 1, radius), "plain");
 }
 
-// Mountains in a ring round a hex, leaving gaps on the hexes nearest the given ones, and
-// nothing else on the ring: piles, factories and starting hexes there move inside it.
+// Gaps in a ring of mountains are at least this far apart.
+const GAP_SPACING = 3;
+
+// Mountains in a ring round a hex, leaving a one-hex gap facing each of the given hexes (the
+// ring hex nearest it, keeping GAP_SPACING from the other gaps), and nothing else on the ring:
+// piles, factories and starting hexes there go. The ground either side of each gap is
+// flattened so the gap leads somewhere. Returns the gaps.
 export function ringOfMountains(map, at, radius, gapsToward = []) {
   const ring = hexesWithin(map, at, radius);
-  const gaps = new Set(gapsToward.map((toward) =>
-    [...ring].sort((a, b) => distance(a, toward) - distance(b, toward) ||
-      a.localeCompare(b))[0]));
-  const raised = ring.filter((k) => !gaps.has(k) && !map.factories.includes(k));
+  const gaps = [];
+  for (const toward of gapsToward) {
+    const gap = ring.filter((k) => gaps.every((g) => distance(g, k) >= GAP_SPACING))
+      .sort((a, b) => distance(a, toward) - distance(b, toward) || a.localeCompare(b))[0];
+    if (gap) gaps.push(gap);
+  }
+  const raised = ring.filter((k) => !gaps.includes(k) && !map.factories.includes(k));
   map.deposits = map.deposits.filter((d) => !raised.includes(d.at));
   map.neutralFactories = (map.neutralFactories || []).filter((f) => !raised.includes(f.at));
   map.starts = map.starts.map((hexes) => hexes.filter((k) => !raised.includes(k)));
   setTerrain(map, raised, "mountain");
+  for (const gap of gaps) {
+    setTerrain(map, hexesWithin(map, gap, 0, 1).filter((k) => !raised.includes(k)), "plain");
+  }
+  return gaps;
+}
+
+// A crater round a home (Phil, 1 November 2026): a ring of mountains with a narrow gap facing
+// each of the toward hexes, a relay factory beyond each gap, and inside each gap a hex for a
+// Turret to guard it (see guardCrater). Returns the named sites relay1, relay2... and
+// guard1, guard2...
+export function craterSites(map, rules, heart, radius, relayDistance, toward) {
+  const sites = {};
+  toward.forEach((hex, i) => {
+    sites[`relay${i + 1}`] = addFactory(map, siteNear(map, rules, heart, relayDistance, hex));
+  });
+  const gaps = ringOfMountains(map, heart, radius, Object.values(sites));
+  gaps.forEach((gap, i) => {
+    sites[`guard${i + 1}`] = siteNear(map, rules, heart, radius - 1, gap);
+  });
+  return sites;
 }
 
 // A wall of mountains across the map, on the hexes about as far from one hex as from
@@ -315,7 +343,41 @@ export function airdrop(state, p, chinooks, passengers, target) {
   return addUnits(state, p, Array(chinooks).fill("chinook"), sites[0] || target, passengers);
 }
 export const gift = (state, p, amount) => giveCrystals(state, p, amount);
-export const openGround = (state, hexes) => changeTerrain(state, hexes, "plain");
+
+// A Turret on each crater guard site, and the relays handed to the crater's owner with their
+// own guns.
+export function guardCrater(state, ctx, p) {
+  const names = Object.keys(ctx.sites);
+  const relays = names.filter((n) => n.startsWith("relay")).map((n) => ctx.sites[n]);
+  const guards = names.filter((n) => n.startsWith("guard")).map((n) => ctx.sites[n]);
+  const held = relays.reduce((s, at) => takeFactory(s, at, p, ["twinTurret", "turret"]), state);
+  return guards.reduce((s, at) => addUnits(s, p, ["turret"], at), held);
+}
+
+// Whether the humans hold some of the relays and the crater's owner still holds others.
+export function relaysSplit(state, ctx, p) {
+  const relays = Object.keys(ctx.sites).filter((n) => n.startsWith("relay"))
+    .map((n) => ctx.sites[n]);
+  return relays.some((at) => ctx.humans.includes(ownerAt(state, at))) &&
+    relays.some((at) => ownerAt(state, at) === p);
+}
+
+// The open hex on the edge of the map nearest a player's home: where reinforcements for that
+// side come on, off the back of the board (Phil, 1 November 2026).
+export function backOfBoard(state, p) {
+  const home = state.map.factories[p];
+  const edge = Object.keys(state.map.hexes).filter((k) =>
+    state.rules.terrain[state.map.hexes[k].terrain].moveCost !== null &&
+    neighbourKeys(k).some((n) => !state.map.hexes[n]));
+  edge.sort((a, b) => distance(a, home) - distance(b, home) || a.localeCompare(b));
+  return edge[0] || home;
+}
+
+// Units arrive for player p at the back of the board behind the home of player behind (their
+// own, unless they are coming to someone's help).
+export function arrive(state, p, types, behind = p) {
+  return state.players[p].out ? state : addUnits(state, p, types, backOfBoard(state, behind));
+}
 
 // Each human gets amount crystals.
 export function giftEach(state, ctx, amount) {

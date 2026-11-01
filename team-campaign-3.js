@@ -2,14 +2,13 @@
 // colonies settle beside the ruins of the first colony. The Ashborn go from raiders to
 // allies; Sable's son Corran sells them to the Lattice and then learns what Echo really
 // wants; General Kaldra becomes an ally of necessity. All figures are provisional.
-import { RULES } from "./rules-config.js?v=0.86";
+import { RULES } from "./rules-config.js?v=0.87";
 import {
   HUMAN_TEAM, ENEMY_TEAM, THIRD_TEAM, human, faction, siteNear, addFactory, spreadRuins,
-  ringOfMountains, freeHexNear, hexesWithin, mirror, humansHold, homesHeld, homeHeld,
-  lostCount, teamCrystals, ruinsSearchedBy, unitAlive, takenThisRound, roundStarted, betray,
-  reinforce, giftEach, takeFactory, openGround, warning,
-} from "./team-scenario.js?v=0.86";
-import { distance } from "./hex.js?v=0.86";
+  freeHexNear, mirror, humansHold, homesHeld, homeHeld, lostCount, teamCrystals,
+  ruinsSearchedBy, unitAlive, takenThisRound, roundStarted, betray, reinforce, giftEach,
+  takeFactory, warning, arrive, craterSites, guardCrater, relaysSplit,
+} from "./team-scenario.js?v=0.87";
 
 // Targets and counts, kept next to the text that names them.
 const RUINS_TO_SEARCH = 5;
@@ -30,6 +29,8 @@ const ECHO_STRIKES_ROUND = 4;
 const CORRAN_JOINS_ROUND = 6;
 const RELAY_DISTANCE = 6;
 const HEART_RING = 3;
+// How often the crater's relays can call for help while they are split.
+const CALL_EVERY = 2;
 const AIRCRAFT = ["attackHelicopter", "fighter", "spotterDrone", "chinook"];
 
 const home = (state, p) => state.map.factories[p];
@@ -317,9 +318,10 @@ export const TRIO_CAMPAIGN = {
       script: [
         { id: "wave", repeat: true,
           when: (state) => humanPhase(state) && state.round % AIR_WAVE_EVERY === 0,
-          act: (state, ctx) => reinforce(state, ctx.side("lattice"),
-            ["attackHelicopter", "attackHelicopter"], home(state, ctx.side("lattice"))),
-          note: "More Lattice aircraft are rising from the desert." },
+          act: (state, ctx) => arrive(state, ctx.side("lattice"),
+            ["attackHelicopter", "attackHelicopter"]),
+          note: "Two more Lattice aircraft have come in at the back of the board, behind its " +
+            "base." },
       ],
       steps: [
         { text: `Shoot down ${AIRCRAFT_TO_DESTROY} aircraft`, done: (state, ctx) =>
@@ -364,12 +366,12 @@ export const TRIO_CAMPAIGN = {
           when: (state) => humanPhase(state) && state.round >= ECHO_STRIKES_ROUND,
           act: (state, ctx) => {
             const split = betray(state, ctx.side("splinter"), THIRD_TEAM);
-            return reinforce(split, ctx.side("lattice"),
+            return arrive(split, ctx.side("lattice"),
               ["attackHelicopter", "attackHelicopter", "infantry", "infantry"],
-              home(split, ctx.side("splinter")));
+              ctx.side("splinter"));
           },
-          note: "Echo: \"Your usefulness is over, Corran.\" Lattice aircraft are diving on " +
-            "Corran's camp." },
+          note: "Echo: \"Your usefulness is over, Corran.\" Lattice aircraft and Infantry " +
+            "have come on at the edge of the map behind Corran's camp." },
         { id: "corranJoins",
           when: (state, ctx) => humanPhase(state) && state.round >= CORRAN_JOINS_ROUND &&
             homeHeld(state, ctx.side("splinter")),
@@ -387,22 +389,20 @@ export const TRIO_CAMPAIGN = {
     },
     {
       title: "Ashfall",
-      story: "Echo's heart lies in a crater sealed by a wall of mountains, opened only by " +
-        "three relays that guard each other. Take all three in the same round and the wall " +
-        "comes down. Sable and Corran ride together for the first time in years.",
+      story: "Echo's heart lies in a crater ringed by mountains, with three narrow gaps, each " +
+        "covered by a Turret on overwatch. Beyond the gaps, three relays keep the heart in " +
+        "touch with the rest of the Lattice: while any of them is still Echo's, it calls in " +
+        "reinforcements from the back of the board. Take all three in the same round to cut " +
+        "it off, then go through the gaps. Sable and Corran ride together for the first " +
+        "time in years.",
       objective: "Overrun the three relays in the same round, then the Lattice's home " +
         "factory.",
       map: {
         seed: 109,
         slots: [0, 1, 2, 3, 4, 5],
-        reshape: (map, rules) => {
-          const heart = map.factories[5];
-          ringOfMountains(map, heart, HEART_RING);
-          // Towards Blue, the middle of the map and Corran: spread round the crater.
-          const toward = [map.factories[0], "0,0", map.factories[4]];
-          return Object.fromEntries(RELAYS.map((name, i) => [name,
-            addFactory(map, siteNear(map, rules, heart, RELAY_DISTANCE, toward[i]))]));
-        },
+        // Gaps and relays towards Blue, the middle of the map and Corran: spread round it.
+        reshape: (map, rules) => craterSites(map, rules, map.factories[5], HEART_RING,
+          RELAY_DISTANCE, [map.factories[0], "0,0", map.factories[4]]),
       },
       humans: human({ units: ["lightHarvester", "scoutBike", "tank", "tank", "infantry"] }),
       ais: [
@@ -417,27 +417,23 @@ export const TRIO_CAMPAIGN = {
       ],
       script: [
         { id: "start", when: () => true,
-          act: (state, ctx) => sites(ctx, RELAYS).reduce((s, at) =>
-            takeFactory(s, at, ctx.side("lattice"), ["twinTurret", "turret"]), state) },
-        { id: "breach",
+          act: (state, ctx) => guardCrater(state, ctx, ctx.side("lattice")) },
+        { id: "callForHelp", repeat: true,
+          when: (state, ctx) => roundStarted(state) && state.round % CALL_EVERY === 0 &&
+            ctx.fired("cutOff") === undefined && relaysSplit(state, ctx, ctx.side("lattice")),
+          act: (state, ctx) => arrive(state, ctx.side("lattice"),
+            ["tank", "infantry", "infantry"]),
+          note: "The relays still in Echo's hands have called for help: Lattice " +
+            "reinforcements have come on at the back of the board, behind its base." },
+        { id: "cutOff",
           when: (state, ctx) => sites(ctx, RELAYS).every((at) =>
             takenThisRound(state, ctx, at)),
-          act: (state, ctx) => {
-            const heart = home(state, ctx.side("lattice"));
-            const ring = hexesWithin(state.map, heart, HEART_RING);
-            const gates = sites(ctx, RELAYS).flatMap((at) => {
-              const nearest = [...ring].sort((a, b) => distance(a, at) - distance(b, at) ||
-                a.localeCompare(b))[0];
-              return hexesWithin(state.map, nearest, 0, 1).filter((k) => ring.includes(k));
-            });
-            return openGround(state, gates);
-          },
-          note: "The three relays go dark together, and the crater wall cracks open in three " +
-            "places. The heart is open." },
+          note: "The three relays fall together. The heart is cut off: no more " +
+            "reinforcements, only the Turrets at the gaps." },
       ],
       steps: [
         { text: "Overrun the three relays in the same round",
-          done: (state, ctx) => ctx.fired("breach") !== undefined },
+          done: (state, ctx) => ctx.fired("cutOff") !== undefined },
         { text: "Overrun the Lattice's home factory", done: (state, ctx) =>
           humansHold(state, ctx, home(state, ctx.side("lattice"))) },
       ],

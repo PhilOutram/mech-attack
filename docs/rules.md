@@ -145,7 +145,7 @@ Settled with Phil, 29 October 2026; the plan and what is still open are in `docs
 - Comms (see Factory upgrades) is the only way to see an ally's ground and units.
 - Team campaigns (Phil, 1 November 2026; they replace the co-op campaign "Red Dust: Together"): one campaign each for 2, 3 and 4 players, ten missions each, against AI factions with their own leaders (`docs/campaigns.md`). A win counts on every player's device; the host can start any mission they have unlocked. In a team mission:
   - AI sides can be allies, enemies, or at war with everyone, and the mission's script can change that during the game: an ally can turn on you, an enemy can come over (`changeTeam` in `engine.js`).
-  - The script can also bring in units or crystals, hand units and factories to another side, and open ground (Scenario changes in `engine.js`).
+  - The script can also bring in units or crystals, and hand units and factories to another side (Scenario changes in `engine.js`).
   - The mission decides when the game ends (`rules.scriptedEnd`): a side with nothing left is knocked out, but the game goes on until the objective is met or failed. With every enemy beaten and nothing more to come in the story, the team wins.
   - Some objectives must be met in the same round, such as factories overrun in one round; a factory remembers the round it was taken.
   - Demand surrender is not offered: the objective decides the mission.

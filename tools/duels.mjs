@@ -18,7 +18,7 @@
 // Usage (from the project folder): node tools/duels.mjs
 import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { RULES } from "../rules-config.js?v=0.86";
+import { RULES } from "../rules-config.js?v=0.87";
 
 const MAX_ROUNDS = 30;
 const RETURN_FIRE_DISTANCE = 1;

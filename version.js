@@ -1,8 +1,18 @@
-export const VERSION = "v0.86";
+export const VERSION = "v0.87";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.87",
+    date: "2026-11-01",
+    notes: [
+      "Ashfall and Echo: craters with narrow gaps guarded by Turrets; no walls opening.",
+      "Reinforcements come on at the back of the board, and the notes say so.",
+      "What Sleeps Below: Lattice Infantry hiding in old factories take them over.",
+      "The Lamplighters' story explains why the four relays need each other.",
+    ],
+  },
   {
     version: "v0.86",
     date: "2026-11-01",

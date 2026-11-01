@@ -6,8 +6,8 @@ import {
   HUMAN_TEAM, ENEMY_TEAM, THIRD_TEAM, human, faction, siteNear, addFactory, wallBetween,
   ringOfMountains, freeHexNear, humansHold, homesHeld, homeHeld, ownerAt, isOut,
   lostCount, hasUnit, roundStarted, betray, reinforce, giftEach, takeFactory, teamHolds,
-  warning,
-} from "./team-scenario.js?v=0.86";
+  warning, arrive,
+} from "./team-scenario.js?v=0.87";
 
 // Targets and counts, kept next to the text that names them.
 const CONVOY_CRYSTALS = 15;
@@ -275,9 +275,11 @@ export const DUO_CAMPAIGN = {
     {
       title: "What Sleeps Below",
       story: "Varr's captured logs show what she was digging for: something under the basin. " +
-        "The ground shakes. Old factories, dead for a century, light up one by one, and a " +
-        "voice comes over every channel at once: \"Visitors. You have been very loud.\" It " +
-        "calls itself Echo. Kaldra keeps her word and sends a column to help.",
+        "A voice comes over every channel at once: \"Visitors. You have been very loud.\" " +
+        "It calls itself Echo. Its Infantry have been hiding in the four old factories on " +
+        "the plain, and one by one they are taking them over and spending the crystals still " +
+        "in store. Get your own Infantry in first. Kaldra keeps her word and sends a column " +
+        "to help.",
       objective: `Hold ${OLD_FACTORIES_TO_HOLD} of the old factories at the start of round ` +
         `${DEADLINE_ROUND}. Overrun them before they wake.`,
       failText: "The old factories are the Lattice's now.",
@@ -305,8 +307,10 @@ export const DUO_CAMPAIGN = {
         note: (state, ctx) => {
           const at = sites(ctx, ["oldNorth", "oldEast", "oldSouth", "oldWest"])[i];
           return ownerAt(state, at) === ctx.side("lattice")
-            ? "Another old factory lights up and starts building for the Lattice."
-            : "An old factory tried to wake, but it is yours: it stays dark to Echo.";
+            ? "Lattice Infantry hiding in an old factory have taken it over, and spent the " +
+              "crystals in its store on an Attack Helicopter and a Twin Turret."
+            : "Lattice Infantry were hiding in one of your old factories. Your garrison saw " +
+              "them first, and they slipped away.";
         },
       })),
       done: (state, ctx) => state.round >= DEADLINE_ROUND && homesHeld(state, ctx) &&
@@ -371,16 +375,15 @@ export const DUO_CAMPAIGN = {
       script: [
         { id: "wave", repeat: true,
           when: (state) => humanPhase(state) && state.round % WAVE_EVERY === 0,
-          act: (state, ctx) => reinforce(state, ctx.side("lattice"),
-            ["attackHelicopter", "attackHelicopter", "infantry", "infantry"],
-            home(state, ctx.side("lattice"))),
-          note: "Another Lattice wave is on its way." },
+          act: (state, ctx) => arrive(state, ctx.side("lattice"),
+            ["attackHelicopter", "infantry", "infantry"]),
+          note: "Another Lattice wave has come on at the back of the board, behind its base." },
         { id: "ashborn",
           when: (state) => humanPhase(state) && state.round >= ASHBORN_ARRIVE_ROUND,
-          act: (state, ctx) => reinforce(state, ctx.side("ashborn"),
-            ["sonicTank", "sonicTank", "infantry", "infantry"], home(state, ctx.humans[0])),
+          act: (state, ctx) => arrive(state, ctx.side("ashborn"),
+            ["sonicTank", "sonicTank", "infantry", "infantry"], ctx.humans[0]),
           note: "Sable's people have crossed the dunes: two Sonic Tanks and their Infantry " +
-            "are at Blue's base." },
+            "have come on at the edge of the map behind Blue's base." },
       ],
       done: (state, ctx) => state.round > LONG_NIGHT_ROUNDS && homesHeld(state, ctx) &&
         homeHeld(state, ctx.side("consortium")),

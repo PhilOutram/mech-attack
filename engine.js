@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.86";
+} from "./hex.js?v=0.87";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -1838,17 +1838,6 @@ export function addUnits(state, player, types, near, cargo = []) {
       }
     });
     next.events.push({ type: "unitsArrive", player, unitIds: ids, at: near });
-  });
-}
-
-// Hexes change terrain (a crater wall opening, a pass caving in). Units, piles and factories
-// on them stay. The map is replaced, not edited, so a state that shares it is unchanged.
-export function changeTerrain(state, hexes, terrain) {
-  return scenarioChange(state, (next) => {
-    const changed = hexes.filter((k) => next.map.hexes[k]);
-    next.map = { ...next.map, hexes: { ...next.map.hexes } };
-    for (const k of changed) next.map.hexes[k] = { ...next.map.hexes[k], terrain };
-    next.events.push({ type: "terrainChange", hexes: changed, terrain });
   });
 }
 
