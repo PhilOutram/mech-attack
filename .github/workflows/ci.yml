@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  app:
+    name: App engine tests (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test
+
+  vision:
+    name: Vision service (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vision
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: vision/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - name: Board and hex fixtures are up to date with the app
+        working-directory: .
+        run: |
+          node tools/camera-board.mjs
+          node tools/hex-golden.mjs
+          git diff --exit-code camera/board.json vision/tests/fixtures/hex-golden.json
+      - run: pytest -q
+      - name: Docker image builds
+        run: docker build -t tabletop-vision .
