@@ -94,42 +94,44 @@ Code: the missions are in `team-campaign-2.js`, `team-campaign-3.js` and `team-c
 
 ### How the missions play AI against AI
 
-`node tools/team-trials.mjs --games 5` (v0.84), the hand-tuned AI on the human seats. The AI does not know the objectives: it cannot plan a strike in the same round, wait by an ally's factory or leave a camp standing on purpose, so a mission it never wins is not shown to be too hard for people. The trials catch broken missions (an ally collapsing in two rounds, a mission won before it starts) and show which fights are lopsided.
+`node tools/team-trials.mjs --games 5` (v0.89, AI re-evolved on 21 November 2026), the hand-tuned AI on the human seats. The AI does not know the objectives: it cannot plan a strike in the same round, wait by an ally's factory or leave a camp standing on purpose, so a mission it never wins is not shown to be too hard for people. The trials catch broken missions (an ally collapsing in two rounds, a mission won before it starts) and show which fights are lopsided.
 
-Won, lost and stalled (reached the 40-round limit) out of 5 games (4 for the 4-player campaign, 6 for The Long Night), with the average length in rounds. "Needs a plan" marks missions the AI cannot win without knowing the objective.
+Won, lost and stalled (reached the 40-round limit) out of 5 games, with the average length in rounds. The v0.84 column gives won-lost-stalled from the earlier trials (4 games for the 4-player campaign, 6 for The Long Night), before units moved less, saw into the next blocks and stopped on sighting an enemy. "Needs a plan" marks missions the AI cannot win without knowing the objective.
 
-| Campaign | # | Mission | Won | Lost | Stalled | Rounds | Note |
-|---|---|---|---|---|---|---|---|
-| The Varr Contract | 1 | Dry Landing | 5 | 0 | 0 | 11.4 | Opening mission |
-| | 2 | Two Beacons | 0 | 0 | 5 | 41.0 | Needs a plan (same round) |
-| | 3 | Guests | 1 | 2 | 2 | 31.8 | After giving you a Twin Tank |
-| | 4 | Sable's Valley | 2 | 3 | 0 | 13.8 | |
-| | 5 | High Road | 0 | 2 | 3 | 32.6 | Role kits; the AI does not use the pass well |
-| | 6 | Kaldra's Word | 1 | 3 | 1 | 23.6 | Needs a plan (same round); Kaldra once fell in 2 rounds, now fixed |
-| | 7 | What Sleeps Below | 0 | 5 | 0 | 11.0 | The AI does not race for the old factories |
-| | 8 | The Director's Last Deal | 0 | 2 | 3 | 38.2 | Needs a plan (Infantry ready by both factories) |
-| | 9 | The Long Night | 2 | 3 | 0 | 14.2 | v0.87: waves from the back of the board, one helicopter fewer |
-| | 10 | The Heart of Kharon | 0 | 0 | 5 | 41.0 | Finale; the AI does not break the crater |
-| Ashfall | 1 | Strangers in the Ruins | 3 | 0 | 2 | 21.4 | |
-| | 2 | Water Rights | 5 | 0 | 0 | 13.0 | The Ashborn got a Crystal lab after collapsing in 5 rounds |
-| | 3 | Three Gates | 0 | 0 | 5 | 41.0 | Needs a plan (same round) |
-| | 4 | Redwater | 4 | 1 | 0 | 12.2 | Kaldra strengthened after 5 wins of 5 |
-| | 5 | Corran's Choice | 3 | 2 | 0 | 20.8 | Corran's posts reinforced when he turns |
-| | 6 | Sable's March | 4 | 1 | 0 | 9.0 | |
-| | 7 | The Broker | 3 | 0 | 2 | 31.2 | |
-| | 8 | Sky Burial | 2 | 3 | 0 | 22.2 | Role kits |
-| | 9 | Embers | 0 | 2 | 3 | 37.8 | Needs a plan (leave Corran's camp standing) |
-| | 10 | Ashfall | 0 | 3 | 2 | 36.2 | Needs a plan (same round); v0.87 crater with guarded gaps |
-| The Kharon Accord | 1 | Four Corners | 4 | 0 | 0 | 17.8 | Opening mission |
-| | 2 | The Lamplighters | 0 | 0 | 4 | 41.0 | Needs a plan (same round) |
-| | 3 | Division of Labour | 0 | 0 | 4 | 41.0 | Role kits: the AI cannot capture without the Vanguard leading |
-| | 4 | Gifts | 0 | 4 | 1 | 27.0 | Airdrops since v0.86 |
-| | 5 | Ghost Signal | 1 | 0 | 3 | 40.0 | The AI rarely finds the nests |
-| | 6 | The Crossing | 0 | 0 | 4 | 41.0 | Needs a plan (Chinook airlift) |
-| | 7 | Kaldra's Price | 2 | 0 | 2 | 35.5 | |
-| | 8 | Breach | 3 | 2 | 0 | 13.8 | Chinook airdrops since v0.86: from round 2 they won every game, so they start at round 4 |
-| | 9 | The Overseer's Code | 4 | 0 | 1 | 33.2 | |
-| | 10 | Echo | 0 | 4 | 1 | 35.4 | Of 5. Needs a plan (same round); v0.87 crater with guarded gaps |
+| Campaign | # | Mission | Won | Lost | Stalled | Rounds | v0.84 | Note |
+|---|---|---|---|---|---|---|---|---|
+| The Varr Contract | 1 | Dry Landing | 5 | 0 | 0 | 10.0 | 5-0-0 | Opening mission |
+| | 2 | Two Beacons | 0 | 0 | 5 | 41.0 | 0-0-5 | Needs a plan (same round) |
+| | 3 | Guests | 0 | 2 | 3 | 36.4 | 1-2-2 | After giving you a Twin Tank |
+| | 4 | Sable's Valley | 1 | 3 | 1 | 23.4 | 2-3-0 | |
+| | 5 | High Road | 0 | 0 | 5 | 41.0 | 0-2-3 | Role kits; the AI does not use the pass well |
+| | 6 | Kaldra's Word | 2 | 2 | 1 | 29.8 | 1-3-1 | Needs a plan (same round); Kaldra once fell in 2 rounds, now fixed |
+| | 7 | What Sleeps Below | 0 | 5 | 0 | 11.0 | 0-5-0 | The AI does not race for the old factories |
+| | 8 | The Director's Last Deal | 0 | 2 | 3 | 38.2 | 0-2-3 | Needs a plan (Infantry ready by both factories) |
+| | 9 | The Long Night | 5 | 0 | 0 | 16.0 | 2-3-0 | v0.87: waves from the back of the board, one helicopter fewer |
+| | 10 | The Heart of Kharon | 0 | 0 | 5 | 41.0 | 0-0-5 | Finale; the AI does not break the crater |
+| Ashfall | 1 | Strangers in the Ruins | 2 | 0 | 3 | 30.6 | 3-0-2 | |
+| | 2 | Water Rights | 4 | 1 | 0 | 17.2 | 5-0-0 | The Ashborn got a Crystal lab after collapsing in 5 rounds |
+| | 3 | Three Gates | 0 | 0 | 5 | 41.0 | 0-0-5 | Needs a plan (same round) |
+| | 4 | Redwater | 4 | 1 | 0 | 12.8 | 4-1-0 | Kaldra strengthened after 5 wins of 5 |
+| | 5 | Corran's Choice | 5 | 0 | 0 | 14.0 | 3-2-0 | Corran's posts reinforced when he turns |
+| | 6 | Sable's March | 5 | 0 | 0 | 9.0 | 4-1-0 | |
+| | 7 | The Broker | 4 | 1 | 0 | 22.6 | 3-0-2 | |
+| | 8 | Sky Burial | 4 | 1 | 0 | 16.6 | 2-3-0 | Role kits |
+| | 9 | Embers | 0 | 1 | 4 | 37.8 | 0-2-3 | Needs a plan (leave Corran's camp standing) |
+| | 10 | Ashfall | 0 | 3 | 2 | 34.0 | 0-3-2 | Needs a plan (same round); v0.87 crater with guarded gaps |
+| The Kharon Accord | 1 | Four Corners | 5 | 0 | 0 | 12.4 | 4-0-0 | Opening mission |
+| | 2 | The Lamplighters | 1 | 0 | 4 | 39.0 | 0-0-4 | Needs a plan (same round) |
+| | 3 | Division of Labour | 0 | 0 | 5 | 41.0 | 0-0-4 | Role kits: the AI cannot capture without the Vanguard leading |
+| | 4 | Gifts | 0 | 4 | 1 | 25.6 | 0-4-1 | Airdrops since v0.86 |
+| | 5 | Ghost Signal | 2 | 0 | 3 | 34.8 | 1-0-3 | The AI rarely finds the nests |
+| | 6 | The Crossing | 0 | 0 | 5 | 41.0 | 0-0-4 | Needs a plan (Chinook airlift) |
+| | 7 | Kaldra's Price | 4 | 0 | 1 | 29.6 | 2-0-2 | |
+| | 8 | Breach | 5 | 0 | 0 | 14.0 | 3-2-0 | Chinook airdrops since v0.86: from round 2 they won every game, so they start at round 4 |
+| | 9 | The Overseer's Code | 0 | 0 | 5 | 41.0 | 4-0-1 | |
+| | 10 | Echo | 0 | 2 | 3 | 36.8 | 0-4-1 | Of 5. Needs a plan (same round); v0.87 crater with guarded gaps |
+
+Against v0.84, the side on the human seats now wins more often in The Long Night (5 of 5), Breach (5 of 5), Corran's Choice, Sable's March, Sky Burial and Kaldra's Price, and The Overseer's Code now stalls in every game (it won 4 of 4). Five games a mission is a small sample; these are the missions to play first.
 
 ## Strategies, and where the campaigns use them
 
