@@ -6,46 +6,46 @@ Produced by `node evolve.js --generations 40 --population 20 --games 10 --seed 1
 
 | Generation | Best win rate | Mean win rate | Best personality favours |
 |---|---|---|---|
-| 1 | 70% | 50% | Artillery 16%, Blast Cannon 15%, Scout Bike 14% |
-| 2 | 82% | 51% | Artillery 16%, Scout Bike 13%, Turret 11% |
-| 3 | 77% | 50% | Turret 13%, Scout Bike 12%, Spotter Drone 11% |
-| 4 | 70% | 50% | Scout Bike 16%, Attack Helicopter 15%, Artillery 14% |
-| 5 | 80% | 50% | Turret 13%, Artillery 12%, Scout Bike 12% |
-| 6 | 78% | 50% | Artillery 14%, Turret 13%, Attack Helicopter 13% |
-| 7 | 69% | 50% | Scout Bike 16%, Artillery 16%, Light Medic 11% |
-| 8 | 74% | 50% | Artillery 15%, Scout Bike 15%, Spotter Drone 14% |
-| 9 | 61% | 50% | Scout Bike 14%, Artillery 13%, Spotter Drone 12% |
-| 10 | 68% | 50% | Scout Bike 14%, Artillery 13%, Blast Cannon 11% |
-| 11 | 85% | 51% | Artillery 15%, Scout Bike 14%, Attack Helicopter 12% |
-| 12 | 69% | 50% | Artillery 16%, Scout Bike 15%, Attack Helicopter 13% |
-| 13 | 75% | 50% | Artillery 16%, Scout Bike 15%, Attack Helicopter 13% |
-| 14 | 71% | 50% | Artillery 15%, Scout Bike 15%, Attack Helicopter 13% |
-| 15 | 79% | 50% | Scout Bike 25%, Artillery 16%, Light Medic 14% |
-| 16 | 71% | 50% | Scout Bike 19%, Artillery 16%, Attack Helicopter 14% |
-| 17 | 73% | 50% | Artillery 18%, Scout Bike 15%, Light Medic 11% |
-| 18 | 68% | 51% | Scout Bike 16%, Artillery 15%, Light Medic 12% |
-| 19 | 67% | 50% | Artillery 18%, Scout Bike 15%, Light Medic 11% |
-| 20 | 73% | 51% | Scout Bike 19%, Artillery 19%, Heavy Cannon 12% |
-| 21 | 70% | 50% | Scout Bike 21%, Artillery 18%, Light Medic 11% |
-| 22 | 75% | 51% | Scout Bike 19%, Artillery 19%, Spotter Drone 13% |
-| 23 | 75% | 50% | Scout Bike 19%, Artillery 15%, Heavy Cannon 12% |
-| 24 | 67% | 50% | Artillery 17%, Scout Bike 17%, Spotter Drone 15% |
-| 25 | 80% | 50% | Scout Bike 17%, Artillery 17%, Spotter Drone 12% |
-| 26 | 77% | 49% | Scout Bike 21%, Artillery 16%, Spotter Drone 13% |
-| 27 | 76% | 50% | Scout Bike 21%, Artillery 16%, Spotter Drone 13% |
-| 28 | 65% | 50% | Scout Bike 20%, Artillery 15%, Spotter Drone 13% |
-| 29 | 71% | 50% | Artillery 18%, Spotter Drone 16%, Scout Bike 15% |
-| 30 | 70% | 50% | Scout Bike 18%, Artillery 17%, Spotter Drone 15% |
-| 31 | 68% | 50% | Scout Bike 21%, Artillery 20%, Spotter Drone 19% |
-| 32 | 80% | 50% | Scout Bike 19%, Artillery 17%, Spotter Drone 17% |
-| 33 | 79% | 51% | Artillery 18%, Scout Bike 17%, Light Medic 15% |
-| 34 | 70% | 49% | Scout Bike 19%, Artillery 17%, Spotter Drone 16% |
-| 35 | 69% | 50% | Scout Bike 18%, Artillery 18%, Light Medic 15% |
-| 36 | 67% | 50% | Artillery 18%, Scout Bike 18%, Light Medic 15% |
-| 37 | 65% | 50% | Scout Bike 18%, Artillery 17%, Light Medic 13% |
-| 38 | 71% | 49% | Scout Bike 16%, Artillery 16%, Light Medic 12% |
-| 39 | 71% | 50% | Scout Bike 16%, Artillery 16%, Light Medic 12% |
-| 40 | 79% | 50% | Artillery 19%, Light Medic 14%, Scout Bike 14% |
+| 1 | 77% | 50% | Light Medic 19%, Tank 15%, Artillery 11% |
+| 2 | 82% | 50% | Twin Tank 21%, Blast Cannon 16%, Fighter 10% |
+| 3 | 69% | 50% | Blast Cannon 18%, Artillery 17%, Fighter 10% |
+| 4 | 66% | 50% | Blast Cannon 18%, Artillery 17%, Fighter 10% |
+| 5 | 78% | 50% | Artillery 21%, Fighter 13%, Attack Helicopter 12% |
+| 6 | 77% | 50% | Artillery 24%, Fighter 14%, Attack Helicopter 14% |
+| 7 | 68% | 50% | Artillery 24%, Fighter 14%, Attack Helicopter 14% |
+| 8 | 75% | 50% | Artillery 23%, Attack Helicopter 13%, Fighter 11% |
+| 9 | 74% | 50% | Artillery 23%, Turret 14%, Fighter 14% |
+| 10 | 78% | 50% | Artillery 21%, Turret 13%, Fighter 12% |
+| 11 | 81% | 50% | Artillery 26%, Attack Helicopter 16%, Fighter 14% |
+| 12 | 71% | 50% | Artillery 18%, Fighter 13%, Scout Bike 11% |
+| 13 | 70% | 50% | Artillery 21%, Turret 14%, Fighter 13% |
+| 14 | 67% | 50% | Artillery 18%, Turret 14%, Fighter 12% |
+| 15 | 70% | 49% | Artillery 19%, Attack Helicopter 14%, Sonic Tank 14% |
+| 16 | 72% | 50% | Artillery 17%, Attack Helicopter 15%, Spotter Drone 12% |
+| 17 | 79% | 51% | Artillery 20%, Attack Helicopter 14%, Turret 13% |
+| 18 | 70% | 50% | Artillery 17%, Turret 15%, Attack Helicopter 11% |
+| 19 | 69% | 50% | Artillery 18%, Turret 15%, Fighter 12% |
+| 20 | 72% | 50% | Artillery 21%, Light Medic 15%, Turret 13% |
+| 21 | 66% | 50% | Artillery 19%, Turret 15%, Attack Helicopter 12% |
+| 22 | 71% | 50% | Turret 18%, Artillery 17%, Fighter 15% |
+| 23 | 64% | 50% | Turret 19%, Artillery 18%, Fighter 12% |
+| 24 | 69% | 50% | Turret 19%, Artillery 18%, Attack Helicopter 15% |
+| 25 | 77% | 50% | Artillery 20%, Turret 18%, Fighter 18% |
+| 26 | 67% | 50% | Artillery 21%, Turret 14%, Attack Helicopter 12% |
+| 27 | 71% | 50% | Artillery 18%, Turret 17%, Fighter 13% |
+| 28 | 63% | 49% | Artillery 18%, Turret 15%, Fighter 13% |
+| 29 | 73% | 51% | Artillery 21%, Turret 13%, Attack Helicopter 12% |
+| 30 | 78% | 50% | Artillery 20%, Turret 15%, Fighter 13% |
+| 31 | 73% | 49% | Artillery 19%, Fighter 14%, Turret 12% |
+| 32 | 65% | 49% | Artillery 19%, Turret 18%, Fighter 13% |
+| 33 | 68% | 50% | Turret 15%, Artillery 14%, Light Medic 13% |
+| 34 | 74% | 50% | Turret 21%, Artillery 16%, Attack Helicopter 15% |
+| 35 | 73% | 50% | Artillery 19%, Turret 16%, Attack Helicopter 16% |
+| 36 | 67% | 50% | Artillery 19%, Turret 15%, Fighter 12% |
+| 37 | 67% | 50% | Artillery 20%, Turret 20%, Attack Helicopter 14% |
+| 38 | 67% | 49% | Turret 19%, Artillery 18%, Fighter 13% |
+| 39 | 66% | 50% | Artillery 19%, Turret 16%, Attack Helicopter 16% |
+| 40 | 68% | 50% | Artillery 17%, Turret 14%, Fighter 14% |
 
 ## The best personalities against the hand-tuned AI
 
@@ -53,56 +53,56 @@ Produced by `node evolve.js --generations 40 --population 20 --games 10 --seed 1
 
 | Personality | Wins against the default AI | Units it built (share) | Upgrades and captures per game | Wanted but hardly built |
 |---|---|---|---|---|
-| Infantry and Scout Bike | 80% | Infantry 57%, Scout Bike 16%, Light Harvester 10%, Artillery 6%, Heavy Cannon 3%, Spotter Drone 3%, Light Medic 2%, Twin Tank 1%, Attack Helicopter 1%, Blast Cannon 0%, Sonic Tank 0%, Twin Turret 0%, Fighter 0%, Tank 0% | Crystal lab 1.8, Heavy works 0.7, Airfield 0.5, captures 3.2 | Light Medic (14% wanted) |
-| Infantry and Scout Bike | 77% | Infantry 50%, Scout Bike 15%, Light Harvester 13%, Artillery 5%, Spotter Drone 5%, Heavy Cannon 4%, Attack Helicopter 4%, Light Medic 1%, Tank 1%, Sonic Tank 1%, Twin Tank 0%, Twin Turret 0%, Anti-Aircraft Jeep 0% | Crystal lab 1.8, Heavy works 0.8, Airfield 0.7, captures 2.8 | Light Medic (12% wanted) |
-| Infantry and Scout Bike | 82% | Infantry 52%, Scout Bike 12%, Light Harvester 12%, Artillery 7%, Spotter Drone 5%, Heavy Cannon 4%, Attack Helicopter 4%, Light Medic 3%, Twin Tank 1%, Sonic Tank 1%, Tank 1%, Twin Turret 0%, Anti-Aircraft Jeep 0% | Crystal lab 1.8, Airfield 0.8, Heavy works 0.8, captures 2.9 | - |
-| Infantry and Scout Bike | 73% | Infantry 54%, Light Harvester 15%, Scout Bike 10%, Artillery 6%, Heavy Cannon 4%, Spotter Drone 3%, Attack Helicopter 2%, Twin Tank 2%, Blast Cannon 1%, Light Medic 1%, Sonic Tank 1%, Tank 1%, Anti-Aircraft Jeep 0% | Crystal lab 1.7, Heavy works 0.9, Airfield 0.6, captures 2.8 | Light Medic (11% wanted) |
-| Infantry and Scout Bike | 76% | Infantry 53%, Scout Bike 15%, Light Harvester 14%, Artillery 6%, Spotter Drone 5%, Heavy Cannon 2%, Attack Helicopter 2%, Light Medic 1%, Twin Tank 1%, Tank 0%, Sonic Tank 0%, Turret 0%, Twin Turret 0% | Crystal lab 1.7, Airfield 0.7, Heavy works 0.7, captures 2.7 | Light Medic (14% wanted) |
+| Infantry and Artillery | 80% | Infantry 49%, Light Harvester 9%, Artillery 9%, Turret 6%, Fighter 5%, Light Medic 5%, Attack Helicopter 4%, Spotter Drone 4%, Scout Bike 3%, Anti-Aircraft Jeep 2%, Tank 2%, Sonic Tank 1%, Heavy Cannon 0%, Twin Turret 0% | Crystal lab 1.0, Airfield 0.9, Heavy works 0.3, captures 2.6 | - |
+| Infantry and Artillery | 82% | Infantry 47%, Artillery 9%, Light Harvester 8%, Attack Helicopter 6%, Turret 6%, Scout Bike 5%, Light Medic 5%, Spotter Drone 5%, Fighter 4%, Anti-Aircraft Jeep 2%, Tank 2%, Heavy Cannon 1%, Twin Turret 0% | Crystal lab 1.0, Airfield 0.9, Heavy works 0.2, captures 2.6 | - |
+| Infantry and Artillery | 82% | Infantry 43%, Light Harvester 9%, Artillery 9%, Turret 8%, Attack Helicopter 6%, Fighter 6%, Scout Bike 6%, Light Medic 5%, Spotter Drone 3%, Anti-Aircraft Jeep 3%, Tank 2%, Twin Turret 1%, Twin Tank 0%, Heavy Cannon 0%, Blast Cannon 0% | Crystal lab 1.0, Airfield 0.9, Heavy works 0.1, captures 2.7 | - |
+| Infantry and Artillery | 78% | Infantry 44%, Light Harvester 10%, Artillery 8%, Scout Bike 7%, Turret 6%, Attack Helicopter 5%, Fighter 5%, Spotter Drone 4%, Light Medic 3%, Tank 3%, Anti-Aircraft Jeep 3%, Twin Tank 1%, Twin Turret 0%, Heavy Cannon 0%, Blast Cannon 0% | Crystal lab 1.0, Airfield 0.8, Heavy works 0.2, captures 2.7 | - |
+| Infantry and Artillery | 79% | Infantry 45%, Artillery 10%, Light Harvester 9%, Turret 6%, Scout Bike 6%, Fighter 5%, Attack Helicopter 5%, Tank 4%, Light Medic 3%, Anti-Aircraft Jeep 3%, Spotter Drone 3%, Blast Cannon 1%, Twin Turret 0%, Heavy Cannon 0% | Crystal lab 1.0, Airfield 0.9, Heavy works 0.3, captures 2.4 | - |
 
 ## Genes of the best personality
 
 ```json
 {
   "mix": {
-    "tank": 0.16,
-    "heavyCannon": 0.66,
-    "artillery": 0.98,
-    "blastCannon": 0.29,
+    "tank": 0.37,
+    "heavyCannon": 0.18,
+    "artillery": 0.76,
+    "blastCannon": 0,
     "sonicTank": 0.19,
-    "scoutBike": 0.72,
-    "spotterDrone": 0.63,
-    "attackHelicopter": 0.33,
-    "fighter": 0.05,
-    "antiAircraftJeep": 0,
-    "lightMedic": 0.76,
-    "turret": 0,
-    "heavyTank": 0.45,
-    "twinTurret": 0.08
+    "scoutBike": 0,
+    "spotterDrone": 0.35,
+    "attackHelicopter": 0.41,
+    "fighter": 0.65,
+    "antiAircraftJeep": 0.3,
+    "lightMedic": 0.51,
+    "turret": 0.65,
+    "heavyTank": 0,
+    "twinTurret": 0.17
   },
   "harvestersEarly": 2,
   "harvestersMax": 2,
-  "counterWeight": 0,
-  "counterPriority": 0.38,
-  "capturePriority": 0.27,
-  "armyPriority": 0,
-  "seedPriority": 0.65,
-  "factoryLifeValue": 285.92,
-  "killBonusShare": 0,
-  "returnFireCaution": 1.23,
-  "homeDefenceRadius": 6,
-  "standOff": 2,
-  "harvesterDangerRadius": 1,
-  "dangerPenalty": 7.09,
-  "scoutWatchDistance": 5,
-  "armySizeForMedic": 5,
+  "counterWeight": 0.69,
+  "counterPriority": 0.78,
+  "capturePriority": 1,
+  "armyPriority": 0.87,
+  "seedPriority": 0.91,
+  "factoryLifeValue": 132.59,
+  "killBonusShare": 0.41,
+  "returnFireCaution": 0.29,
+  "homeDefenceRadius": 8,
+  "standOff": 1,
+  "harvesterDangerRadius": 3,
+  "dangerPenalty": 4.36,
+  "scoutWatchDistance": 3,
+  "armySizeForMedic": 3,
   "patience": 1,
-  "captureFactories": 3,
-  "transportInfantry": 0.13,
-  "labs": 2,
+  "captureFactories": 2,
+  "transportInfantry": 0.16,
+  "labs": 1,
   "seeders": 0,
-  "wreckPiles": 0.74,
-  "targetNearness": 0.66,
-  "targetWeakness": -0.41,
-  "targetThreat": 1.62
+  "wreckPiles": 0.26,
+  "targetNearness": 0.95,
+  "targetWeakness": 1.53,
+  "targetThreat": 2
 }
 ```

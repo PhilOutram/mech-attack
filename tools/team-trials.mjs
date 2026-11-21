@@ -4,12 +4,12 @@
 // not a walkover; people play it differently.
 //   node tools/team-trials.mjs --campaign duo --mission 3 --games 10
 //   node tools/team-trials.mjs --campaign duo --games 4        (every mission)
-import { newGame, applyAction, viewFor } from "../engine.js?v=0.88";
-import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.88";
-import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.88";
-import { MULTI_SIDE_PERSONALITIES } from "../ai-personalities-multi.js?v=0.88";
-import { levelById } from "../difficulty.js?v=0.88";
-import { TEAM_CAMPAIGNS, campaignById, teamPlan, missionTick } from "../team-campaigns.js?v=0.88";
+import { newGame, applyAction, viewFor } from "../engine.js?v=0.89";
+import { chooseAction, DEFAULT_PERSONALITY } from "../ai.js?v=0.89";
+import { EVOLVED_PERSONALITIES } from "../ai-personalities.js?v=0.89";
+import { MULTI_SIDE_PERSONALITIES } from "../ai-personalities-multi.js?v=0.89";
+import { levelById } from "../difficulty.js?v=0.89";
+import { TEAM_CAMPAIGNS, campaignById, teamPlan, missionTick } from "../team-campaigns.js?v=0.89";
 
 const DEFAULT_GAMES = 10;
 const ROUND_CAP = 40;

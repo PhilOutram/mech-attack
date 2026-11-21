@@ -1,8 +1,19 @@
-export const VERSION = "v0.88";
+export const VERSION = "v0.89";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.89",
+    date: "2026-11-21",
+    notes: [
+      "A move stops when an enemy unit comes into view, and the unit keeps the rest of its " +
+        "move.",
+      "The AI opponents are re-trained for the new move and sight.",
+      "The capture cutaway has recorded welding and door sounds; enemy Chinooks arrive " +
+        "1 hex closer in the team missions, to match their shorter move.",
+    ],
+  },
   {
     version: "v0.88",
     date: "2026-11-21",
