@@ -125,6 +125,8 @@ All the numbers are provisional, as is everything not listed as Phil's. The Turr
 ### Moving into face-down ground
 A move that turns over a new block stops there, unless it has arrived (`fog.stopOnReveal`; Phil, 29 October 2026; on 30 October changed to stop on every new block, so the unit is always next to what just turned over). The unit keeps the move points it has not used, so you can see what is there and then carry on, fire, or stop. So you can tap a face-down hex far away and the unit goes as far as the edge first. A move whose last step turns over new ground also keeps the rest of the unit's move (Phil, 31 October 2026), so a unit that stops at the edge of what is known can carry on into what it has just turned over.
 
+A move also stops when an enemy unit comes into view that the player could not see when the move began (`fog.stopOnSighting`; Phil, 21 November 2026), with the rest of the move kept in the same way, including when the unit sees it on its last step. So a Tank moving 3 that spots an enemy after 2 hexes still has 1 to use: pull back, carry on or fire. Provisional: an ally's units and factories do not stop a move. On fixed map 1 (200 games, hand-tuned AI both sides) it shortened games from a mean of 25.0 to 22.9 rounds and cut the share of attackers' first shots fired from out of sight from 45% to 36%; the first player's share of wins rose from 55% to 62.5%.
+
 ### Firing blind
 A unit can fire into any hex in range that its player cannot see (Phil, 29 October 2026). An enemy there is hit as normal; an empty hex wastes the shot. You are told whether you hit something, not what. A unit fired on blind does not fire back. The AI does not fire blind.
 

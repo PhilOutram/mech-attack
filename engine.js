@@ -28,8 +28,9 @@ import {
 //   dropped off on a free hex next to it, or straight into a factory to capture it.
 // - Factory upgrades (unit.upgrades) unlock the unit types that need them (stat "needs"); a
 //   Crystal lab makes crystals every turn.
-// - A move cut short by turning over new ground (stoppedBy "revealed"), or one whose last
-//   step turns some over, leaves the unit able to use the rest of its move (unit.continues).
+// - A move cut short by turning over new ground (stoppedBy "revealed") or by an enemy unit
+//   coming into view (stoppedBy "sighted"), or one whose last step does either, leaves the
+//   unit able to use the rest of its move (unit.continues).
 // - players[p].lost counts that player's destroyed units by type.
 //
 // Sides, teams and turns (format 8):
@@ -338,6 +339,19 @@ function revealFrom(state, player, at, unit) {
     const block = blockOf(state, k);
     if (!near || near[block]) revealed[block] = true;
   }
+}
+
+// Enemy units (not factories) a unit standing at hex k lets its player see, besides those in
+// the set already: rules.fog.stopOnSighting stops a move when one comes into view.
+function sightedFrom(state, unit, k, already) {
+  const player = unit.owner;
+  const inSight = hexesInSight(state, k, unitStats(state, unit).sight);
+  const revealed = state.players[player].revealed;
+  const sees = (h) => (tilesFog(state) ? revealed[blockOf(state, h)] &&
+    (!state.rules.fog.liveSight || inSight.includes(h)) : inSight.includes(h));
+  return Object.values(state.units).filter((u) => u.owner !== null && u.owner !== player &&
+    !allied(state, u.owner, player) && !already.has(u.id) &&
+    !unitStats(state, u).isFactory && sees(u.at)).map((u) => u.id);
 }
 
 // Hexes the player sees with their own units: in fog mode "sight", the hexes in sight of
@@ -1040,8 +1054,9 @@ function spendShot(unit, stats, targetId = null) {
 // passes over everything but cannot stop on a hex that turns out to be occupied. With
 // rules.fog.stopOnReveal, a move that turns over a new block stops there, unless it has
 // arrived, so the player always sees what turned over next to the unit (Phil, 30 October
-// 2026); the unit can use the rest of its move afterwards. A move into a factory captures it;
-// a move onto a transporter boards it.
+// 2026); with rules.fog.stopOnSighting, so does one that brings an enemy unit into view (Phil,
+// 21 November 2026). The unit can use the rest of its move afterwards. A move into a factory
+// captures it; a move onto a transporter boards it.
 function applyMove(state, { unitId, to }, actor) {
   const unit = ownUnit(state, unitId, actor);
   const view = viewFor(state, actor);
@@ -1055,9 +1070,17 @@ function applyMove(state, { unitId, to }, actor) {
   const flies = Boolean(unitStats(state, unit).air);
   const player = state.players[unit.owner];
   const stopOnReveal = tilesFog(state) && state.rules.fog.stopOnReveal;
+  const stopOnSighting = Boolean(state.rules.fog.stopOnSighting);
   const from = unit.at;
-  // Ground turned over by the move's last step: the unit may then go on with what is left.
-  let revealedAtEnd = false;
+  // Enemy units the player could see before the move.
+  const inView = new Set();
+  if (stopOnSighting) {
+    const visible = visibleHexes(state, unit.owner);
+    for (const id in state.units) if (visible[state.units[id].at]) inView.add(id);
+  }
+  // Something new seen on the move's last step: the unit may then go on with what is left.
+  let learnedAtEnd = false;
+  let sighted = false;
   // Overwatch fire on the unit along the way, told after the move itself.
   const watchEvents = [];
   let destroyed = false;
@@ -1091,11 +1114,15 @@ function applyMove(state, { unitId, to }, actor) {
       stoppedBy = "destroyed";
       break;
     }
-    if (stopOnReveal && turned && i < route.path.length - 1) {
-      stoppedBy = "revealed";
-      break;
+    const spotted = stopOnSighting && sightedFrom(state, unit, k, inView).length > 0;
+    sighted ||= spotted;
+    if ((stopOnReveal && turned) || spotted) {
+      if (i < route.path.length - 1) {
+        stoppedBy = spotted ? "sighted" : "revealed";
+        break;
+      }
+      learnedAtEnd = true;
     }
-    if (stopOnReveal && turned) revealedAtEnd = true;
   }
   // Never finish on a hex another unit is on, unless entering it.
   while (walked.length && !destroyed) {
@@ -1111,13 +1138,13 @@ function applyMove(state, { unitId, to }, actor) {
   // A move that gets nowhere (something hidden in the way) uses up the rest of the unit's
   // move, so a unit that splits its move cannot keep trying it.
   unit.moveUsed = path.length ? (unit.moveUsed || 0) + used : unitStats(state, unit).move;
-  // Stopped by new ground, or arrived and turned some over: either way the unit may use the
-  // rest of its move (Phil, 31 October 2026: arriving counts too).
-  const turnedOver = (stoppedBy === "revealed" && unit.at !== to) ||
-    (revealedAtEnd && unit.at === to);
-  unit.continues = !destroyed && turnedOver && used > 0 &&
+  // Stopped by something new, or arrived and saw something new: either way the unit may use
+  // the rest of its move (Phil, 31 October 2026: arriving counts too).
+  const learned = (["revealed", "sighted"].includes(stoppedBy) && unit.at !== to) ||
+    (learnedAtEnd && unit.at === to);
+  unit.continues = !destroyed && learned && used > 0 &&
     unit.moveUsed < unitStats(state, unit).move;
-  state.events.push({ type: "move", unitId, from, to: unit.at, path, stoppedBy,
+  state.events.push({ type: "move", unitId, from, to: unit.at, path, stoppedBy, sighted,
     moveLeft: unit.continues ? moveLeft(state, unit) : 0 });
   state.events.push(...watchEvents);
 

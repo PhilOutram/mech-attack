@@ -322,11 +322,15 @@ export const RULES = {
   // (Phil, 21 November 2026: you see into the next tile, not across a whole tile).
   // stopOnReveal: a move that turns over a new block stops there, unless it has arrived; the
   // unit keeps its unused move points (Phil, 29 and 30 October 2026).
+  // stopOnSighting: the same when an enemy unit (not a factory) comes into view that the player
+  // could not see when the move began (Phil, 21 November 2026). Provisional: allies' units
+  // and factories do not stop a move.
   // liveSight (Phil, 30 October 2026): in fog mode "tiles", a turned-over block shows its
   // terrain for good, but only hexes a unit can see now (within sight, not behind mountains)
   // show what is on them; the rest of the explored ground is under a thin fog that hides
   // enemy units and shows crystals as last seen.
-  fog: { mode: "tiles", revealRange: "nextBlocks", stopOnReveal: true, liveSight: true },
+  fog: { mode: "tiles", revealRange: "nextBlocks", stopOnReveal: true, stopOnSighting: true,
+    liveSight: true },
 
   // Undos per game for the player on the game screen (the engine does not use this).
   undosPerGame: 5,

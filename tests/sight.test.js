@@ -2,7 +2,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { RULES } from "../rules-config.js";
-import { refreshKnowledge } from "../engine.js";
+import { applyAction, reachableHexes, refreshKnowledge, viewFor } from "../engine.js";
 import { distance, key, neighbourKeys } from "../hex.js";
 import { scenario, testRules } from "./helpers.js";
 
@@ -103,5 +103,69 @@ describe("turning over the next blocks (fog.revealRange nextBlocks)", () => {
     s.players[BLUE].revealed = {};
     const revealed = revealedAfter(s);
     assert.deepEqual(revealed, new Set([key(0, 0), ...neighbourKeys(key(0, 0))]));
+  });
+});
+
+describe("stopping when an enemy unit comes into view (fog.stopOnSighting)", () => {
+  const GREEN = 1;
+  const play = (state, ...actions) => actions.reduce((s, a) => applyAction(s, a), state);
+  // Every block face up, so only units coming into sight can stop the move. The Green tank
+  // starts out of the Blue tank's sight, straight ahead along its route.
+  const SIGHTING = { fog: { liveSight: true, stopOnSighting: true } };
+  const TANK = testRules().units.tank;
+  const ENEMY_AT = key(0, -(TANK.move + TANK.sight - 1));
+  const TARGET = key(0, -TANK.move);
+  const start = (rules = SIGHTING, more = [], sides = null) => scenario({ rules, sides,
+    units: [{ id: "t", type: "tank", owner: BLUE, at: key(0, 0) },
+      { id: "e", type: "tank", owner: GREEN, at: ENEMY_AT }, ...more] });
+  const moveEvent = (s) => s.events.find((e) => e.type === "move");
+
+  test("the move stops where the enemy comes into view, with the rest of the move left", () => {
+    const s = start();
+    assert.equal(viewFor(s, BLUE).units.e, undefined, "the enemy starts out of sight");
+    const after = play(s, { type: "move", unitId: "t", to: TARGET });
+    const move = moveEvent(after);
+    assert.equal(move.stoppedBy, "sighted");
+    assert.equal(distance(after.units.t.at, ENEMY_AT), TANK.sight);
+    assert.ok(after.units.t.continues);
+    assert.equal(move.moveLeft, TANK.move - after.units.t.moveUsed);
+    assert.ok(viewFor(after, BLUE).units.e, "the enemy is now in view");
+    assert.ok(Object.keys(reachableHexes(viewFor(after, BLUE), "t")).length > 0);
+  });
+
+  test("arriving where the enemy comes into view leaves the rest of the move too", () => {
+    const stop = play(start(), { type: "move", unitId: "t", to: TARGET }).units.t.at;
+    const after = play(start(), { type: "move", unitId: "t", to: stop });
+    const move = moveEvent(after);
+    assert.equal(move.stoppedBy, null);
+    assert.ok(move.sighted);
+    assert.ok(after.units.t.continues);
+  });
+
+  test("an enemy already in view does not stop the move", () => {
+    const watcher = { id: "w", type: "spotterDrone", owner: BLUE, at: key(0, -TANK.move) };
+    const s = start(SIGHTING, [watcher]);
+    assert.ok(viewFor(s, BLUE).units.e, "the drone already sees the enemy");
+    const after = play(s, { type: "move", unitId: "t", to: key(1, -TANK.move) });
+    assert.equal(moveEvent(after).stoppedBy, null);
+    assert.ok(!after.units.t.continues);
+  });
+
+  test("with the rule off the move goes on", () => {
+    const off = { fog: { liveSight: true, stopOnSighting: false } };
+    const after = play(start(off), { type: "move", unitId: "t", to: TARGET });
+    assert.equal(after.units.t.at, TARGET);
+    assert.equal(moveEvent(after).stoppedBy, null);
+  });
+
+  test("an ally's unit coming into view does not stop the move", () => {
+    const YELLOW = 2;
+    const sides = [{ team: 0 }, { team: 1 }, { team: 0 }];
+    const s = scenario({ rules: SIGHTING, sides, units: [
+      { id: "t", type: "tank", owner: BLUE, at: key(0, 0) },
+      { id: "y", type: "tank", owner: YELLOW, at: ENEMY_AT }] });
+    const after = play(s, { type: "move", unitId: "t", to: TARGET });
+    assert.equal(after.units.t.at, TARGET);
+    assert.equal(moveEvent(after).stoppedBy, null);
   });
 });

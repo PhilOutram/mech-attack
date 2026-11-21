@@ -58,6 +58,9 @@ export function testRules(overrides = {}) {
   // Test positions are built with every block turned over and everything on them visible;
   // tests of live sight (fog.liveSight) turn it on themselves.
   rules.fog.liveSight = false;
+  // Moves do not stop for enemy units coming into view (fog.stopOnSighting, 21 November 2026)
+  // unless a test turns it on.
+  rules.fog.stopOnSighting = false;
   for (const section in overrides) {
     const value = overrides[section];
     // Sections that are objects are merged; anything else (values, lists) is replaced.

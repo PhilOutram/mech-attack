@@ -1342,9 +1342,10 @@ function showEvents(events, before, after) {
       if (e.moveLeft && after.units[e.unitId]?.owner === me) {
         // Only offer the rest of the move if it reaches somewhere (rough ground costs 2).
         const onward = Object.keys(reachableHexes(after, e.unitId)).length > 0;
-        lines.push(onward ? `New ground turned over. ${e.moveLeft} move point` +
+        const news = e.sighted ? "Enemy sighted." : "New ground turned over.";
+        lines.push(onward ? `${news} ${e.moveLeft} move point` +
           `${e.moveLeft === 1 ? "" : "s"} left: tap where to go next.`
-          : "New ground turned over. Not enough move left to go further this turn.");
+          : `${news} Not enough move left to go further this turn.`);
         tip("newGround");
       }
     } else if (e.type === "crushed" && seen(e.at)) {

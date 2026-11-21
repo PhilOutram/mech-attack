@@ -53,35 +53,34 @@
      "default"
     ]
    },
-   "actions": 362,
-   "actionsHash": "bd3ef3d752f2ad569487171aa8b1f27b59a18422",
+   "actions": 179,
+   "actionsHash": "e23bc8725a6e200e9c7d8031289733097fa64263",
    "end": {
-    "round": 41,
+    "round": 15,
     "result": {
-     "winner": null,
-     "reason": "roundCap",
-     "round": 41
+     "winner": 0,
+     "reason": "factoryCaptured",
+     "round": 15
     },
     "crystals": [
-     30,
-     35
+     45,
+     25
     ],
     "units": [
      "u1 factory 0 -2,6 2",
-     "u17 heavyCannon 1 1,3 1",
-     "u19 attackHelicopter 0 0,2 2",
-     "u31 lightHarvester 1 3,-3 2",
-     "u34 lightHarvester 1 3,-4 2",
-     "u35 lightHarvester 1 3,-5 2",
-     "u37 sonicTank 1 3,-2 2",
-     "u39 sonicTank 1 2,-3 2",
-     "u40 infantry 1 4,-4 2",
-     "u5 factory 1 4,-5 2"
+     "u11 lightHarvester 0 -1,6 2",
+     "u14 lightHarvester 0 -1,5 2",
+     "u15 crystalSeeder 0 -1,4 2",
+     "u16 attackHelicopter 0 2,-3 2",
+     "u19 heavyCannon 0 -2,4 2",
+     "u2 lightHarvester 0 -3,6 2",
+     "u21 artillery 0 -2,5 2",
+     "u4 tank 0 3,-3 2",
+     "u5 factory 0 4,-5 2"
     ],
     "piles": [
-     "-1,-2 25",
-     "-2,-1 30",
-     "-2,2 50"
+     "-1,-2 30",
+     "4,2 35"
     ]
    }
   },
@@ -95,38 +94,36 @@
      "default"
     ]
    },
-   "actions": 223,
-   "actionsHash": "d710b88bfb5968857b464a66269d34bfe3fe9ebd",
+   "actions": 199,
+   "actionsHash": "d9e7df5999379fd12c7efcf96c5cc7309d3e50d6",
    "end": {
-    "round": 17,
+    "round": 15,
     "result": {
      "winner": 0,
-     "reason": "noUnits",
-     "round": 17
+     "reason": "factoryCaptured",
+     "round": 15
     },
     "crystals": [
-     25,
-     10
+     20,
+     25
     ],
     "units": [
      "u1 factory 0 -6,4 2",
      "u10 factory 0 0,-4 2",
-     "u11 lightHarvester 0 0,0 2",
-     "u18 artillery 0 -1,0 2",
-     "u2 lightHarvester 0 0,-1 2",
-     "u26 lightMedic 0 2,-3 2",
-     "u29 heavyCannon 0 0,-2 2",
-     "u32 scoutBike 0 3,-3 2",
-     "u35 infantry 0 2,-4 2",
-     "u36 infantry 0 1,-4 2",
-     "u5 factory 1 4,-5 2",
+     "u11 lightHarvester 0 2,-1 2",
+     "u18 artillery 0 -2,0 2",
+     "u2 lightHarvester 0 -1,0 2",
+     "u25 heavyCannon 0 0,-1 2",
+     "u33 scoutBike 0 2,-3 2",
+     "u34 infantry 0 2,-4 2",
+     "u36 infantry 0 1,-5 2",
+     "u5 factory 0 4,-5 2",
      "u9 factory 0 -2,3 2"
     ],
     "piles": [
-     "-4,-3 80",
-     "3,-2 30",
-     "3,-7 25",
-     "3,1 80"
+     "-4,-3 65",
+     "1,-2 15",
+     "3,1 60"
     ]
    }
   },
@@ -140,8 +137,8 @@
      "evolved"
     ]
    },
-   "actions": 302,
-   "actionsHash": "6569d93d7421f699e43546b1e56b0c7947cf6ffc",
+   "actions": 308,
+   "actionsHash": "ba2244d72f939f64f1b56eeaf1668ece9b29e326",
    "end": {
     "round": 17,
     "result": {
@@ -163,9 +160,9 @@
      "u26 infantry 0 3,-5 2",
      "u34 heavyCannon 0 2,-4 2",
      "u35 scoutBike 1 -8,3 1",
-     "u38 lightHarvester 1 -5,-1 2",
+     "u38 lightHarvester 1 -4,-3 2",
      "u42 fighter 0 1,-3 2",
-     "u45 scoutBike 0 -4,-3 2",
+     "u45 scoutBike 0 -2,-4 2",
      "u46 spotterDrone 0 -1,0 2",
      "u47 lightMedic 0 0,-4 2",
      "u49 heavyTank 0 -1,-4 2",
@@ -192,53 +189,48 @@
      "evolved"
     ]
    },
-   "actions": 264,
-   "actionsHash": "c1547943bbb6f24c388b182211c55109206d9f17",
+   "actions": 288,
+   "actionsHash": "5d34c0292f2176ff5895b18aad3db2b5daa871d9",
    "end": {
-    "round": 18,
+    "round": 19,
     "result": {
      "winner": 1,
      "reason": "factoryCaptured",
-     "round": 18
+     "round": 19
     },
     "crystals": [
-     10,
-     10
+     30,
+     50
     ],
     "units": [
      "u1 factory 1 4,2 2",
      "u10 factory 1 -2,0 2",
      "u11 factory 1 6,-4 2",
      "u12 factory 1 -8,6 2",
-     "u14 lightHarvester 1 2,-4 2",
+     "u14 lightHarvester 1 -1,-1 2",
      "u17 infantry 1 -5,0 2",
-     "u2 lightHarvester 0 5,-5 1",
-     "u20 infantry 1 0,0 2",
-     "u21 artillery 1 -1,1 2",
-     "u25 heavyCannon 1 -6,1 2",
-     "u27 spotterDrone 1 -1,2 2",
-     "u28 lightMedic 1 3,0 2",
-     "u31 heavyTank 1 -5,1 2",
-     "u36 scoutBike 1 4,0 2",
-     "u37 attackHelicopter 1 3,-4 2",
-     "u40 artillery 1 3,-1 2",
-     "u41 blastCannon 1 -6,0 2",
-     "u42 lightMedic 1 2,0 2",
-     "u43 scoutBike 1 3,-2 2",
+     "u20 attackHelicopter 0 0,1 2",
+     "u22 artillery 1 -5,5 2",
+     "u25 heavyCannon 1 -1,-2 2",
+     "u29 spotterDrone 1 4,-3 2",
+     "u30 lightHarvester 1 4,0 2",
+     "u33 scoutBike 1 3,1 2",
+     "u34 lightMedic 1 2,1 2",
+     "u37 heavyTank 1 -5,1 2",
+     "u40 infantry 1 3,2 2",
+     "u41 attackHelicopter 1 -6,0 2",
+     "u42 artillery 1 3,-1 2",
      "u5 factory 1 -7,0 2",
-     "u6 lightHarvester 1 1,-3 2",
      "u8 tank 1 -4,0 2",
      "u9 factory 1 2,-1 2"
     ],
     "piles": [
-     "-1,-4 25",
-     "-3,-3 10",
-     "-5,2 15",
-     "-5,8 30",
-     "3,-5 55",
-     "4,-5 20",
-     "5,-1 15",
-     "6,-1 10"
+     "-1,-4 20",
+     "-1,-5 10",
+     "-1,2 15",
+     "-5,2 25",
+     "3,-5 65",
+     "6,-1 40"
     ]
    }
   },
@@ -252,8 +244,8 @@
      "default"
     ]
    },
-   "actions": 484,
-   "actionsHash": "e77577cdfc70befa5ca0dff9a67ac414a640a956",
+   "actions": 398,
+   "actionsHash": "c5d4414800c362bba78512dad9bd1a3054b28f33",
    "end": {
     "round": 41,
     "result": {
@@ -262,58 +254,59 @@
      "round": 41
     },
     "crystals": [
-     20,
-     75
+     50,
+     95
     ],
     "units": [
      "u1 factory 0 2,-6 2",
-     "u10 tank 1 0,-2 2",
+     "u10 tank 1 -2,0 2",
      "u12 spotterDrone 1 -5,2 2",
-     "u13 antiAircraftJeep 1 1,0 2",
+     "u13 antiAircraftJeep 1 0,-1 2",
      "u14 factory 1 4,-4 2",
      "u15 factory 1 1,2 2",
-     "u16 lightHarvester 0 1,-6 2",
-     "u17 lightHarvester 1 3,-2 2",
-     "u18 lightHarvester 1 -7,3 2",
+     "u16 lightHarvester 0 3,-7 2",
+     "u17 lightHarvester 1 -4,4 2",
+     "u18 lightHarvester 1 -4,3 2",
      "u20 crystalSeeder 1 -3,4 2",
      "u23 artillery 1 -1,-1 2",
-     "u25 antiAircraftJeep 1 -1,2 2",
-     "u26 antiAircraftJeep 1 0,-1 2",
-     "u27 tank 1 -1,1 2",
+     "u25 antiAircraftJeep 1 3,-2 2",
+     "u26 antiAircraftJeep 1 -1,0 2",
+     "u27 tank 1 1,0 2",
      "u28 scoutBike 1 -3,5 2",
+     "u29 antiAircraftJeep 0 1,-4 2",
      "u3 tank 0 2,-4 2",
-     "u30 antiAircraftJeep 0 1,-4 1",
-     "u32 attackHelicopter 1 -1,3 2",
+     "u31 attackHelicopter 1 -5,5 2",
+     "u32 lightMedic 1 0,-2 2",
      "u33 lightHarvester 0 2,-7 2",
-     "u34 lightMedic 1 0,0 2",
-     "u35 turret 1 5,-4 2",
-     "u36 infantry 0 2,-5 2",
-     "u37 tank 1 3,-3 2",
-     "u38 attackHelicopter 1 -2,3 2",
-     "u39 twinTurret 1 4,-3 2",
-     "u40 artillery 1 2,-1 2",
-     "u41 crystalSeeder 0 1,-5 2",
-     "u42 tank 1 1,1 2",
-     "u43 scoutBike 1 2,1 2",
-     "u45 attackHelicopter 1 -2,2 2",
-     "u46 tank 1 0,3 2",
-     "u47 lightMedic 1 -1,0 2",
-     "u50 turret 1 -5,5 2",
-     "u51 infantry 1 5,-5 2",
-     "u52 twinTurret 1 0,2 2",
-     "u53 artillery 1 -3,1 2",
-     "u54 attackHelicopter 0 3,-6 2",
+     "u34 turret 1 3,-3 2",
+     "u35 tank 1 5,-4 2",
+     "u36 crystalSeeder 0 0,-5 2",
+     "u37 attackHelicopter 1 -5,6 2",
+     "u38 twinTurret 1 4,-3 2",
+     "u39 artillery 1 2,-1 2",
+     "u4 infantry 0 1,-6 2",
+     "u40 tank 1 2,1 2",
+     "u41 scoutBike 1 1,1 2",
+     "u43 attackHelicopter 1 -4,6 2",
+     "u44 tank 1 0,3 2",
+     "u45 lightMedic 1 -1,3 2",
+     "u46 turret 1 0,2 2",
+     "u50 infantry 1 5,-5 2",
      "u6 factory 1 -4,5 2",
-     "u7 blastCannon 1 1,-2 1",
-     "u8 lightHarvester 1 -4,4 2"
+     "u7 blastCannon 1 1,-2 2",
+     "u8 lightHarvester 1 -5,4 2"
     ],
     "piles": [
+     "-1,1 75",
      "-2,-4 25",
-     "-2,0 70",
+     "-2,1 65",
+     "-4,-1 20",
+     "-6,1 60",
+     "-6,4 80",
      "-7,2 30",
-     "-8,2 20",
+     "-7,5 70",
      "-8,3 35",
-     "-8,4 30"
+     "-9,3 80"
     ]
    }
   },
@@ -327,43 +320,57 @@
      "default"
     ]
    },
-   "actions": 156,
-   "actionsHash": "f2f916fe0dd104374e057ae0be5b8732bf369a24",
+   "actions": 417,
+   "actionsHash": "e40cc78554097e58234299786b0a079174c70465",
    "end": {
-    "round": 11,
+    "round": 41,
     "result": {
-     "winner": 1,
-     "reason": "noUnits",
-     "round": 11
+     "winner": null,
+     "reason": "roundCap",
+     "round": 41
     },
     "crystals": [
      0,
-     70
+     40
     ],
     "units": [
-     "u12 antiAircraftJeep 1 -2,-3 2",
+     "u1 vip 0 -1,1 1",
+     "u12 antiAircraftJeep 1 -2,1 2",
      "u14 factory null 0,-1 2",
      "u15 factory null -4,4 2",
      "u16 factory 1 2,-6 2",
      "u17 factory 1 -4,-2 2",
-     "u18 lightHarvester 1 -5,2 2",
-     "u19 lightHarvester 1 -3,-3 2",
-     "u21 crystalSeeder 1 -7,3 2",
-     "u24 infantry 1 0,-5 2",
-     "u25 artillery 1 -3,-2 2",
+     "u18 lightHarvester 1 -7,1 2",
+     "u19 lightHarvester 1 1,-6 2",
+     "u21 crystalSeeder 1 -8,2 2",
+     "u24 attackHelicopter 1 -3,2 2",
+     "u25 artillery 1 4,-4 2",
+     "u26 infantry 1 4,-8 2",
+     "u27 blastCannon 1 -5,2 2",
+     "u28 sonicTank 1 -3,-1 2",
+     "u29 scoutBike 1 6,-7 2",
+     "u30 spotterDrone 1 3,-1 2",
+     "u31 lightMedic 1 0,2 2",
+     "u32 turret 1 3,-6 2",
+     "u33 heavyTank 1 -4,2 2",
+     "u34 tank 1 -1,-2 2",
+     "u35 attackHelicopter 1 -2,3 2",
+     "u36 twinTurret 1 3,-7 2",
+     "u37 artillery 1 0,-4 2",
+     "u38 tank 1 -1,-3 2",
+     "u39 blastCannon 1 -6,3 2",
      "u6 factory 1 -8,3 2",
-     "u7 lightHarvester 1 -1,-4 2",
-     "u8 tank 1 0,-4 1",
-     "u9 tank 1 -1,-3 2"
+     "u7 lightHarvester 1 -5,1 2",
+     "u8 tank 1 -1,3 2",
+     "u9 tank 1 -2,0 2"
     ],
     "piles": [
-     "0,2 35",
-     "2,2 15",
-     "4,-5 30",
-     "4,0 10",
-     "5,0 75",
-     "6,-1 25",
-     "7,-7 20"
+     "-4,1 15",
+     "0,3 10",
+     "3,0 25",
+     "3,1 20",
+     "5,-7 30",
+     "5,-8 15"
     ]
    }
   },
@@ -380,29 +387,28 @@
      "turnOrder=\"alternate\""
     ]
    },
-   "actions": 151,
-   "actionsHash": "4cd160a34c9c93a567f4771acd477a14e0c02e42",
+   "actions": 115,
+   "actionsHash": "24c4c274a843baed80e023378fc703958695e48a",
    "end": {
-    "round": 11,
+    "round": 8,
     "result": {
      "winner": 0,
      "reason": "factoryCaptured",
-     "round": 11
+     "round": 8
     },
     "crystals": [
      0,
-     45
+     55
     ],
     "units": [
      "u1 factory 0 -2,-1 2",
-     "u10 lightHarvester 0 -1,-1 2",
-     "u14 artillery 0 2,-1 2",
-     "u2 lightHarvester 0 0,1 2",
-     "u20 infantry 0 3,-2 2",
-     "u22 scoutBike 0 0,2 2",
-     "u23 scoutBike 1 -2,6 1",
-     "u24 infantry 0 -2,0 2",
-     "u4 tank 0 4,0 1",
+     "u10 lightHarvester 0 -2,4 2",
+     "u14 artillery 0 -1,-2 2",
+     "u15 scoutBike 0 1,4 2",
+     "u17 infantry 0 2,-2 2",
+     "u19 infantry 0 -2,0 2",
+     "u2 lightHarvester 0 2,-1 2",
+     "u4 tank 0 3,1 2",
      "u5 factory 0 4,2 2"
     ],
     "piles": []
@@ -421,43 +427,47 @@
      "fog.mode=\"sight\""
     ]
    },
-   "actions": 367,
-   "actionsHash": "776da933f04dcc776e29669e3f8ded839fc82975",
+   "actions": 230,
+   "actionsHash": "a4b6548a49396fe2cfb71c715b909575c55a6ce9",
    "end": {
-    "round": 21,
+    "round": 13,
     "result": {
      "winner": 1,
      "reason": "factoryCaptured",
-     "round": 21
+     "round": 13
     },
     "crystals": [
-     25,
-     25
+     35,
+     0
     ],
     "units": [
      "u1 factory 1 -8,3 2",
      "u10 factory 1 0,0 2",
-     "u11 factory 0 -6,-1 2",
+     "u11 factory 1 -6,-1 2",
      "u12 factory 1 3,-6 2",
-     "u14 lightHarvester 1 -4,-1 2",
-     "u17 infantry 1 5,-7 2",
+     "u13 lightHarvester 0 -2,-3 1",
+     "u14 lightHarvester 1 -2,3 2",
+     "u17 infantry 1 4,-4 2",
+     "u2 lightHarvester 0 -8,1 1",
+     "u20 crystalSeeder 0 -8,0 2",
      "u21 artillery 1 2,-2 2",
-     "u27 heavyCannon 1 5,-6 2",
-     "u28 spotterDrone 1 -7,7 2",
-     "u33 heavyTank 1 4,-5 2",
-     "u37 attackHelicopter 0 -4,2 2",
-     "u38 scoutBike 1 -5,1 2",
-     "u39 infantry 1 -4,-2 2",
-     "u40 lightHarvester 0 -4,-3 1",
-     "u42 lightMedic 1 -6,2 2",
-     "u44 attackHelicopter 1 5,-4 2",
+     "u25 lightHarvester 0 -4,-3 2",
+     "u26 heavyCannon 1 3,-3 2",
+     "u27 spotterDrone 1 -3,2 2",
+     "u29 lightMedic 1 -6,6 2",
+     "u30 scoutBike 1 -8,5 2",
+     "u31 heavyTank 1 5,-4 2",
+     "u32 attackHelicopter 1 6,-5 2",
+     "u33 artillery 1 -4,4 2",
+     "u34 infantry 1 -6,0 2",
      "u5 factory 1 6,-4 2",
-     "u6 lightHarvester 1 -6,6 2",
-     "u8 tank 1 -4,0 2",
+     "u6 lightHarvester 1 1,-5 2",
+     "u8 tank 1 -6,2 1",
      "u9 factory 1 -3,4 2"
     ],
     "piles": [
-     "-7,8 55"
+     "0,3 25",
+     "6,-7 15"
     ]
    }
   }
