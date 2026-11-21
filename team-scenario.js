@@ -328,8 +328,10 @@ export const reinforce = (state, p, types, near) =>
 
 // How far from their target airdropping Chinooks arrive: more than a Chinook's move, so they
 // need a turn in the air before they can drop, and the defenders get two turns to shoot them
-// down.
-export const AIRDROP_DISTANCE = 7;
+// down. Tied to the Chinook's move, so its first move always ends AIRDROP_MARGIN hexes from
+// the target (7 with move 5 before v0.88, 6 with move 4).
+const AIRDROP_MARGIN = 2;
+export const AIRDROP_DISTANCE = RULES.units.chinook.move + AIRDROP_MARGIN;
 
 // Chinooks arrive loaded with Infantry, on the far side of a target hex from the middle of the
 // map. The AI flies loaded Chinooks to the nearest factory it can take and drops the Infantry
