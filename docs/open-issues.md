@@ -15,7 +15,7 @@ One page to check at any time: problems not yet solved, decisions waiting for Ph
 - **Retiring units and rules:** Twin Turret, Transporter and Chinook (with boarding and drop-off), Fighter, Blast Cannon, Sonic Tank. Evidence in `docs/balance/unit-use.md`. Left as they are while Phil plays games out (1 November 2026).
 - **Tank:** leave it, or defence 20 (halves its value as an answer; see the ideas log).
 - **Move and sight details** (v0.88, provisional): Artillery and the Sonic Tank keep their move while every other unit loses 1; the Heavy Cannon drops to move 1; air units see 5, including the Spotter Drone and the Chinook (`docs/rules.md`, "Move and sight").
-- **Capture cutaway** (v0.88): a placeholder drawn in code. Phil to draw the layers (factory wall, door, infantryman, doorway glow) if he wants his own art. The sounds are made in code; recorded CC0 clips from freesound are waiting for Phil's go-ahead to download.
+- **Capture cutaway** (v0.88): a placeholder drawn in code. Phil to draw the layers (factory wall, door, infantryman, doorway glow) if he wants his own art. The torch and the clang are now recorded CC0 clips from freesound (credited in `CREDITS.md`); the door's groan is still made in code. Levels are a first guess from measured loudness: Phil to say if the weld or clang is too loud or too quiet.
 - **Supply depot** upgrade for sending crystals straight to an ally: Phil is unsure.
 - **Capturing:** should overrunning a factory take longer than one move?
 - **Transporter:** should it fly, as the unit table's A3 Transport does?

@@ -14,5 +14,11 @@ Trimmed and faded by Phil; the game evens out their loudness (see `sound.js`).
 | `audio/capture-beep.mp3` | [weird cowbell 1](https://freesound.org/people/patchytherat/sounds/532806/) | patchytherat |
 | `audio/footsteps.mp3` | [Footsteps_Mountain_Boots_Wet_Sand_Sequence_Mono](https://freesound.org/people/Nox_Sound/sounds/564893/) | Nox_Sound |
 | `audio/sonic-boom.mp3` | [whatever.wav](https://freesound.org/people/aust_paul/sounds/30937/) | aust_paul |
+| `audio/capture-weld.mp3` | [Welding_Electric Sparks.wav](https://freesound.org/people/weaveofkev/sounds/396240/) | weaveofkev |
+| `audio/capture-clang.mp3` | [Metal Door Slam_SoundSmith.wav](https://freesound.org/people/Lunardrive/sounds/48980/) | Lunardrive |
+
+The two capture clips are freesound's high-quality previews, used as downloaded (21 November
+2026): the game starts the torch clip past its silent lead-in and cuts it to the length of the
+weld.
 
 `audio/harvest.mp3` was made by Phil.

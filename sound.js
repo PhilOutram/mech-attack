@@ -23,6 +23,9 @@ export const SOUNDS = {
   // Measured 30 October 2026.
   sonicBoom: { file: "audio/sonic-boom.mp3", lufs: -18.4 },
   harvest: { file: "audio/harvest.mp3", lufs: -21.5 },
+  // The capture cutaway's welding torch and falling door (measured 21 November 2026).
+  captureWeld: { file: "audio/capture-weld.mp3", lufs: -26.8 },
+  captureClang: { file: "audio/capture-clang.mp3", lufs: -17.9 },
 };
 
 let context = null;
@@ -79,17 +82,26 @@ export function audioContext() {
 // Plays a clip once. volume scales it further (1 = the clip's even level). ms, if given, cuts
 // it short: it fades out and stops that long after it starts (a move that has finished).
 export function playSound(name, volume = 1, ms = null) {
+  scheduleSound(name, { volume, ms });
+}
+
+// Plays a clip at a set time through a given node: the capture cutaway's sounds, which a skip
+// silences together. out: the node, the speakers if left out; at: the audio clock's time to
+// start, now if left out; offset: how far into the clip to start, in seconds; volume and ms as
+// for playSound.
+export function scheduleSound(name, { out, at, offset = 0, volume = 1, ms = null } = {}) {
   if (!on || !context || !buffers[name]) return;
+  const start = at ?? context.currentTime;
   const source = context.createBufferSource();
   source.buffer = buffers[name];
   const gain = context.createGain();
-  const level = 10 ** ((TARGET_LUFS - SOUNDS[name].lufs) / DECIBELS_PER_GAIN_DECADE);
-  gain.gain.value = level * volume;
-  source.connect(gain).connect(context.destination);
-  source.start();
+  const level = volume * 10 ** ((TARGET_LUFS - SOUNDS[name].lufs) / DECIBELS_PER_GAIN_DECADE);
+  gain.gain.value = level;
+  source.connect(gain).connect(out ?? context.destination);
+  source.start(start, offset);
   if (ms !== null) {
-    const end = context.currentTime + ms / MS_PER_S;
-    gain.gain.setValueAtTime(level * volume, Math.max(context.currentTime, end - FADE_S));
+    const end = start + ms / MS_PER_S;
+    gain.gain.setValueAtTime(level, Math.max(start, end - FADE_S));
     gain.gain.linearRampToValueAtTime(0, end);
     source.stop(end);
   }

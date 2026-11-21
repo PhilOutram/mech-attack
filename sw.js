@@ -19,7 +19,7 @@ const TILES = [
 ];
 const SOUND_FILES = [
   "tank-moving", "helicopter", "infantry-firing", "tank-firing", "capture-beep", "footsteps",
-  "sonic-boom", "harvest",
+  "sonic-boom", "harvest", "capture-weld", "capture-clang",
 ];
 const ASSETS = [
   ".",

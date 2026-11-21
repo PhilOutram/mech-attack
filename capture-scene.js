@@ -1,9 +1,9 @@
 // The factory capture cutaway (Phil, 21 November 2026): a short full-screen scene shown when
 // infantry overrun a factory. The infantryman cuts round the factory door with a welding torch,
 // the door falls inwards with a clang, light floods out and his silhouette stands in the
-// doorway. A placeholder built from simple shapes until Phil draws the layers; the sounds are
-// made in code (Web Audio) until recorded clips are chosen. A tap skips it.
-import { audioContext } from "./sound.js?v=0.88";
+// doorway. A placeholder built from simple shapes until Phil draws the layers. The torch and
+// the clang are recorded clips (CREDITS.md); the door's groan is made in code. A tap skips it.
+import { audioContext, scheduleSound } from "./sound.js?v=0.88";
 
 // Timeline, in ms from the start.
 const FADE_MS = 250;
@@ -58,29 +58,16 @@ const DUST_LIFE = 1.1;
 const DUST_RADIUS = [3, 14];
 const DUST_ALPHA = 0.5;
 
-// Sounds made in code. The weld: noise through a band-pass whose level jumps at random every
-// CRACKLE_STEP_S, over the arc's mains hum.
-const MASTER_LEVEL = 0.6;
-const WELD_BAND_HZ = 3800;
-const WELD_Q = 0.9;
-const WELD_LEVEL = 0.5;
-const CRACKLE_STEP_S = 0.012;
-const CRACKLE_MIN = 0.25;
-const HUM_HZ = 100;
-const HUM_CUTOFF_HZ = 700;
-const HUM_LEVEL = 0.08;
-// The door groaning as it gives: two close sawtooths sliding down.
+// The recorded clips, against the game's other sounds (1 = as loud). The torch clip starts
+// WELD_OFFSET_S in, past its silent lead-in, and plays unbroken for the whole cut.
+const WELD_VOLUME = 0.7;
+const WELD_OFFSET_S = 0.1;
+const CLANG_VOLUME = 1;
+// The door groaning as it gives, made in code: two close sawtooths sliding down.
 const GROAN_HZ = [92, 96];
 const GROAN_DROP = 0.75;
 const GROAN_CUTOFF_HZ = 420;
-const GROAN_LEVEL = 0.18;
-// The clang: a struck steel plate as a few inharmonic tones ([ratio, seconds, level]), and a
-// low thump under it.
-const CLANG_HZ = 165;
-const CLANG_MODES = [[1, 1.4, 0.32], [2.76, 0.9, 0.2], [5.4, 0.5, 0.12], [8.93, 0.3, 0.07]];
-const THUMP_CUTOFF_HZ = 180;
-const THUMP_S = 0.3;
-const THUMP_LEVEL = 0.9;
+const GROAN_LEVEL = 0.11;
 const SILENT = 0.0001;
 const ENVELOPE_S = 0.02;
 
@@ -174,17 +161,7 @@ function boxStyle({ x, y, w, h }) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Sounds made in code
-
-function noise(context, seconds) {
-  const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * seconds),
-    context.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  const source = context.createBufferSource();
-  source.buffer = buffer;
-  return source;
-}
+// Sounds
 
 function envelope(context, gain, start, seconds, level) {
   gain.gain.setValueAtTime(SILENT, context.currentTime);
@@ -192,36 +169,6 @@ function envelope(context, gain, start, seconds, level) {
   gain.gain.exponentialRampToValueAtTime(level, start + ENVELOPE_S);
   gain.gain.setValueAtTime(level, start + seconds - ENVELOPE_S);
   gain.gain.exponentialRampToValueAtTime(SILENT, start + seconds);
-}
-
-function weld(context, out, start, seconds) {
-  const hiss = noise(context, seconds);
-  const band = context.createBiquadFilter();
-  band.type = "bandpass";
-  band.frequency.value = WELD_BAND_HZ;
-  band.Q.value = WELD_Q;
-  const crackle = context.createGain();
-  crackle.gain.setValueAtTime(0, context.currentTime);
-  for (let t = 0; t < seconds; t += CRACKLE_STEP_S) {
-    const level = WELD_LEVEL * (CRACKLE_MIN + (1 - CRACKLE_MIN) * Math.random() ** 2);
-    crackle.gain.setValueAtTime(level, start + t);
-  }
-  crackle.gain.setValueAtTime(0, start + seconds);
-  hiss.connect(band).connect(crackle).connect(out);
-  hiss.start(start);
-  hiss.stop(start + seconds);
-
-  const hum = context.createOscillator();
-  hum.type = "sawtooth";
-  hum.frequency.value = HUM_HZ;
-  const low = context.createBiquadFilter();
-  low.type = "lowpass";
-  low.frequency.value = HUM_CUTOFF_HZ;
-  const level = context.createGain();
-  envelope(context, level, start, seconds, HUM_LEVEL);
-  hum.connect(low).connect(level).connect(out);
-  hum.start(start);
-  hum.stop(start + seconds);
 }
 
 function groan(context, out, start, seconds) {
@@ -242,41 +189,17 @@ function groan(context, out, start, seconds) {
   }
 }
 
-function clang(context, out, start) {
-  for (const [ratio, seconds, level] of CLANG_MODES) {
-    const tone = context.createOscillator();
-    tone.frequency.value = CLANG_HZ * ratio;
-    const gain = context.createGain();
-    gain.gain.setValueAtTime(SILENT, context.currentTime);
-    gain.gain.setValueAtTime(level, start);
-    gain.gain.exponentialRampToValueAtTime(SILENT, start + seconds);
-    tone.connect(gain).connect(out);
-    tone.start(start);
-    tone.stop(start + seconds);
-  }
-  const thump = noise(context, THUMP_S);
-  const low = context.createBiquadFilter();
-  low.type = "lowpass";
-  low.frequency.value = THUMP_CUTOFF_HZ;
-  const gain = context.createGain();
-  gain.gain.setValueAtTime(SILENT, context.currentTime);
-  gain.gain.setValueAtTime(THUMP_LEVEL, start);
-  gain.gain.exponentialRampToValueAtTime(SILENT, start + THUMP_S);
-  thump.connect(low).connect(gain).connect(out);
-  thump.start(start);
-}
-
 // Schedules the scene's sounds; returns a function that silences them (on a skip).
 function playSounds() {
   const context = audioContext();
   if (!context) return () => {};
   const master = context.createGain();
-  master.gain.value = MASTER_LEVEL;
   master.connect(context.destination);
   const at = (ms) => context.currentTime + ms / MS_PER_S;
-  weld(context, master, at(CUT_START_MS), (CUT_END_MS - CUT_START_MS) / MS_PER_S);
+  scheduleSound("captureWeld", { out: master, at: at(CUT_START_MS), offset: WELD_OFFSET_S,
+    volume: WELD_VOLUME, ms: CUT_END_MS - CUT_START_MS });
   groan(context, master, at(CUT_END_MS), (FALL_END_MS - CUT_END_MS) / MS_PER_S);
-  clang(context, master, at(FALL_END_MS));
+  scheduleSound("captureClang", { out: master, at: at(FALL_END_MS), volume: CLANG_VOLUME });
   return () => {
     master.gain.setTargetAtTime(0, context.currentTime, ENVELOPE_S);
     setTimeout(() => master.disconnect(), FADE_MS);
