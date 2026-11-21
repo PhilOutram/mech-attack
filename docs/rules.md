@@ -44,19 +44,38 @@ Settled with Phil, 28 October 2026: the rules are the same for every unit, and u
 - Every attack hits ground units, air units, or both (the Sonic Tank and Infantry). An air unit can only be hit by an attack that hits air. Return fire follows the same rule.
 - Infantry hit air as well as ground (Phil, 29 October 2026), so a cheap unit can answer the Attack Helicopter. The Scout Bike did this from 28 October and went back to ground only: it was doing too many jobs.
 
+### Move and sight (Phil, 21 November 2026)
+Phil: sight was less than move for most units, so too much of the fighting was against units you could not see, and a turn covered more ground than a unit could see. Every unit now moves 1 less, except Artillery (already slowed by its set-up) and the Sonic Tank; every ground unit sees 3 and every air unit 5. Which units keep their move, and the Heavy Cannon dropping to 1, are provisional. These figures replace the older ones quoted elsewhere on this page.
+
+| Unit | Move | Sight | | Unit | Move | Sight |
+|---|---|---|---|---|---|---|
+| Infantry | 2 (was 3) | 3 (was 2) | | Spotter Drone (air) | 4 (was 5) | 5 |
+| Scout Bike | 5 (was 6) | 3 (was 4) | | Chinook (air) | 4 (was 5) | 5 (was 3) |
+| Tank | 3 (was 4) | 3 | | Attack Helicopter (air) | 4 (was 5) | 5 (was 3) |
+| Twin Tank | 3 (was 4) | 3 | | Fighter (air) | 6 (was 7) | 5 (was 4) |
+| Heavy Cannon | 1 (was 2) | 3 | | Transporter | 5 (was 6) | 3 |
+| Artillery | 2 | 3 | | Light Harvester | 5 (was 6) | 3 (was 2) |
+| Blast Cannon | 2 (was 3) | 3 | | Crystal Seeder | 5 (was 6) | 3 |
+| Sonic Tank | 4 | 3 (was 4) | | Light Medic | 4 (was 5) | 3 |
+| Anti-Aircraft Jeep | 4 (was 5) | 3 | | Commander Jeanne | 2 (was 3) | 3 |
+
+Turrets and factories are unchanged (move 0; sight 3 and 4).
+
+Measured with the simulator (`node sim.js --games 200 --seed 1`, fixed map 1, hand-tuned AI on both sides), before and after, together with the next-blocks fog below: games last longer (mean 16.9 rounds to 25.0, 90th percentile 26 to 44), the first player's share of decided games rose from 40% to 55%, and units destroyed per round stayed at 0.66. Of all shots at a player's units, the share fired by a unit that player could not see at the end of their turn fell from 28% to 20%; for each attacker's first shot, from 53% to 45%.
+
 ### Spotter Drone
-Cost 15 (was 30), move 5, defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Attack Helicopter, the Sonic Tank and Infantry can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 5 move points are used.
+Cost 15 (was 30), move 4 (was 5), defence 5, no attack, sight 5. An air unit, so only the Anti-Aircraft Jeep, the Fighter, the Attack Helicopter, the Sonic Tank and Infantry can hit it. Like the other air units it needs an Airfield (provisional). It turns over the blocks next to it, like every unit, but can split its move: move, look, and move again until its 4 move points are used.
 
 ### Units added on 28 October 2026
 Stats start from the full unit table, with costs scaled to the Game 2 prices. The numbers are provisional; the abilities were confirmed by Phil.
 
 | Unit | Ground or air | Hits | Cost | Move | Defence | Attack | Range | Ability |
 |---|---|---|---|---|---|---|---|---|
-| Blast Cannon | ground | ground | 65 | 3 | 15 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. Defence 15, not the unit table's 10 (Phil, 31 October 2026), so one Tank shot no longer destroys it. |
+| Blast Cannon | ground | ground | 65 | 2 | 15 | 40 | 2–4 | Cluster bomb: enemy units next to the target take half the attack. Fires every other turn. Defence 15, not the unit table's 10 (Phil, 31 October 2026), so one Tank shot no longer destroys it. |
 | Sonic Tank | ground | ground and air | 60 | 4 | 20 | 15 | 1–5 | Sonic boom: hits every enemy on one of the six straight lines up to range 5. |
-| Anti-Aircraft Jeep | ground | air | 30 | 5 | 15 | 30 | 1–3 | |
-| Attack Helicopter | air | ground and air | 55 | 5 | 10 | 15 | 1–2 | Hits air as well as ground; cost 55, was 45 (Phil, 31 October 2026). Attack 15 (was 20) the same day, provisional: the dearer price hardly changed how well it did. Defence 10 (Phil, 1 November 2026; 5 for a day), so one Infantry shot takes one life, not both. |
-| Fighter | air | air | 35 | 7 | 15 | 30 | 1–4 | Cost 35 (Phil, 1 November 2026; was 60, then 45 on 31 October). |
+| Anti-Aircraft Jeep | ground | air | 30 | 4 | 15 | 30 | 1–3 | |
+| Attack Helicopter | air | ground and air | 55 | 4 | 10 | 15 | 1–2 | Hits air as well as ground; cost 55, was 45 (Phil, 31 October 2026). Attack 15 (was 20) the same day, provisional: the dearer price hardly changed how well it did. Defence 10 (Phil, 1 November 2026; 5 for a day), so one Infantry shot takes one life, not both. |
+| Fighter | air | air | 35 | 6 | 15 | 30 | 1–4 | Cost 35 (Phil, 1 November 2026; was 60, then 45 on 31 October). |
 
 Provisional details: the cluster bomb hits only enemy units; a mountain stops a sonic boom; only the unit aimed at fires back.
 
@@ -94,12 +113,12 @@ Settled with Phil, 28 and 29 October 2026: bigger maps have unused factories, an
 
 | Unit | Cost | Move | Defence | Attack | Range | Sight | Ability |
 |---|---|---|---|---|---|---|---|
-| Infantry | 20 | 3 | 5 | 10 | 1 | 2 | Overruns factories; rides in a Transporter or Chinook; hits ground and air |
-| Transporter | 35 | 6 | 25 | – | – | 3 | Carries 2 Infantry |
-| Chinook | 55 | 5 | 15 | – | – | 3 | Flies; carries 1 vehicle or 2 Infantry |
+| Infantry | 20 | 2 | 5 | 10 | 1 | 3 | Overruns factories; rides in a Transporter or Chinook; hits ground and air |
+| Transporter | 35 | 5 | 25 | – | – | 3 | Carries 2 Infantry |
+| Chinook | 55 | 4 | 15 | – | – | 5 | Flies; carries 1 vehicle or 2 Infantry |
 | Turret | 50 | 0 | 35 | 25 | 1–3 | 3 | Never moves |
 | Twin Turret | 50 | 0 | 30 | 20 × 2 | 1 | 3 | Never moves; fires twice a turn at different targets next to it |
-| Twin Tank | 65 | 4 | 35 | 20 × 2 | 1 | 3 | Needs Heavy works; fires twice a turn at different targets next to it. Cost 65 and move 4, were 90 and 3 (Phil, 31 October 2026) |
+| Twin Tank | 65 | 3 | 35 | 20 × 2 | 1 | 3 | Needs Heavy works; fires twice a turn at different targets next to it. Cost 65 and move 4, were 90 and 3 (Phil, 31 October 2026); move 3 again from 21 November 2026 |
 
 All the numbers are provisional, as is everything not listed as Phil's. The Turret's stats are scaled down from the "Turret (constructed)" row of the full unit table, and the Chinook's come from its "Transport" row.
 
@@ -183,7 +202,7 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 | Crystal spawns | 0 or 1 new piles of 10 after each turn (the same number after both turns of a round), on a random empty open hex at least 3 hexes from both factories | `crystals.spawnChoices`, `spawnMinDistanceFromFactory` |
 | Round limit | A game reaching round 100 ends with no winner | `roundCap` |
 | Carried crystals | Lost when the carrying unit is destroyed | |
-| Crystal Seeder | Name, cost 50, move 6, defence 5, sight 3, holds 30, plants 10 a turn; adding to a pile only while it has room for 10 below the explode level; a new pile first grows after the next turn | `units.crystalSeeder` |
+| Crystal Seeder | Name, cost 50, move 5, defence 5, sight 3, holds 30, plants 10 a turn; adding to a pile only while it has room for 10 below the explode level; a new pile first grows after the next turn | `units.crystalSeeder` |
 
 ## Campaign: Red Dust
 
@@ -213,7 +232,8 @@ Units and upgrades come in a few at a time (`allowedUnits`, `allowedUpgrades` in
 Settled with Phil (28 October 2026): fog of war exposes a whole block at once, because on the table the only way to explore is to turn a seven-hex block over.
 
 - All blocks start face down.
-- When any unit (or a factory) is on a hex of a block or right next to one, the whole block is turned over (`fog.revealRange` 1, Phil's choice). Each side starts with about 3 blocks face up: its home block and the blocks its starting units stand next to.
+- A unit (or a factory) turns over the block it is on and every block next to that block that it can see into: a hex of it within the unit's sight, not behind a mountain (`fog.revealRange` `"nextBlocks"`; Phil, 21 November 2026: you see into the next tile, not across a whole tile). It never turns over a block further away, however far it sees. Each side still starts with 3 or 4 blocks face up, as the homes are at the edge of the board.
+- From 28 October to 21 November 2026 a block turned over only when a unit was on it or right next to it (`fog.revealRange` 1), so a unit parked at the edge of its block could not see into the face-down block beside it, and an enemy could wait there unseen.
 - Turned-over blocks are private: a block your units turn over is face up for you only. Its terrain and factories show at once and stay known. Crystals on it show only once one of your units can see them, like enemy units (Phil, 31 October 2026; before that, a block showed its crystals as soon as it turned over).
 - Live sight (`fog.liveSight`; Phil, 30 October 2026): after that, only hexes one of your units can see now (within its sight range, not behind a mountain) show what is on them. The rest of your explored ground lies under a thin fog: enemy units there are hidden, crystals show as you last saw them, and factories as last seen. Before this, everything on a turned-over block stayed visible for good.
 - Artillery fires indirectly (unit stat `indirect`; Phil, 30 October 2026): over mountains, at anything a unit of its side can see, or blind into hexes nobody can see. You never see the blocks the opponent has turned over, or anything on them, until your own units turn them over (Phil, 28 October 2026).
@@ -246,7 +266,7 @@ Phil, 31 October 2026: a unit carrying crystals can unload them at an ally's fac
 
 ## Crystal Seeder
 
-Phil, 31 October 2026: a harvester the other way round, so the map need never run out of crystals. It is fragile (defence 5), fast (move 6), unarmed, and costs 50 (70 at first). It is built empty. Next to one of its own factories it loads 10, 20 or 30 crystals from its owner's store (it holds 30), without using its move or action. After moving it can plant 10 crystals on any open hex next to it with no unit on it, which uses its action: as a new pile, or added to a pile already there. The pile then grows like any other. It may plant anywhere, even next to a factory, where the pile blocks building until it is harvested, crushed or blasted (Phil, 31 October 2026: plant anywhere; at first it could not plant within 3 hexes of a factory or on a pile). Its crystals are lost with it.
+Phil, 31 October 2026: a harvester the other way round, so the map need never run out of crystals. It is fragile (defence 5), fast (move 5), unarmed, and costs 50 (70 at first). It is built empty. Next to one of its own factories it loads 10, 20 or 30 crystals from its owner's store (it holds 30), without using its move or action. After moving it can plant 10 crystals on any open hex next to it with no unit on it, which uses its action: as a new pile, or added to a pile already there. The pile then grows like any other. It may plant anywhere, even next to a factory, where the pile blocks building until it is harvested, crushed or blasted (Phil, 31 October 2026: plant anywhere; at first it could not plant within 3 hexes of a factory or on a pile). Its crystals are lost with it.
 
 Provisional: the name; a new pile first grows after the next turn, like a spawned one; adding to a pile leaves its growth alone, and only while the pile has room for 10 more below the explode level. The AI does not plant next to its own factories.
 

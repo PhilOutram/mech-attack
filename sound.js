@@ -70,6 +70,12 @@ async function load(name) {
   }
 }
 
+// The audio engine, for sounds made in code (the capture cutaway); null while sound is off or
+// not yet started by a tap.
+export function audioContext() {
+  return on && context ? context : null;
+}
+
 // Plays a clip once. volume scales it further (1 = the clip's even level). ms, if given, cuts
 // it short: it fades out and stops that long after it starts (a move that has finished).
 export function playSound(name, volume = 1, ms = null) {

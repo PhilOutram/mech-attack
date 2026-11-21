@@ -1,8 +1,19 @@
-export const VERSION = "v0.87";
+export const VERSION = "v0.88";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.88",
+    date: "2026-11-21",
+    notes: [
+      "Every unit moves 1 less (not Artillery or the Sonic Tank); every ground unit sees 3 " +
+        "and every air unit 5.",
+      "A unit sees into the blocks next to the one it is on, so nothing hides just over " +
+        "the edge of explored ground.",
+      "Overrunning a factory plays a short cutaway: the door is cut open and falls in.",
+    ],
+  },
   {
     version: "v0.87",
     date: "2026-11-01",

@@ -35,8 +35,24 @@ export function testMap(terrain = {}) {
   };
 }
 
+// Engine tests check how moving and seeing work, so they keep the move and sight each unit had
+// when they were written (before 21 November 2026), and turn over only blocks within 1 hex
+// (fog.revealRange 1). Tests of the current figures and of "nextBlocks" set their own.
+const TEST_MOVE_SIGHT = {
+  scoutBike: [6, 4], tank: [4, 3], heavyCannon: [2, 3], artillery: [2, 3],
+  lightHarvester: [6, 2], spotterDrone: [5, 5], infantry: [3, 2], transporter: [6, 3],
+  chinook: [5, 3], heavyTank: [4, 3], vip: [3, 3], blastCannon: [3, 3], sonicTank: [4, 4],
+  antiAircraftJeep: [5, 3], attackHelicopter: [5, 3], fighter: [7, 4], crystalSeeder: [6, 3],
+  lightMedic: [5, 3],
+};
+const TEST_REVEAL_RANGE = 1;
+
 export function testRules(overrides = {}) {
   const rules = structuredClone(RULES);
+  for (const type in TEST_MOVE_SIGHT) {
+    [rules.units[type].move, rules.units[type].sight] = TEST_MOVE_SIGHT[type];
+  }
+  rules.fog.revealRange = TEST_REVEAL_RANGE;
   rules.start.units = [];
   rules.crystals.spawnChoices = [0];
   // Test positions are built with every block turned over and everything on them visible;

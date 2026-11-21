@@ -4,17 +4,18 @@ One page to check at any time: problems not yet solved, decisions waiting for Ph
 
 ## Unresolved problems
 
-- **Sight stops at the edge of explored ground** (Phil, 1 November 2026). A block turns over only when a unit is on it or next to it (`fog.revealRange` 1), so a unit with sight 4 parked at the edge cannot see into the face-down block beside it. An enemy can wait there unseen and attack next turn. Options measured on map 1 (`docs/ideas-backlog.md`, "Measured 1 November 2026"):
-  - turn over every block in sight: captures rose from 175 to 226 games and the first player went from winning 12% of decided games to 77%;
-  - turn over blocks within 2 hexes: not yet measured;
-  - keep the tiles as they are but show enemy units on face-down ground a unit can see: not yet measured.
-- **The second player wins most games on map 1** (first player 12 to 19% of decided games). Probably tied to how fast each side explores (see the sight problem above). Look at `start.secondPlayerCrystals` and at other maps.
-- **The Infantry rush is the strongest strategy.** Evolved AIs build Infantry for about half their units and win about 80% of games against the hand-tuned AI. Infantry move 2 cuts captures by about a third but lengthens games and caused some stalls. Phil is playing games out before deciding.
+- **Units still attack from out of sight.** v0.88 cut the share of shots from an attacker the victim could not see from 28% to 20%, but 45% of each attacker's first shots still come out of the dark: move plus range (Tank 3 + 2) still beats sight 3. Mountains blocking sight now matter more. Next steps if it still feels wrong in play: sight 4 for ground units, or shorter ranges. Battle Isle 2 had fighting units see about half as far as they move (`docs/battle-isle.md`).
+- **The first player's share of wins swung** from 40% to 55% of decided games on fixed map 1 with v0.88's move and sight (hand-tuned AI both sides). Before that the second player won most games on map 1. Look at `start.secondPlayerCrystals` once the AI is re-evolved for the new figures.
+- **Games are longer** with v0.88: mean 25 rounds on fixed map 1 (was 17), with a long tail (90th percentile 44, one game in 200 hit the round limit).
+- **The Infantry rush is the strongest strategy.** Evolved AIs build Infantry for about half their units and win about 80% of games against the hand-tuned AI. Infantry now moves 2 (v0.88); re-evolve and see whether the rush survives.
+- **The AI personalities were evolved for the old move and sight.** The two-player and multi-side evolutions were stopped part-way on 21 November 2026 and need running again on v0.88's figures.
 
 ## Decisions waiting for Phil
 
 - **Retiring units and rules:** Twin Turret, Transporter and Chinook (with boarding and drop-off), Fighter, Blast Cannon, Sonic Tank. Evidence in `docs/balance/unit-use.md`. Left as they are while Phil plays games out (1 November 2026).
 - **Tank:** leave it, or defence 20 (halves its value as an answer; see the ideas log).
+- **Move and sight details** (v0.88, provisional): Artillery and the Sonic Tank keep their move while every other unit loses 1; the Heavy Cannon drops to move 1; air units see 5, including the Spotter Drone and the Chinook (`docs/rules.md`, "Move and sight").
+- **Capture cutaway** (v0.88): a placeholder drawn in code. Phil to draw the layers (factory wall, door, infantryman, doorway glow) if he wants his own art. The sounds are made in code; recorded CC0 clips from freesound are waiting for Phil's go-ahead to download.
 - **Supply depot** upgrade for sending crystals straight to an ally: Phil is unsure.
 - **Capturing:** should overrunning a factory take longer than one move?
 - **Transporter:** should it fly, as the unit table's A3 Transport does?

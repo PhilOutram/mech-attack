@@ -9,17 +9,20 @@ export const RULES = {
 
   // Costs of units the evolved AI never bought were cut by about a quarter (the Spotter Drone
   // to 15, Phil's figure), 29 October 2026. All provisional.
+  // Move and sight (Phil, 21 November 2026): every unit moves 1 less than before, except
+  // Artillery (already slowed by its set-up) and the Sonic Tank (provisional); every ground unit
+  // sees 3 and every air unit 5, so a unit sees about as far as it moves.
   units: {
     scoutBike: {
-      name: "Scout Bike", cost: 30, move: 6, defence: 10, attack: 15,
-      range: [1, 1], storage: 30, healing: 0, sight: 4,
+      name: "Scout Bike", cost: 30, move: 5, defence: 10, attack: 15,
+      range: [1, 1], storage: 30, healing: 0, sight: 3,
     },
     tank: {
-      name: "Tank", cost: 70, move: 4, defence: 25, attack: 25,
+      name: "Tank", cost: 70, move: 3, defence: 25, attack: 25,
       range: [1, 2], storage: 0, healing: 0, sight: 3,
     },
     heavyCannon: {
-      name: "Heavy Cannon", cost: 80, move: 2, defence: 40, attack: 40,
+      name: "Heavy Cannon", cost: 80, move: 1, defence: 40, attack: 40,
       range: [1, 3], storage: 0, healing: 0, sight: 3,
       needs: "heavyWorks",
     },
@@ -31,14 +34,14 @@ export const RULES = {
       needsSetup: true, indirect: true,
     },
     lightHarvester: {
-      name: "Light Harvester", cost: 50, move: 6, defence: 15, attack: 0,
-      range: null, storage: 90, healing: 0, sight: 2,
+      name: "Light Harvester", cost: 50, move: 5, defence: 15, attack: 0,
+      range: null, storage: 90, healing: 0, sight: 3,
     },
     // Air unit: flies over terrain, units and crystals; only attacks that hit air can hit it
     // (Phil, 28 October 2026). splitMove: it can move, look, and move again until its 5 move
     // points are used.
     spotterDrone: {
-      name: "Spotter Drone", cost: 15, move: 5, defence: 5, attack: 0,
+      name: "Spotter Drone", cost: 15, move: 4, defence: 5, attack: 0,
       range: null, storage: 0, healing: 0, sight: 5,
       air: true, splitMove: true, needs: "airfield",
     },
@@ -47,8 +50,8 @@ export const RULES = {
     // Transporter. Their guns hit air as well as ground, the cheap answer to the Attack
     // Helicopter (Phil, 29 October 2026; the Scout Bike did this before). Stats provisional.
     infantry: {
-      name: "Infantry", cost: 20, move: 3, defence: 5, attack: 10,
-      range: [1, 1], storage: 0, healing: 0, sight: 2,
+      name: "Infantry", cost: 20, move: 2, defence: 5, attack: 10,
+      range: [1, 1], storage: 0, healing: 0, sight: 3,
       captures: true, rides: true, hits: "both", size: 1,
     },
     // Transporter: carries "carries" places of passengers, which board by moving onto it and
@@ -56,7 +59,7 @@ export const RULES = {
     // 1 place each); "ground" carries any ground unit (Infantry 1 place, vehicles 2).
     // Passengers are lost with it. Stats provisional.
     transporter: {
-      name: "Transporter", cost: 35, move: 6, defence: 25, attack: 0,
+      name: "Transporter", cost: 35, move: 5, defence: 25, attack: 0,
       range: null, storage: 0, healing: 0, sight: 3,
       carries: 2, loads: "infantry",
     },
@@ -64,8 +67,8 @@ export const RULES = {
     // Infantry over mountains and chasms. Stats provisional, from the "Transport" row of the
     // full unit table.
     chinook: {
-      name: "Chinook", cost: 55, move: 5, defence: 15, attack: 0,
-      range: null, storage: 0, healing: 0, sight: 3,
+      name: "Chinook", cost: 55, move: 4, defence: 15, attack: 0,
+      range: null, storage: 0, healing: 0, sight: 5,
       air: true, carries: 2, loads: "ground", needs: "airfield",
     },
     // Turret (Phil, 29 October 2026): a gun emplacement built next to a factory. It never
@@ -84,7 +87,7 @@ export const RULES = {
     // was 90, move 3), so it is a fast escort rather than a worse Heavy Cannon. Stats
     // provisional.
     heavyTank: {
-      name: "Twin Tank", cost: 65, move: 4, defence: 35, attack: 20,
+      name: "Twin Tank", cost: 65, move: 3, defence: 35, attack: 20,
       range: [1, 1], storage: 0, healing: 0, sight: 3,
       shots: 2, needs: "heavyWorks",
     },
@@ -96,7 +99,7 @@ export const RULES = {
     // The VIP of the campaign mission "The Maid's March": tougher Infantry who can never be
     // built.
     vip: {
-      name: "Commander Jeanne", cost: null, move: 3, defence: 10, attack: 10,
+      name: "Commander Jeanne", cost: null, move: 2, defence: 10, attack: 10,
       range: [1, 1], storage: 0, healing: 0, sight: 3,
       captures: true, rides: true, hits: "both", size: 1,
     },
@@ -107,7 +110,7 @@ export const RULES = {
     // fires every other turn (reload 1). Defence 15 (Phil, 31 October 2026; 10 in the unit
     // table), so one Tank shot (25) takes one life, not both.
     blastCannon: {
-      name: "Blast Cannon", cost: 65, move: 3, defence: 15, attack: 40,
+      name: "Blast Cannon", cost: 65, move: 2, defence: 15, attack: 40,
       range: [2, 4], storage: 0, healing: 0, sight: 3,
       splash: 0.5, reload: 1, needs: "heavyWorks",
     },
@@ -116,11 +119,11 @@ export const RULES = {
     // October 2026: range 5 was too strong, and it could only fire along six directions).
     sonicTank: {
       name: "Sonic Tank", cost: 60, move: 4, defence: 20, attack: 15,
-      range: [1, 4], storage: 0, healing: 0, sight: 4,
+      range: [1, 4], storage: 0, healing: 0, sight: 3,
       hits: "both", line: true, needs: "heavyWorks",
     },
     antiAircraftJeep: {
-      name: "Anti-Aircraft Jeep", cost: 30, move: 5, defence: 15, attack: 30,
+      name: "Anti-Aircraft Jeep", cost: 30, move: 4, defence: 15, attack: 30,
       range: [1, 3], storage: 0, healing: 0, sight: 3,
       hits: "air",
     },
@@ -131,13 +134,13 @@ export const RULES = {
     // 1 November 2026), so one Infantry shot takes one life, not both. Fighter 35 (was 45).
     // All provisional.
     attackHelicopter: {
-      name: "Attack Helicopter", cost: 55, move: 5, defence: 10, attack: 15,
-      range: [1, 2], storage: 0, healing: 0, sight: 3,
+      name: "Attack Helicopter", cost: 55, move: 4, defence: 10, attack: 15,
+      range: [1, 2], storage: 0, healing: 0, sight: 5,
       air: true, hits: "both", needs: "airfield",
     },
     fighter: {
-      name: "Fighter", cost: 35, move: 7, defence: 15, attack: 30,
-      range: [1, 4], storage: 0, healing: 0, sight: 4,
+      name: "Fighter", cost: 35, move: 6, defence: 15, attack: 30,
+      range: [1, 4], storage: 0, healing: 0, sight: 5,
       air: true, hits: "air", needs: "airfield",
     },
     // Crystal Seeder (Phil, 31 October 2026): a harvester the other way round. It is built
@@ -148,12 +151,12 @@ export const RULES = {
     // 50). Fragile, fast and unarmed. Its crystals are lost with it. Name and stats
     // provisional.
     crystalSeeder: {
-      name: "Crystal Seeder", cost: 50, move: 6, defence: 5, attack: 0,
+      name: "Crystal Seeder", cost: 50, move: 5, defence: 5, attack: 0,
       range: null, storage: 0, healing: 0, sight: 3,
       seeds: 30, seedAmount: 10,
     },
     lightMedic: {
-      name: "Light Medic", cost: 40, move: 5, defence: 15, attack: 0,
+      name: "Light Medic", cost: 40, move: 4, defence: 15, attack: 0,
       range: null, storage: 0, healing: 25, healRange: 1, sight: 3,
     },
     // Factory: builds units. Each player starts with a home factory; bigger maps also have
@@ -314,14 +317,16 @@ export const RULES = {
   // "sight": each player sees only what their units can see now.
   // revealRange (tiles mode only): how close a unit must be to a block to turn it over.
   // null = within the unit's sight range; 1 = only blocks it is on or next to (Phil's choice,
-  // 28 October 2026).
+  // 28 October 2026); "nextBlocks" = its own block and the blocks next to that one, where it
+  // can see into them (within sight, not behind mountains), but never a block further away
+  // (Phil, 21 November 2026: you see into the next tile, not across a whole tile).
   // stopOnReveal: a move that turns over a new block stops there, unless it has arrived; the
   // unit keeps its unused move points (Phil, 29 and 30 October 2026).
   // liveSight (Phil, 30 October 2026): in fog mode "tiles", a turned-over block shows its
   // terrain for good, but only hexes a unit can see now (within sight, not behind mountains)
   // show what is on them; the rest of the explored ground is under a thin fog that hides
   // enemy units and shows crystals as last seen.
-  fog: { mode: "tiles", revealRange: 1, stopOnReveal: true, liveSight: true },
+  fog: { mode: "tiles", revealRange: "nextBlocks", stopOnReveal: true, liveSight: true },
 
   // Undos per game for the player on the game screen (the engine does not use this).
   undosPerGame: 5,

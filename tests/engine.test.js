@@ -8,10 +8,12 @@ import {
   boomHexes, searchTargets,
 } from "../engine.js";
 import { distance } from "../hex.js";
-import { scenario, TEST_RADIUS } from "./helpers.js";
+import { scenario, testRules, TEST_RADIUS } from "./helpers.js";
 
 const BLUE = 0;
 const GREEN = 1;
+// The unit figures test positions are built with (see testRules).
+const TEST_UNITS = testRules().units;
 const BLUE_FACTORY_HEX = "0,6";
 // Line-of-sight fog, where units out of sight are hidden.
 const SIGHT_FOG = { fog: { mode: "sight" } };
@@ -96,10 +98,10 @@ describe("random play", () => {
       for (const u of Object.values(s.units)) {
         const terrain = s.map.hexes[u.at].terrain;
         // Air units can hover over mountains, chasms and crystals.
-        const air = RULES.units[u.type].air;
+        const air = TEST_UNITS[u.type].air;
         assert.ok(air || RULES.terrain[terrain].moveCost !== null, `${u.id} is on ${terrain}`);
         assert.ok(u.lives >= 1 && u.lives <= RULES.lives);
-        assert.ok(u.carrying >= 0 && u.carrying <= (RULES.units[u.type].storage || 0));
+        assert.ok(u.carrying >= 0 && u.carrying <= (TEST_UNITS[u.type].storage || 0));
         assert.ok(air || !s.crystals[u.at], `${u.id} is on crystals`);
       }
       for (const pile of Object.values(s.crystals)) assert.ok(pile.amount > 0);
@@ -272,7 +274,7 @@ describe("spotter drones", () => {
     });
     s = play(s, { type: "move", unitId: "d", to: "0,-2" });
     assert.equal(s.crystals["0,-1"].amount, 30);
-    assert.equal(defenceOf(s, s.units.d), RULES.units.spotterDrone.defence);
+    assert.equal(defenceOf(s, s.units.d), TEST_UNITS.spotterDrone.defence);
   });
 
   test("only units that hit air can shoot a drone", () => {
@@ -358,7 +360,7 @@ describe("sonic tank", () => {
   test("it can aim at any hex in range, and the boom runs on to range 4", () => {
     const base = scenario({ units: [unit("s", "sonicTank", BLUE, "0,0")] });
     // Aimed off the six straight lines, at 1,-2: the line runs on through four hexes.
-    const path = boomHexes(viewFor(base, BLUE), "0,0", "1,-2", RULES.units.sonicTank.range[1]);
+    const path = boomHexes(viewFor(base, BLUE), "0,0", "1,-2", TEST_UNITS.sonicTank.range[1]);
     assert.equal(path.length, 4);
     assert.ok(path.includes("1,-2"));
     const [first, , , last] = path;
@@ -670,7 +672,7 @@ describe("firing blind", () => {
     for (const k of dark) {
       assert.equal(view.visible[k], undefined, `${k} is out of sight`);
       const d = distance("0,0", k);
-      assert.ok(d >= RULES.units.artillery.range[0] && d <= RULES.units.artillery.range[1]);
+      assert.ok(d >= TEST_UNITS.artillery.range[0] && d <= TEST_UNITS.artillery.range[1]);
     }
   });
 
@@ -988,10 +990,10 @@ describe("fog of war by line of sight", () => {
 
 describe("fog of war by map blocks", () => {
   // Factories see nothing beyond their own hex here, so only the test units turn blocks over.
-  const blindFactory = { ...RULES.units.factory, sight: 0 };
+  const blindFactory = { ...TEST_UNITS.factory, sight: 0 };
   // Sight-range reveal, so these tests show blocks turning over from a distance.
   const blindFactories = {
-    units: { ...RULES.units, factory: blindFactory }, fog: { revealRange: null },
+    units: { ...TEST_UNITS, factory: blindFactory }, fog: { revealRange: null },
   };
   const blockOf = (s, k) =>
     Object.keys(s.map.hexes).filter((h) => s.map.hexes[h].cluster === s.map.hexes[k].cluster);
@@ -1002,7 +1004,7 @@ describe("fog of war by map blocks", () => {
     });
     const view = viewFor(s, BLUE);
     const block = blockOf(s, "0,-2");
-    assert.ok(block.some((k) => distance(k, "0,0") > RULES.units.lightHarvester.sight));
+    assert.ok(block.some((k) => distance(k, "0,0") > TEST_UNITS.lightHarvester.sight));
     for (const k of block) assert.equal(view.map.hexes[k].terrain, "plain", `${k} is face down`);
     assert.equal(view.map.hexes["-5,1"].terrain, null, "a block out of sight stays face down");
   });
@@ -1042,7 +1044,7 @@ describe("fog of war by map blocks", () => {
       rules: { ...blindFactories, fog: { revealRange: null, stopOnReveal: false } },
     });
     s = play(s, { type: "move", unitId: "s", to: "0,5" });
-    assert.ok(distance(s.units.s.at, "0,-3") > RULES.units.scoutBike.sight);
+    assert.ok(distance(s.units.s.at, "0,-3") > TEST_UNITS.scoutBike.sight);
     assert.ok(viewFor(s, BLUE).units.e, "the tank is still on a face-up block");
   });
 
@@ -1051,7 +1053,7 @@ describe("fog of war by map blocks", () => {
       units: [unit("h", "lightHarvester", BLUE, "-3,0")], explored: false,
       rules: { ...blindFactories, fog: { revealRange: null, stopOnReveal: false } },
     });
-    const sight = RULES.units.lightHarvester.sight;
+    const sight = TEST_UNITS.lightHarvester.sight;
     const block = blockOf(s, "0,2");
     assert.ok(block.every((k) => distance(k, "-3,0") > sight && distance(k, "3,0") > sight));
     assert.equal(viewFor(s, BLUE).map.hexes["0,2"].terrain, null);
@@ -1125,9 +1127,9 @@ describe("a move that gets nowhere", () => {
   test("a drone blocked before its first step cannot try again that turn", () => {
     // A short-sighted drone: a blind friendly scout on the first hex of its route and, out of
     // their sight, a Green tank on the second, so it can stop on neither.
-    const shortSighted = { ...RULES.units,
-      spotterDrone: { ...RULES.units.spotterDrone, sight: 1 },
-      scoutBike: { ...RULES.units.scoutBike, sight: 0 } };
+    const shortSighted = { ...TEST_UNITS,
+      spotterDrone: { ...TEST_UNITS.spotterDrone, sight: 1 },
+      scoutBike: { ...TEST_UNITS.scoutBike, sight: 0 } };
     const s = scenario({
       units: [unit("d", "spotterDrone", BLUE, "0,0"), unit("f", "scoutBike", BLUE, "0,-1"),
         unit("e", "tank", GREEN, "0,-2")],
@@ -1151,7 +1153,7 @@ describe("moving into face-down ground", () => {
     const move = s.events.find((e) => e.type === "move");
     assert.equal(move.stoppedBy, "revealed");
     assert.notEqual(s.units.t.at, target);
-    const left = RULES.units.tank.move - s.units.t.moveUsed;
+    const left = TEST_UNITS.tank.move - s.units.t.moveUsed;
     assert.ok(left > 0);
     assert.equal(move.moveLeft, left);
     const again = reachableHexes(viewFor(s, BLUE), "t");
@@ -1167,18 +1169,18 @@ describe("moving into face-down ground", () => {
     assert.equal(s.units.t.at, stop);
     assert.equal(move.stoppedBy, null);
     assert.ok(s.units.t.continues);
-    assert.equal(move.moveLeft, RULES.units.tank.move - s.units.t.moveUsed);
+    assert.equal(move.moveLeft, TEST_UNITS.tank.move - s.units.t.moveUsed);
     assert.ok(Object.keys(reachableHexes(viewFor(s, BLUE), "t")).length > 0);
   });
 
   test("the unit can then carry on, and stops for good once its move is used", () => {
     let s = scenario({ units: [unit("t", "tank", BLUE, "0,0")], explored: false });
-    for (let step = 0; step < RULES.units.tank.move && s.units.t.continues !== false; step++) {
+    for (let step = 0; step < TEST_UNITS.tank.move && s.units.t.continues !== false; step++) {
       const options = Object.keys(reachableHexes(viewFor(s, BLUE), "t"));
       if (!options.length) break;
       s = play(s, { type: "move", unitId: "t", to: options[0] });
     }
-    assert.ok(s.units.t.moveUsed <= RULES.units.tank.move);
+    assert.ok(s.units.t.moveUsed <= TEST_UNITS.tank.move);
     s = play(s, END, END);
     assert.equal(s.units.t.continues, false, "a new turn starts afresh");
   });
@@ -1204,7 +1206,7 @@ describe("winning", () => {
   test("destroying the enemy factory wins, when factories take fire", () => {
     let s = scenario({
       units: [unit("a", "heavyCannon", BLUE, "0,-3"), unit("g", "tank", GREEN, "3,-3")],
-      rules: { units: { ...RULES.units, factory: { ...RULES.units.factory, defence: 20 } },
+      rules: { units: { ...TEST_UNITS, factory: { ...TEST_UNITS.factory, defence: 20 } },
         combat: { factoriesTakeFire: true } },
     });
     s = play(s, attack("a", s.players[GREEN].factoryId));
@@ -1281,7 +1283,7 @@ describe("ruins (Phil, 31 October 2026)", () => {
     assert.equal(found.outcome, "unit");
     const unitFound = s.units[found.newUnitId];
     assert.equal(unitFound.owner, BLUE);
-    assert.ok(RULES.units[unitFound.type].cost <= RULES.ruins.unitMaxCost);
+    assert.ok(TEST_UNITS[unitFound.type].cost <= RULES.ruins.unitMaxCost);
     assert.ok(distance(unitFound.at, RUIN) <= 1);
   });
 
@@ -1291,8 +1293,8 @@ describe("ruins (Phil, 31 October 2026)", () => {
     assert.equal(found.outcome, "enemy");
     const enemy = s.units[found.newUnitId];
     assert.equal(enemy.owner, GREEN);
-    assert.ok(RULES.units[enemy.type].cost <= RULES.ruins.enemyMaxCost);
-    assert.ok(RULES.units[enemy.type].attack > 0);
+    assert.ok(TEST_UNITS[enemy.type].cost <= RULES.ruins.enemyMaxCost);
+    assert.ok(TEST_UNITS[enemy.type].attack > 0);
   });
 
   test("a ruin on ground the player has not explored cannot be seen or searched", () => {

@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.87";
+} from "./hex.js?v=0.88";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -296,16 +296,48 @@ function blockOf(state, k) {
   return state.map.hexes[k].cluster || k;
 }
 
+// rules.fog.revealRange "nextBlocks": a unit turns over its own block and the blocks next to
+// it that it can see into, never one further away.
+const NEXT_BLOCKS = "nextBlocks";
+
+// The blocks next to each block (and the block itself), worked out once per map.
+const nextBlocksCache = new WeakMap();
+
+function nextBlocks(state, block) {
+  let cache = nextBlocksCache.get(state.map.hexes);
+  if (!cache) {
+    cache = {};
+    for (const k in state.map.hexes) {
+      const b = blockOf(state, k);
+      cache[b] = cache[b] || { [b]: true };
+      for (const n of neighbourKeys(k)) {
+        if (state.map.hexes[n]) cache[b][blockOf(state, n)] = true;
+      }
+    }
+    nextBlocksCache.set(state.map.hexes, cache);
+  }
+  return cache[block];
+}
+
 // A unit turns over every block with a hex within this range: its sight, or the fixed
 // rules.fog.revealRange when one is set (1 = only blocks it is on or next to).
 function revealRangeOf(state, unit) {
   const fixed = state.rules.fog.revealRange;
-  return fixed === null || fixed === undefined ? unitStats(state, unit).sight : fixed;
+  if (fixed === null || fixed === undefined || fixed === NEXT_BLOCKS) {
+    return unitStats(state, unit).sight;
+  }
+  return fixed;
 }
 
-function revealFrom(state, player, at, range) {
+// Turns over, for the player, the blocks a unit standing at a hex can see into.
+function revealFrom(state, player, at, unit) {
   const revealed = state.players[player].revealed;
-  for (const k of hexesInSight(state, at, range)) revealed[blockOf(state, k)] = true;
+  const near = state.rules.fog.revealRange === NEXT_BLOCKS ?
+    nextBlocks(state, blockOf(state, at)) : null;
+  for (const k of hexesInSight(state, at, revealRangeOf(state, unit))) {
+    const block = blockOf(state, k);
+    if (!near || near[block]) revealed[block] = true;
+  }
 }
 
 // Hexes the player sees with their own units: in fog mode "sight", the hexes in sight of
@@ -350,7 +382,7 @@ export function refreshKnowledge(state) {
   if (tilesFog(state)) {
     for (const unit of Object.values(state.units)) {
       if (unit.owner === null) continue;
-      revealFrom(state, unit.owner, unit.at, revealRangeOf(state, unit));
+      revealFrom(state, unit.owner, unit.at, unit);
     }
   }
   state.players.forEach((player, p) => {
@@ -1051,7 +1083,7 @@ function applyMove(state, { unitId, to }, actor) {
     let turned = false;
     if (tilesFog(state)) {
       const before = Object.keys(player.revealed).length;
-      revealFrom(state, unit.owner, k, revealRangeOf(state, unit));
+      revealFrom(state, unit.owner, k, unit);
       turned = Object.keys(player.revealed).length > before;
     }
     if (fireOverwatch(state, unit, k, watchEvents)) {
