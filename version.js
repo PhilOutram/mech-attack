@@ -1,8 +1,19 @@
-export const VERSION = "v0.89";
+export const VERSION = "v0.90";
 
 // Newest first. Bump VERSION and prepend an entry on EVERY publish, so the live
 // app always shows exactly what shipped. Dates are YYYY-MM-DD.
 export const CHANGELOG = [
+  {
+    version: "v0.90",
+    date: "2026-11-22",
+    notes: [
+      "Training missions open the campaign: First Shots, Build an Army, Supply Lines, Dug In.",
+      "Lessons come up one at a time in the training missions, as you need them.",
+      "Every shot is explained: attack against defence, the ground's bonus and the lives lost.",
+      "In training missions each shot's report stays up until read; elsewhere it is in the log.",
+      "Campaign progress carries over: the first two new missions take Landfall's place.",
+    ],
+  },
   {
     version: "v0.89",
     date: "2026-11-21",

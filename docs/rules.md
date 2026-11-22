@@ -208,25 +208,37 @@ Hexes with dense rocks are rocky; hexes with scattered rocks are plain. Phil is 
 
 ## Campaign: Red Dust
 
-Eleven missions (Phil, 29 October 2026), defined in `campaign.js`. Each is built round a unit or tactic the player has to use. Each sets its map (and may reshape its terrain), both sides' starting units, crystals and factory upgrades (`setup` in `newGame`), any rule changes, how the AI plays, and its objective. Finishing a mission unlocks the next; progress is saved on the device.
+Thirteen missions (Phil, 29 October 2026; the first four replaced Landfall on 22 November 2026), defined in `campaign.js`. Each is built round a unit or tactic the player has to use. Each sets its map (and may reshape its terrain), both sides' starting units, crystals and factory upgrades (`setup` in `newGame`), any rule changes, how the AI plays, and its objective. Finishing a mission unlocks the next; progress is saved on the device.
 
 Most missions give Green a boss: a heavy unit leading its army that the player must destroy as well as meet the objective (Phil, 29 October 2026). Across the campaign Green starts with every kind of unit, so the player meets them all. In a mission won by overrunning Green's home factory, the overrun still ends the game whether or not the boss is down.
 
 | # | Mission | Map | Teaches | Green's boss | Objective |
 |---|---|---|---|---|---|
-| 1 | Landfall | Map 3 (classic) | Infantry, Scout Bike, harvesting | – | Capture the factory, build a Scout Bike, harvest and build a Tank |
-| 2 | Supply Lines | Map 8 (classic) | Harvesting, the Crystal lab | – | Bank 200 crystals |
-| 3 | First Contact | Map 5 (3-4-4-3) | Overrunning a factory | Artillery | Overrun Green's home factory |
-| 4 | Hold the Line | Map 14 (3-5-5-3) | Turrets and the Twin Turret | Sonic Tank | Hold your home factory for 12 rounds |
-| 5 | Over the Mountains | Map 11 (3-5-5-3), home ringed by mountains | Chinook airlift and Attack Helicopters (both sides have an Airfield); Anti-Aircraft Jeeps | Blast Cannon | Overrun Green's home factory |
-| 6 | Storm the Works | Map 12 (4-5-5-4) | Transporter, capturing factories | Heavy Cannon | Capture 3 factories |
-| 7 | Swarm | Map 6 (3-4-4-3) | Blast Cannon against a Scout Bike swarm | Heavy Cannon | Destroy 8 Scout Bikes |
-| 8 | Sky Hunters | Map 9 (4-5-5-4), Green starts with an Airfield and helicopters | Anti-aircraft | Fighter | Shoot down 5 Attack Helicopters |
-| 9 | The Pass | Map 7 (4-5-5-4), a ridge with one pass | Sonic Tank at a choke point | Blast Cannon | Destroy 5 Tanks |
-| 10 | The Maid's March | Map 10 (5-6-6-5) | Escort: no factory, a VIP (Commander Jeanne) | – | Bring the VIP into the far factory; the mission fails if she falls |
-| 11 | The Crystal War | Map 21 (4-5-6-5-4) | Everything; Artillery against Turrets | Heavy Cannon | Overrun Green's home factory, ringed by Turrets |
+| 1 | First Shots | Map 1, plain ground | Moving, firing, lives, return fire, capturing | – | Destroy the 2 guards and take the outpost with your Infantry; the mission fails if they fall |
+| 2 | Build an Army | Map 4, plain ground and a short ridge | Building; the Tank's range | – | Build a Tank and Infantry, then overrun Green's outpost |
+| 3 | Supply Lines | Map 8 (classic) | Harvesting, the Crystal lab | – | Have 100 crystals in store, build a Tank, overrun Green's home factory |
+| 4 | Dug In | Map 13 (3-4-4-3), rocky ground round Green's home | Firing together; rocky ground | – | Destroy 2 Tanks, then overrun Green's home factory |
+| 5 | First Contact | Map 5 (3-4-4-3) | Overrunning a factory | Artillery | Overrun Green's home factory |
+| 6 | Hold the Line | Map 14 (3-5-5-3) | Turrets and the Twin Turret | Sonic Tank | Hold your home factory for 12 rounds |
+| 7 | Over the Mountains | Map 11 (3-5-5-3), home ringed by mountains | Chinook airlift and Attack Helicopters (both sides have an Airfield); Anti-Aircraft Jeeps | Blast Cannon | Overrun Green's home factory |
+| 8 | Storm the Works | Map 12 (4-5-5-4) | Transporter, capturing factories | Heavy Cannon | Capture 3 factories |
+| 9 | Swarm | Map 6 (3-4-4-3) | Blast Cannon against a Scout Bike swarm | Heavy Cannon | Destroy 8 Scout Bikes |
+| 10 | Sky Hunters | Map 9 (4-5-5-4), Green starts with an Airfield and helicopters | Anti-aircraft | Fighter | Shoot down 5 Attack Helicopters |
+| 11 | The Pass | Map 7 (4-5-5-4), a ridge with one pass | Sonic Tank at a choke point | Blast Cannon | Destroy 5 Tanks |
+| 12 | The Maid's March | Map 10 (5-6-6-5) | Escort: no factory, a VIP (Commander Jeanne) | – | Bring the VIP into the far factory; the mission fails if she falls |
+| 13 | The Crystal War | Map 21 (4-5-6-5-4) | Everything; Artillery against Turrets | Heavy Cannon | Overrun Green's home factory, ringed by Turrets |
 
-Units and upgrades come in a few at a time (`allowedUnits`, `allowedUpgrades` in the mission's rules; both sides alike), and a mission can fit factory upgrades at the start (`setup.upgrades`). A mission can also change what the AI builds (`aiMix`), for the Scout Bike swarm, the helicopters and the tank column. Missions 1 to 10 play the hand-tuned AI; mission 11 plays an evolved personality. A home factory that starts unclaimed belongs to nobody until its player's infantry capture it. All figures are provisional.
+Units and upgrades come in a few at a time (`allowedUnits`, `allowedUpgrades` in the mission's rules; both sides alike), and a mission can fit factory upgrades at the start (`setup.upgrades`). A mission can also change what the AI builds (`aiMix`), for the Scout Bike swarm, the helicopters and the tank column. Missions 1 to 12 play the hand-tuned AI; mission 13 plays an evolved personality. A home factory that starts unclaimed belongs to nobody until its player's infantry capture it. All figures are provisional.
+
+### Training missions (Phil, 22 November 2026)
+
+Missions 1 to 4 teach the game to someone who has never played: shoot your way to a base, build to take one, harvest to build, then fire together.
+
+- They play the same at every rank (no extra crystals or units, and the hand-tuned AI).
+- Lessons come up one at a time, in order, each the first time it is needed (a unit selected, an enemy in sight, Fire chosen, a unit damaged, the guards down). A lesson stands in for the usual tips on the same thing. "Hide tips" turns them off too.
+- Every shot gets a combat report that stays up until it is read, and Green's turn waits for it: who fired on whom, attack against defence (with the ground's bonus shown), what earlier shots this turn added, and the lives lost, with any return fire. In other games the same sum shows in a banner, and every shot gets a line in the log (`combat-report.js`).
+- In First Shots the outpost is not lost when its guards fall (`loseWithNoUnits` off), so the Infantry still have to take it.
+- Progress saved before v0.90 is moved on: a player who had finished Landfall has the first two missions done, and one past Supply Lines has Dug In done too.
 
 ## Fog of war
 

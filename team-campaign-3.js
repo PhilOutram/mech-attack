@@ -2,13 +2,13 @@
 // colonies settle beside the ruins of the first colony. The Ashborn go from raiders to
 // allies; Sable's son Corran sells them to the Lattice and then learns what Echo really
 // wants; General Kaldra becomes an ally of necessity. All figures are provisional.
-import { RULES } from "./rules-config.js?v=0.89";
+import { RULES } from "./rules-config.js?v=0.90";
 import {
   HUMAN_TEAM, ENEMY_TEAM, THIRD_TEAM, human, faction, siteNear, addFactory, spreadRuins,
   freeHexNear, mirror, humansHold, homesHeld, homeHeld, lostCount, teamCrystals,
   ruinsSearchedBy, unitAlive, takenThisRound, roundStarted, betray, reinforce, giftEach,
   takeFactory, warning, arrive, craterSites, guardCrater, relaysSplit,
-} from "./team-scenario.js?v=0.89";
+} from "./team-scenario.js?v=0.90";
 
 // Targets and counts, kept next to the text that names them.
 const RUINS_TO_SEARCH = 5;

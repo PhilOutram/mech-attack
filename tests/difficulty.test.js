@@ -59,9 +59,9 @@ test("harder ranks give Green more in each mission, easier ones give you more", 
 
 test("Green gets no extra units in a mission where it has none, and crystals never go below 0",
   () => {
-    const landfall = MISSIONS[0];
+    const empty = { units: [["infantry"], []], crystals: [0, 0] };
     for (const level of LEVELS) {
-      const setup = missionSetup(level, landfall.setup);
+      const setup = missionSetup(level, empty);
       assert.deepEqual(setup.units[GREEN], [], level.id);
       assert.ok(setup.crystals.every((c) => c >= 0), level.id);
     }

@@ -7,9 +7,9 @@ import {
   freeHexNear, mirror, humansHold, homesHeld, homeHeld, factoryAt, lostCount, takenThisRound,
   roundStarted, betray, reinforce, takeFactory, defect, warning, airdrop, arrive, craterSites,
   guardCrater, relaysSplit,
-} from "./team-scenario.js?v=0.89";
-import { handOver } from "./engine.js?v=0.89";
-import { parseKey, key } from "./hex.js?v=0.89";
+} from "./team-scenario.js?v=0.90";
+import { handOver } from "./engine.js?v=0.90";
+import { parseKey, key } from "./hex.js?v=0.90";
 
 // Targets and counts, kept next to the text that names them.
 const FOUR_CORNERS_ROUNDS = 10;

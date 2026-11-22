@@ -7,7 +7,7 @@ import { mapById } from "../maps.js";
 import {
   newGame, applyAction, unitsOf, legalActions, reachableHexes, viewFor, factoryBuilds,
 } from "../engine.js";
-import { MISSIONS, missionRules, missionsDone, missionMap } from "../campaign.js";
+import { MISSIONS, missionRules, missionsDone, missionMap, stepsDone } from "../campaign.js";
 import { cheapestPaths, distance } from "../hex.js";
 import { scenario } from "./helpers.js";
 
@@ -45,38 +45,113 @@ test("every mission starts with its own units and crystals, on distinct open hex
   }
 });
 
-test("in the first mission Green has nothing but does not lose for it", () => {
-  let s = missionGame(MISSIONS[0]);
-  s = applyAction(s, { type: "endTurn" });
-  assert.equal(s.result, null);
-  assert.ok(legalActions(s).some((a) => a.type === "endTurn"));
+test("in First Shots your squad has no factory and lands out of sight of the two guards", () => {
+  const m = missionNamed("First Shots");
+  const s = missionGame(m);
+  assert.equal(s.players[BLUE].factoryId, null);
+  const home = s.units[s.players[GREEN].factoryId];
+  for (const guard of unitsOf(s, GREEN).filter((u) => u.type === "infantry")) {
+    assert.equal(distance(guard.at, home.at), 1, "the guards stand at the outpost");
+    for (const unit of unitsOf(s, BLUE)) {
+      assert.ok(distance(unit.at, guard.at) > RULES.units.infantry.sight, unit.type);
+    }
+  }
+  // The training ground is plain, with nothing to harvest.
+  assert.ok(Object.values(s.map.hexes).every((h) => h.terrain === "plain"));
+  assert.deepEqual(Object.keys(s.crystals), []);
 });
 
-test("in the first mission the infantry capture their own unclaimed home factory", () => {
-  const m = MISSIONS[0];
+test("in First Shots Green is not out when its guards fall, and taking the outpost wins", () => {
+  const m = missionNamed("First Shots");
   let s = missionGame(m);
-  const home = s.units[s.players[BLUE].factoryId];
-  assert.equal(home.owner, null);
+  for (const guard of unitsOf(s, GREEN).filter((u) => u.type === "infantry")) {
+    delete s.units[guard.id];
+  }
+  s.players[GREEN].lost.infantry = 2;
+  s = applyAction(s, { type: "endTurn" });
+  s = applyAction(s, { type: "endTurn" });
+  assert.equal(s.result, null);
+  assert.ok(m.steps[0].done(s) && !m.steps[1].done(s));
+  const home = s.units[s.players[GREEN].factoryId];
   const infantry = unitsOf(s, BLUE).find((u) => u.type === "infantry");
-  // They land two hexes away, so they first move next to it and wait a turn there.
-  assert.equal(distance(infantry.at, home.at), 2);
-  assert.ok(!(home.at in reachableHexes(viewFor(s, BLUE), infantry.id)));
-  const beside = Object.keys(reachableHexes(viewFor(s, BLUE), infantry.id))
-    .find((k) => distance(k, home.at) === 1);
-  s = applyAction(s, { type: "move", unitId: infantry.id, to: beside });
+  const beside = Object.keys(s.map.hexes).find((k) => distance(k, home.at) === 1 &&
+    !Object.values(s.units).some((u) => u.at === k));
+  s.units[infantry.id].at = beside;
   s = applyAction(s, { type: "endTurn" });
   s = applyAction(s, { type: "endTurn" });
   s = applyAction(s, { type: "move", unitId: infantry.id, to: home.at });
-  assert.equal(s.units[home.id].owner, BLUE);
-  assert.equal(s.result, null);
-  assert.ok(m.steps[0].done(s) && !m.steps[1].done(s));
+  assert.equal(s.result.winner, BLUE);
+  assert.ok(m.steps[1].done(s));
+  assert.ok(!m.failed(s), "the Infantry used up taking the outpost do not fail it");
 });
 
-test("the first mission is won once the factory is held and a Scout Bike and Tank built", () => {
-  const m = MISSIONS[0];
-  const s = scenario({ units: [{ id: "t", type: "tank", owner: BLUE, at: "0,0" },
-    { id: "b", type: "scoutBike", owner: BLUE, at: "1,0" }] });
-  assert.ok(m.done(s));
+test("First Shots fails when your Infantry fall", () => {
+  const m = missionNamed("First Shots");
+  const s = missionGame(m);
+  assert.ok(!m.failed(s));
+  delete s.units[unitsOf(s, BLUE).find((u) => u.type === "infantry").id];
+  assert.ok(m.failed(s));
+});
+
+test("a Scout Bike destroys an Infantry in one shot, and the Infantry's return fire takes " +
+  "a life", () => {
+  // First Shots' lessons say so: 15 is at least twice 5, and 10 reaches a Scout Bike's 10.
+  let s = scenario({ units: [
+    { id: "b", type: "scoutBike", owner: BLUE, at: "0,0" },
+    { id: "i", type: "infantry", owner: GREEN, at: "1,0" }] });
+  s = applyAction(s, { type: "attack", unitId: "b", targetId: "i" });
+  assert.equal(s.units.i, undefined);
+  assert.equal(s.units.b.lives, 1);
+});
+
+test("on rocky ground one Tank cannot hurt a Tank, two take a life and a third shot " +
+  "destroys it", () => {
+  // Dug In's lessons: defence 25 + 5; 25 does nothing, 50 takes a life, 60 destroys it.
+  let s = scenario({ terrain: { "1,0": "rocky" }, units: [
+    { id: "t1", type: "tank", owner: BLUE, at: "-1,0" },
+    { id: "t2", type: "tank", owner: BLUE, at: "-1,1" },
+    { id: "b", type: "scoutBike", owner: BLUE, at: "0,0" },
+    { id: "g", type: "tank", owner: GREEN, at: "1,0" }] });
+  s = applyAction(s, { type: "attack", unitId: "t1", targetId: "g" });
+  assert.equal(s.units.g.lives, 2);
+  s = applyAction(s, { type: "attack", unitId: "t2", targetId: "g" });
+  assert.equal(s.units.g.lives, 1);
+  s = applyAction(s, { type: "attack", unitId: "b", targetId: "g" });
+  assert.equal(s.units.g, undefined);
+});
+
+test("the training missions come first, with lessons and combat reports", () => {
+  const training = MISSIONS.filter((m) => m.training);
+  assert.deepEqual(training.map((m) => m.title),
+    ["First Shots", "Build an Army", "Supply Lines", "Dug In"]);
+  MISSIONS.slice(0, training.length).forEach((m) => assert.ok(m.training, m.title));
+  for (const m of training) {
+    assert.ok(m.reports, m.title);
+    assert.ok(m.lessons.length, m.title);
+    for (const lesson of m.lessons) {
+      assert.ok(lesson.title && lesson.text && typeof lesson.when === "function", m.title);
+    }
+  }
+});
+
+test("in Dug In Green's Tanks start on rocky ground", () => {
+  const s = missionGame(missionNamed("Dug In"));
+  const tanks = unitsOf(s, GREEN).filter((u) => u.type === "tank");
+  assert.equal(tanks.length, 2);
+  for (const tank of tanks) assert.equal(s.map.hexes[tank.at].terrain, "rocky");
+  assert.deepEqual(s.map.neutralFactories, []);
+});
+
+test("a mission step once done stays ticked", () => {
+  const m = missionNamed("Supply Lines");
+  const s = missionGame(m);
+  assert.deepEqual(stepsDone(m, s), [false, false, false]);
+  s.players[BLUE].crystals = 100;
+  const ticked = stepsDone(m, s);
+  assert.deepEqual(ticked, [true, false, false]);
+  s.players[BLUE].crystals = 0;
+  s.campaign = { ticked };
+  assert.deepEqual(stepsDone(m, s), [true, false, false]);
 });
 
 test("with no saved progress only the first mission is open", () => {
@@ -146,7 +221,7 @@ test("in The Maid's March blue has no factory, and losing the VIP fails the miss
 });
 
 test("units once unlocked stay available, and the campaign unlocks every unit", () => {
-  assert.deepEqual(MISSIONS[0].newUnits, ["infantry", "scoutBike", "tank"]);
+  assert.deepEqual(MISSIONS[0].newUnits, ["infantry", "scoutBike"]);
   MISSIONS.forEach((m, i) => {
     for (const type of m.newUnits) assert.ok(m.rules.allowedUnits.includes(type), m.title);
     if (i > 0) {

@@ -2,11 +2,11 @@
 // factions and their leaders, reshaping a mission's map, what a mission checks, and what its
 // script can change. Pure functions of the map or the game state, no DOM, so the game screen,
 // the tests and tools/team-trials.mjs all run missions the same way.
-import { RULES } from "./rules-config.js?v=0.89";
+import { RULES } from "./rules-config.js?v=0.90";
 import {
   changeTeam, giveCrystals, addUnits, handOver, unitsOf, factoriesOf, unitStats,
-} from "./engine.js?v=0.89";
-import { distance, parseKey, toPixel, key, neighbourKeys } from "./hex.js?v=0.89";
+} from "./engine.js?v=0.90";
+import { distance, parseKey, toPixel, key, neighbourKeys } from "./hex.js?v=0.90";
 
 export const HUMAN_TEAM = 0;
 export const ENEMY_TEAM = 1;

@@ -2,15 +2,15 @@
 
 Each campaign's story as one short narrative. The numbers in brackets are the missions that play each part. Mission details are in `docs/campaigns.md`.
 
-## Red Dust (solo, 11 missions)
+## Red Dust (solo, 13 missions)
 
-The Blue Expedition reaches Kharon, a red world rich in power crystals. A drop ship sets a squad of Infantry down beside an abandoned factory; they break in, get it building again, and the first Scout Bike and Tank roll out (1). Command sends plans for a Crystal lab and a Crystal Seeder, but Consortium scouts are already in the hills, and the race for crystals begins (2).
+The Blue Expedition reaches Kharon, a red world rich in power crystals. A drop ship sets two Scout Bikes and a squad of Infantry down near a Consortium outpost; the bikes clear its two guards and the Infantry break in (1). The outpost's store pays for the first Tanks, which take a second outpost across the plain (2). Command sends a Light Harvester and plans for a Crystal lab and a Crystal Seeder, but the Consortium is after the same crystals, and Blue harvests, builds and takes its base (3). The Consortium digs in on rocky ground where no single shot can stop its Tanks, and Blue learns to fire together (4).
 
-The Consortium builds a factory across the plateau, its army led by Artillery, and Blue's Infantry learn to overrun a factory under fire with Tanks covering them (3). The Consortium hits back with a strike force bigger than anything Blue can field, and the base holds behind a Twin Turret and two Sonic Tanks (4). A new base in a crater ringed by mountains can only reach the war by air, so Chinooks and Attack Helicopters carry the fight out (5).
+The Consortium builds a factory across the plateau, its army led by Artillery, and Blue's Infantry learn to overrun a factory under fire with Tanks covering them (5). The Consortium hits back with a strike force bigger than anything Blue can field, and the base holds behind a Twin Turret and two Sonic Tanks (6). A new base in a crater ringed by mountains can only reach the war by air, so Chinooks and Attack Helicopters carry the fight out (7).
 
-Between the two sides stand abandoned mining factories with crystals still in store, and Blue's Infantry ride Transporters in to take them (6). The Consortium changes tactics again and again: swarms of cheap Scout Bikes, met by the Blast Cannon's cluster bombs (7); Attack Helicopters, met by Anti-Aircraft Jeeps, Infantry and Fighters (8); a tank column through a narrow mountain pass, met by a Sonic Tank waiting at the far end (9).
+Between the two sides stand abandoned mining factories with crystals still in store, and Blue's Infantry ride Transporters in to take them (8). The Consortium changes tactics again and again: swarms of cheap Scout Bikes, met by the Blast Cannon's cluster bombs (9); Attack Helicopters, met by Anti-Aircraft Jeeps, Infantry and Fighters (10); a tank column through a narrow mountain pass, met by a Sonic Tank waiting at the far end (11).
 
-Commander Jeanne, the leader the colonists will follow, lands far from any Blue base, and her escort brings her across the valley to an old factory with no way to build on the way (10). Finally the Consortium brings its main army and its best commander. Its factory is ringed by Turrets; Blue's Artillery outranges them, and the Crystal War is settled (11).
+Commander Jeanne, the leader the colonists will follow, lands far from any Blue base, and her escort brings her across the valley to an old factory with no way to build on the way (12). Finally the Consortium brings its main army and its best commander. Its factory is ringed by Turrets; Blue's Artillery outranges them, and the Crystal War is settled (13).
 
 ## The Varr Contract (2 players, 10 missions)
 

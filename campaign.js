@@ -3,10 +3,10 @@
 // sets the map (and may reshape its terrain), the starting units and crystals, any rule
 // changes, how the AI plays, and its objective; finishing one unlocks the next. Progress is
 // remembered on this device.
-import { RULES } from "./rules-config.js?v=0.89";
-import { unitsOf, factoriesOf } from "./engine.js?v=0.89";
-import { distance, cheapestPaths } from "./hex.js?v=0.89";
-import { LEVELS } from "./difficulty.js?v=0.89";
+import { RULES } from "./rules-config.js?v=0.90";
+import { unitsOf, factoriesOf } from "./engine.js?v=0.90";
+import { distance, cheapestPaths } from "./hex.js?v=0.90";
+import { LEVELS } from "./difficulty.js?v=0.90";
 
 const PROGRESS_KEY = "mech-attack.campaign";
 // The highest rank each mission has been won at: { mission index: rank id }.
@@ -25,6 +25,11 @@ export const CAMPAIGN_NAME = "Red Dust";
 // - ai: "default" is the gentler hand-tuned AI, "evolved" one of the strongest; aiMix
 //   (optional) replaces the units it builds, and aiGenes (optional) changes other genes.
 // - tip (optional): a top tip shown when the mission starts. noSurrender: no Demand surrender.
+// - training (optional): one of the first missions, which teach the game (Phil, 22 November
+//   2026). They play the same at every rank, every shot gets a combat report that stays up
+//   until it is read (reports), and lessons come up one at a time as they are needed:
+//   lessons are { title, text, when(c), covers } where c is { state, view, selected, mode,
+//   me } and covers lists the usual tips the lesson stands in for.
 // - done(state): the objective is met (the mission is won). null: win the usual way, by
 //   overrunning Green's home factory. steps (optional): the objective in parts, ticked off in
 //   the panel as they are done.
@@ -34,12 +39,20 @@ export const CAMPAIGN_NAME = "Red Dust";
 //   as the second step. Across the campaign Green starts with every kind of unit, so the
 //   player meets them all.
 // Targets and counts are kept here, next to the text that names them.
-const BANK_TARGET = 200;
-const LANDFALL_INFANTRY = 1;
-const LANDFALL_CRYSTALS = 75;
-// Two hexes from the factory, so the Infantry move next to it before they can break in
-// (Phil, 31 October 2026). More than one in case a level adds units.
-const LANDFALL_STARTS = ["3,-3", "4,-3", "2,-3"];
+const BANK_TARGET = 100;
+const SUPPLY_CRYSTALS = 40;
+const GUARDS = 2;
+const DUG_IN_TANKS = 2;
+const DUG_IN_CRYSTALS = [60, 40];
+const BUILD_CRYSTALS = 160;
+// First Shots on map-1: your squad lands six hexes from the guards, out of their sight, with
+// the Infantry behind the Scout Bikes; the guards stand next to the outpost.
+const FIRST_SHOTS_STARTS = ["-3,2", "-3,3", "-4,3"];
+const FIRST_SHOTS_GUARDS = ["3,2", "3,3"];
+// Build an Army on map-4: a short ridge across the middle to steer round.
+const BUILD_RIDGE = ["1,-1", "1,0", "1,1"];
+// Dug In: rocky ground this far round Green's home factory.
+const DUG_IN_RADIUS = 2;
 const FACTORIES_TO_CAPTURE = 3;
 const HOLD_ROUNDS = 12;
 const SCOUTS_TO_DESTROY = 8;
@@ -78,11 +91,159 @@ export const UPGRADE_ROLES = {
 const owns = (state, type) => unitsOf(state, HUMAN).some((u) => u.type === type);
 const holdsHome = (state) => state.units[state.players[HUMAN].factoryId]?.owner === HUMAN;
 const greenLost = (state, type) => state.players[AI_PLAYER].lost[type] || 0;
+const greenHomeTaken = (state) =>
+  state.units[state.players[AI_PLAYER].factoryId]?.owner === HUMAN;
 
-const LANDFALL_STEPS = [
-  { text: "Capture the factory with your Infantry", done: holdsHome },
-  { text: "Build a Scout Bike", done: (state) => holdsHome(state) && owns(state, "scoutBike") },
-  { text: "Harvest crystals and build a Tank", done: (state) => owns(state, "tank") },
+// ---------------------------------------------------------------------------------------
+// The training missions' lessons (Phil, 22 November 2026)
+
+const STATS = RULES.units;
+const TWICE = RULES.combat.loseTwoLivesAt;
+const ROCKY = RULES.terrain.rocky.defenceBonus;
+const ownUnits = (c) => Object.values(c.view.units).filter((u) => u.owner === c.me &&
+  !STATS[u.type].isFactory);
+const enemyUnits = (c) => Object.values(c.view.units).filter((u) => u.owner !== null &&
+  u.owner !== c.me && !STATS[u.type].isFactory);
+const always = () => true;
+const selectedOwn = (c) => Boolean(c.selected) && c.selected.owner === c.me &&
+  !STATS[c.selected.type].isFactory;
+const movedOne = (c) => ownUnits(c).some((u) => u.moved);
+const enemyInSight = (type) => (c) => enemyUnits(c).some((u) => !type || u.type === type);
+const firing = (c) => c.mode === "fire";
+const damaged = (c) => ownUnits(c).some((u) => u.lives < RULES.lives);
+const enemyOnRocky = (c) => enemyUnits(c).some((u) =>
+  c.view.map.hexes[u.at]?.terrain === "rocky");
+
+const FIRST_SHOTS_LESSONS = [
+  {
+    title: "Your squad",
+    text: "You are Blue. Your two Scout Bikes are fast fighters. Your Infantry are slow and " +
+      "weak, but only Infantry can take a factory, so keep them safe. Tap a Scout Bike to " +
+      "select it.",
+    when: always,
+    // Harvesting waits for Supply Lines, which has its own lesson on it.
+    covers: ["welcome", "harvester"],
+  },
+  {
+    title: "Moving",
+    text: `A Scout Bike moves up to ${STATS.scoutBike.move} hexes a turn: the lit hexes ` +
+      "show where it can go. Tap one to move there. The map starts face down and blocks " +
+      "turn over as your units come near. A move stops when new ground turns over or an " +
+      "enemy comes into view, and the unit keeps the rest of its move: tap again to go on.",
+    when: selectedOwn,
+    covers: ["newGround"],
+  },
+  {
+    title: "Ending your turn",
+    text: "Move your other units too. When they have done what they can, press End turn " +
+      "and Green moves. Keep your Infantry behind the Scout Bikes for now.",
+    when: movedOne,
+  },
+  {
+    title: "Enemy in sight",
+    text: "Green Infantry guard the outpost. Every unit has two lives. A shot whose attack " +
+      "reaches the target's defence takes one life, and the tile flips over to its damaged " +
+      `side. An attack of ${TWICE === 2 ? "twice" : `${TWICE} times`} the defence or more ` +
+      `takes both lives at once. Your Scout Bike's attack is ${STATS.scoutBike.attack} and ` +
+      `an Infantry's defence is ${STATS.infantry.defence}: ${STATS.scoutBike.attack} is at ` +
+      `least ${TWICE * STATS.infantry.defence}, so one shot destroys it.`,
+    when: enemyInSight(),
+  },
+  {
+    title: "Firing",
+    text: `Red hexes are targets in range. A Scout Bike has range ${STATS.scoutBike.range[1]}` +
+      ", so it fires from the hex next to its target. Tap a red hex to fire. Watch out: a " +
+      "unit fired on from next door fires back at the same time. After each shot a report " +
+      "says what happened and why.",
+    when: firing,
+    covers: ["combat"],
+  },
+  {
+    title: "A damaged unit",
+    text: "One of your units has lost a life, and its tile has flipped to the damaged side. " +
+      "Another hit that reaches its defence in one turn will destroy it, so think about " +
+      "pulling it back. Damage that took no life is cleared at the end of each turn; lost " +
+      "lives stay lost.",
+    when: damaged,
+  },
+  {
+    title: "Take the outpost",
+    text: "The guards are down. Move your Infantry next to the factory. Infantry must start " +
+      "a turn next to a factory before they can break in: next turn, tap them, then tap the " +
+      "factory to move in and take it.",
+    when: (c) => greenLost(c.state, "infantry") >= GUARDS,
+    covers: ["infantry", "siege"],
+  },
+];
+
+const BUILD_LESSONS = [
+  {
+    title: "Your factory",
+    text: "Tap your factory to see what it can build and what each unit costs. Pick a unit, " +
+      "then tap a lit hex next to the factory to put it there. New units can act from your " +
+      "next turn, so build early.",
+    when: always,
+    covers: ["welcome", "factory"],
+  },
+  {
+    title: "Tanks",
+    text: `A Tank has attack ${STATS.tank.attack}, defence ${STATS.tank.defence} and range ` +
+      `${STATS.tank.range[0]} to ${STATS.tank.range[1]}: it can fire from two hexes away. ` +
+      "Only units right next to their attacker fire back, so a Tank firing from two hexes " +
+      "takes no return fire.",
+    when: (c) => ownUnits(c).some((u) => u.type === "tank"),
+    covers: ["built:tank"],
+  },
+  {
+    title: "Defence",
+    text: `Green's Scout Bike has attack ${STATS.scoutBike.attack}, less than a Tank's ` +
+      `defence of ${STATS.tank.defence}: on its own it cannot hurt a Tank at all. Its ` +
+      `Infantry (attack ${STATS.infantry.attack}) cannot either. Your Infantry are another ` +
+      `matter: defence ${STATS.infantry.defence}.`,
+    when: enemyInSight("scoutBike"),
+  },
+];
+
+const SUPPLY_LESSONS = [
+  {
+    title: "Crystals",
+    text: "Crystals pay for new units. Drive the Light Harvester next to a crystal pile and " +
+      `tap Harvest: it carries up to ${STATS.lightHarvester.storage}. Bring it back next to ` +
+      "your factory and it unloads into your store by itself. A Scout Bike can carry " +
+      `${STATS.scoutBike.storage} too.`,
+    when: always,
+    covers: ["welcome", "harvester"],
+  },
+  {
+    title: "Spend them",
+    text: `You can afford a Tank (${STATS.tank.cost} crystals). Tap your factory to build ` +
+      "one, and Infantry to overrun Green's factory.",
+    when: (c) => c.view.players[c.me].crystals >= STATS.tank.cost,
+  },
+];
+
+const DUG_IN_LESSONS = [
+  {
+    title: "Fire together",
+    text: "Attacks on the same unit in one turn add up. A Tank's defence is " +
+      `${STATS.tank.defence}: one Tank's shot (${STATS.tank.attack}) takes one life, and ` +
+      `two Tanks firing in the same turn make ${2 * STATS.tank.attack}, twice its defence, ` +
+      "which destroys it. Fire one unit at a time: the total carries on until the end of " +
+      "the turn, then starts again from nothing.",
+    when: always,
+    covers: ["welcome"],
+  },
+  {
+    title: "Dug in",
+    text: `A ground unit on rocky ground gets +${ROCKY} defence. A Tank there has defence ` +
+      `${STATS.tank.defence + ROCKY}, so one Tank's ${STATS.tank.attack} does nothing at ` +
+      `all, two Tanks (${2 * STATS.tank.attack}) take one life, and it takes ` +
+      `${TWICE * (STATS.tank.defence + ROCKY)} to destroy it: add a Scout Bike ` +
+      `(${STATS.scoutBike.attack}) or Infantry (${STATS.infantry.attack}) to the same ` +
+      "turn's fire.",
+    when: enemyOnRocky,
+    covers: ["rough"],
+  },
 ];
 
 // ---------------------------------------------------------------------------------------
@@ -160,41 +321,113 @@ const factoryAt = (state, at) => Object.values(state.units).find((u) => u.at ===
 const vipAlive = (state) => Object.values(state.units).some((u) =>
   u.type === "vip" || (u.cargo || []).some((c) => c.type === "vip"));
 
+// A clean field for the first missions: plain ground everywhere, with only the features
+// given ({ mountain: [hexes], rocky: [hexes] }), and no crystals, unused factories or ruins
+// to distract.
+function trainingGround(features) {
+  return (map) => {
+    for (const k in map.hexes) map.hexes[k] = { ...map.hexes[k], terrain: "plain" };
+    for (const [terrain, hexes] of Object.entries(features)) {
+      for (const k of hexes) map.hexes[k] = { ...map.hexes[k], terrain };
+    }
+    map.deposits = [];
+    map.neutralFactories = [];
+    map.ruins = [];
+  };
+}
+
+// Dug In: rocky ground round Green's home factory, where its Tanks start, and no unused
+// factories or ruins.
+function dugIn(map, rules) {
+  const home = map.factories[AI_PLAYER];
+  const ring = Object.keys(map.hexes).filter((k) => k !== home &&
+    distance(k, home) <= DUG_IN_RADIUS && rules.terrain[map.hexes[k].terrain].moveCost !== null);
+  for (const k of ring) map.hexes[k] = { ...map.hexes[k], terrain: "rocky" };
+  map.deposits = map.deposits.filter((d) => !ring.includes(d.at));
+  map.neutralFactories = [];
+  map.ruins = [];
+}
+
 // ---------------------------------------------------------------------------------------
 // The missions
 
 const MISSION_LIST = [
   {
-    title: "Landfall",
-    mapId: "map-3",
+    title: "First Shots",
+    mapId: "map-1",
+    terrain: trainingGround({}),
+    training: true,
+    reports: true,
+    lessons: FIRST_SHOTS_LESSONS,
     story: "The Blue Expedition has reached Kharon, a red world rich in power crystals. Your " +
-      "drop ship has set a squad of Infantry down near an abandoned factory. Its store " +
-      `still holds ${LANDFALL_CRYSTALS} crystals, and crystals glitter in the dust nearby.`,
-    tip: { title: "Top tip", text: "Tap your Infantry to select them, then tap a hex next to " +
-      "the factory. Infantry must spend a turn next to a factory before they can break in, " +
-      "so next turn tap the factory to move them into it and take it over." },
-    objective: "Take the factory, build a Scout Bike, then harvest and build a Tank.",
-    steps: LANDFALL_STEPS,
-    setup: { units: [Array(LANDFALL_INFANTRY).fill("infantry"), []],
-      crystals: [LANDFALL_CRYSTALS, 0], unclaimedHome: [true, false],
-      starts: [LANDFALL_STARTS, null] },
-    newUnits: ["infantry", "scoutBike", "tank"],
+      "drop ship has set down two Scout Bikes and a squad of Infantry near a Green " +
+      "Consortium outpost. Two Green Infantry guard it. Clear them out, then take the " +
+      "outpost: it will be your first base.",
+    objective: "Destroy the two Green Infantry, then take the outpost with your Infantry. " +
+      "If your Infantry fall, the mission fails.",
+    steps: [
+      { text: "Destroy the two Green Infantry guards",
+        done: (state) => greenLost(state, "infantry") >= GUARDS },
+      { text: "Take the outpost with your Infantry", done: greenHomeTaken },
+    ],
+    setup: { units: [["scoutBike", "scoutBike", "infantry"], Array(GUARDS).fill("infantry")],
+      crystals: [0, 0], noHome: [true, false],
+      starts: [FIRST_SHOTS_STARTS, FIRST_SHOTS_GUARDS] },
+    newUnits: ["infantry", "scoutBike"],
+    // The outpost has nothing to build with, so it is not lost when its guards are.
     rules: { loseWithNoUnits: false },
     noSurrender: true,
     ai: "default",
-    done: (state) => LANDFALL_STEPS.every((step) => step.done(state)),
+    done: null,
+    failed: (state) => !owns(state, "infantry") && !greenHomeTaken(state),
+    failText: "Your Infantry have fallen: there is nobody left to take the outpost.",
+  },
+  {
+    title: "Build an Army",
+    mapId: "map-4",
+    terrain: trainingGround({ mountain: BUILD_RIDGE }),
+    training: true,
+    reports: true,
+    lessons: BUILD_LESSONS,
+    story: "The outpost is yours, and its store holds " + `${BUILD_CRYSTALS} crystals. ` +
+      "Command has sent the plans for the Tank, the workhorse of the expedition. Across " +
+      "the plain, Green holds a second outpost with a Scout Bike and two Infantry. They " +
+      "have nothing left to build with. Build an army and take it.",
+    objective: "Build Tanks and Infantry at your factory, then overrun Green's outpost.",
+    steps: [
+      { text: "Build a Tank", done: (state) => owns(state, "tank") },
+      { text: "Build Infantry", done: (state) => owns(state, "infantry") },
+      { text: "Overrun Green's outpost with your Infantry", done: greenHomeTaken },
+    ],
+    setup: { units: [["scoutBike"], ["scoutBike", "infantry", "infantry"]],
+      crystals: [BUILD_CRYSTALS, 0] },
+    newUnits: ["tank"],
+    rules: { loseWithNoUnits: false },
+    noSurrender: true,
+    ai: "default",
+    done: null,
   },
   {
     title: "Supply Lines",
     mapId: "map-8",
-    story: "The factory hums again. Command has sent the plans for a Crystal lab, which " +
-      "grows crystals inside a factory every turn, and for a Crystal Seeder, which plants " +
-      "new ones. But you are not alone: Green Consortium scouts have been seen in the hills, " +
-      "and they want these crystals too.",
-    objective: `Bank ${BANK_TARGET} crystals in your store. Harvest, protect your harvester, ` +
-      "and think about building a Crystal lab.",
+    training: true,
+    reports: true,
+    lessons: SUPPLY_LESSONS,
+    story: "The outposts hum again, but their stores are nearly empty. Command has sent a " +
+      "Light Harvester, and the plans for a Crystal lab, which grows crystals inside a " +
+      "factory every turn, and a Crystal Seeder, which plants new piles. Green has a base " +
+      "across the hills and is after the same crystals. Harvest, build, and take Green's " +
+      "base.",
+    objective: `Harvest crystals until you have ${BANK_TARGET} in your store, build a ` +
+      "Tank, then overrun Green's home factory.",
+    steps: [
+      { text: `Have ${BANK_TARGET} crystals in your store`,
+        done: (state) => state.players[HUMAN].crystals >= BANK_TARGET },
+      { text: "Build a Tank", done: (state) => owns(state, "tank") },
+      { text: "Overrun Green's home factory", done: greenHomeTaken },
+    ],
     setup: { units: [["lightHarvester", "scoutBike"], ["lightHarvester", "scoutBike"]],
-      crystals: [60, 50] },
+      crystals: [SUPPLY_CRYSTALS, SUPPLY_CRYSTALS] },
     // The Light Medic waits for First Contact, where there is fighting to repair (Phil, 31
     // October 2026).
     newUnits: ["lightHarvester", "crystalSeeder"],
@@ -202,7 +435,30 @@ const MISSION_LIST = [
     ai: "default",
     // Green races for crystals here; it does not send Infantry at your factory yet.
     aiGenes: { captureFactories: 0 },
-    done: (state) => state.players[HUMAN].crystals >= BANK_TARGET,
+    done: null,
+  },
+  {
+    title: "Dug In",
+    mapId: "map-13-3-4-4-3",
+    terrain: dugIn,
+    training: true,
+    reports: true,
+    lessons: DUG_IN_LESSONS,
+    story: "Green has dug in round its base, on rocky ground that shields its units. Its " +
+      "two Tanks are tougher than anything you have met, and no single shot of yours can " +
+      "stop one. Fire together: attacks on the same unit in one turn add up.",
+    objective: `Destroy Green's ${DUG_IN_TANKS} Tanks, then overrun its home factory.`,
+    steps: [
+      { text: `Destroy Green's ${DUG_IN_TANKS} Tanks`,
+        done: (state) => greenLost(state, "tank") >= DUG_IN_TANKS },
+      { text: "Overrun Green's home factory", done: greenHomeTaken },
+    ],
+    setup: { units: [
+      ["lightHarvester", "tank", "tank", "scoutBike", "infantry", "infantry"],
+      ["lightHarvester", ...Array(DUG_IN_TANKS).fill("tank"), "infantry"]],
+    crystals: [DUG_IN_CRYSTALS[HUMAN], DUG_IN_CRYSTALS[AI_PLAYER]] },
+    ai: "default",
+    done: null,
   },
   {
     title: "First Contact",
@@ -422,9 +678,46 @@ export function missionRules(mission, rules) {
   return { ...structuredClone(rules), ...mission.rules };
 }
 
+// Which of a mission's steps are done: each one ticked once it has been done, even if it is
+// undone later (state.campaign.ticked, kept by the game screen).
+export function stepsDone(mission, state) {
+  const ticked = (state.campaign && state.campaign.ticked) || [];
+  return (mission.steps || []).map((step, i) => Boolean(ticked[i]) || step.done(state));
+}
+
+// Progress saved before the training missions (v0.90) counted the old list, which began with
+// Landfall and Supply Lines. Landfall's lessons are now the first two missions and Supply
+// Lines is the third; after that every mission is two places on, and Dug In counts as done
+// for anyone who had got past Supply Lines.
+const LAYOUT_KEY = "mech-attack.campaign-layout";
+const LAYOUT = "training";
+const OLD_SUPPLY_LINES = 1;
+const MISSIONS_ADDED = 2;
+
+function movedOn(index) {
+  return index <= OLD_SUPPLY_LINES ? index + 1 : index + MISSIONS_ADDED;
+}
+
+function upgradeProgress() {
+  if (localStorage.getItem(LAYOUT_KEY) === LAYOUT) return;
+  const done = Number(localStorage.getItem(PROGRESS_KEY));
+  if (Number.isInteger(done) && done > 0) {
+    localStorage.setItem(PROGRESS_KEY, String(done > OLD_SUPPLY_LINES ? done + MISSIONS_ADDED
+      : done + 1));
+  }
+  const ranks = JSON.parse(localStorage.getItem(RANKS_KEY) || "null");
+  if (ranks && typeof ranks === "object") {
+    const moved = {};
+    for (const [index, rank] of Object.entries(ranks)) moved[movedOn(Number(index))] = rank;
+    localStorage.setItem(RANKS_KEY, JSON.stringify(moved));
+  }
+  localStorage.setItem(LAYOUT_KEY, LAYOUT);
+}
+
 // How many missions are finished (they are played in order).
 export function missionsDone() {
   try {
+    upgradeProgress();
     const done = Number(localStorage.getItem(PROGRESS_KEY));
     return Number.isInteger(done) && done >= 0 ? Math.min(done, MISSIONS.length) : 0;
   } catch {
@@ -450,6 +743,7 @@ export function markMissionDone(index, rank = null) {
 // The highest rank each mission has been won at, by mission index.
 export function missionRanks() {
   try {
+    upgradeProgress();
     const ranks = JSON.parse(localStorage.getItem(RANKS_KEY));
     return ranks && typeof ranks === "object" ? ranks : {};
   } catch {

@@ -232,11 +232,24 @@ export function showTip(id, rules) {
   if (!showing) next(rules);
 }
 
-// A one-off note in the same popup, such as a campaign mission's top tip: { title, text }. It
-// shows every time it is asked for.
+// A one-off note in the same popup, such as a campaign mission's top tip or a combat report:
+// { title, text }. It shows every time it is asked for. Resolves when it has been closed.
 export function showNote(note, rules) {
-  queue.push(note);
-  if (!showing) next(rules);
+  return new Promise((resolve) => {
+    queue.push({ ...note, resolve });
+    if (!showing) next(rules);
+  });
+}
+
+// A training mission's lesson: a note that "Hide tips" turns off like the other tips.
+export function showLesson(note, rules) {
+  return tipsOff() ? Promise.resolve() : showNote(note, rules);
+}
+
+// Tips a lesson has already covered, so they do not repeat it.
+export function markTipsSeen(ids) {
+  const seen = seenList();
+  store(SEEN_KEY, JSON.stringify([...seen, ...ids.filter((id) => !seen.includes(id))]));
 }
 
 // Help on the main menu: every tip will show again.
@@ -269,9 +282,13 @@ function next(rules) {
     hide.removeEventListener("click", onHide);
     overlay.removeEventListener("click", onBackdrop);
     document.removeEventListener("keydown", onKey);
+    if (typeof item !== "string") item.resolve();
     if (hideAll) {
       store(OFF_KEY, "true");
-      queue.length = 0;
+      // Combat reports still show; the tips and lessons waiting are dropped.
+      const kept = queue.filter((waiting) => typeof waiting !== "string" && waiting.report);
+      for (const dropped of queue) if (!kept.includes(dropped)) dropped.resolve?.();
+      queue.splice(0, queue.length, ...kept);
     }
     next(rules);
   };

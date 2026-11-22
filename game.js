@@ -7,8 +7,8 @@
 // net.js, with this device holding the game (host). A device that joined someone else's game
 // (client) holds only its own player's view, sends its actions to the host and shows the
 // updates it gets back.
-import { RULES } from "./rules-config.js?v=0.89";
-import { mapById, seededRandom } from "./maps.js?v=0.89";
+import { RULES } from "./rules-config.js?v=0.90";
+import { mapById, seededRandom } from "./maps.js?v=0.90";
 import {
   newGame, applyAction, viewFor, reachableHexes, attackTargets, healTargets, harvestTargets,
   searchTargets, unloadFactories, seedLoads, plantSites,
@@ -16,27 +16,28 @@ import {
   firesBack, dropSites, factoryBuilds, upgradeOptions, crushingMoves, refreshKnowledge,
   defenceOf, darkTargets, canCapture, allied, crystalTargets, canResumeTurn,
   STATE_FORMAT,
-} from "./engine.js?v=0.89";
-import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.89";
-import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.89";
-import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.89";
-import { distance } from "./hex.js?v=0.89";
+} from "./engine.js?v=0.90";
+import { chooseAction, playout, DEFAULT_PERSONALITY } from "./ai.js?v=0.90";
+import { EVOLVED_PERSONALITIES } from "./ai-personalities.js?v=0.90";
+import { MULTI_SIDE_PERSONALITIES } from "./ai-personalities-multi.js?v=0.90";
+import { distance } from "./hex.js?v=0.90";
 import {
   renderBoard, boardBounds, loadTiles, preloadArt, unitImage, facingAngle, PLAYER_COLOURS,
   upgradeImage, factoryImage, tokenSize, hexCentre, DAMAGE_BADGE, UNIT_LABEL_DY, unitLabel,
-} from "./board.js?v=0.89";
-import { confirmDialog } from "./dialog.js?v=0.89";
-import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.89";
-import { playCaptureScene } from "./capture-scene.js?v=0.89";
-import { showTip, showNote } from "./tips.js?v=0.89";
+} from "./board.js?v=0.90";
+import { confirmDialog } from "./dialog.js?v=0.90";
+import { playSound, unlockSound, soundOn, setSoundOn } from "./sound.js?v=0.90";
+import { playCaptureScene } from "./capture-scene.js?v=0.90";
+import { showTip, showNote, showLesson, markTipsSeen } from "./tips.js?v=0.90";
+import { combatReports, attackSum, ADD_UP_NOTE } from "./combat-report.js?v=0.90";
 import {
-  MISSIONS, missionRules, missionMap, markMissionDone, UNIT_ROLES, UPGRADE_ROLES,
-} from "./campaign.js?v=0.89";
-import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.89";
+  MISSIONS, missionRules, missionMap, markMissionDone, stepsDone, UNIT_ROLES, UPGRADE_ROLES,
+} from "./campaign.js?v=0.90";
+import { levelById, levelSetup, missionSetup } from "./difficulty.js?v=0.90";
 import {
   campaignById, teamMissionOf, missionTick, missionSteps, factionOf, markTeamMissionDone,
-} from "./team-campaigns.js?v=0.89";
-import { joinGame as joinRemote } from "./net.js?v=0.89";
+} from "./team-campaigns.js?v=0.90";
+import { joinGame as joinRemote } from "./net.js?v=0.90";
 
 // In single-player games and the campaign you are player 0 and the AI player 1.
 const HUMAN = 0;
@@ -53,7 +54,7 @@ const EXTRAS_KEY = "mech-attack.game-extras";
 const RECENT_LIMIT = 8;
 // Generated maps are numbered from 1 up to this when picked at random.
 const NEW_MAP_RANGE = 99999;
-const ASSET_VERSION = "0.89";
+const ASSET_VERSION = "0.90";
 // Pause between AI actions you can see, and how long an explosion stays on screen.
 const AI_STEP_MS = 450;
 // A move is shown by gliding the unit along its route at this many milliseconds a hex, so
@@ -276,7 +277,8 @@ function personalityFor(seed) {
 function opponentPersonality(s) {
   const m = missionOf(s);
   const level = levelById(s.level);
-  const kind = m ? level.campaign.ai || m.ai : level.ai;
+  // The training missions play the same at every rank.
+  const kind = m ? (!m.training && level.campaign.ai) || m.ai : level.ai;
   let personality = DEFAULT_PERSONALITY;
   if (kind === "best" && EVOLVED_PERSONALITIES.length) {
     personality = { ...DEFAULT_PERSONALITY, ...EVOLVED_PERSONALITIES[0].personality };
@@ -412,7 +414,7 @@ export async function openGame({
       // The rank you play at adjusts the mission (see missionSetup in difficulty.js).
       const chosen = levelById(level);
       const game = newGame({ rules, map, seed, firstPlayer: HUMAN,
-        setup: missionSetup(chosen, m.setup) });
+        setup: m.training ? m.setup : missionSetup(chosen, m.setup) });
       state = { ...game, campaign: { mission }, level: chosen.id };
       briefing = true;
     } else {
@@ -621,8 +623,9 @@ function showBriefing(m, index) {
   const level = levelById(state.level);
   return confirmDialog({
     title: `Mission ${index + 1}: ${m.title}`,
-    text: `${m.story}\n\nObjective: ${m.objective}\n\nYour rank: ${level.rank}. ` +
-      level.campaign.note,
+    text: `${m.story}\n\nObjective: ${m.objective}\n\n` + (m.training
+      ? "A training mission: it plays the same at every rank."
+      : `Your rank: ${level.rank}. ${level.campaign.note}`),
     confirm: "Start",
     cancel: "Back",
     extra: unlockCards(heading, m.newUnits, m.newUpgrades),
@@ -720,6 +723,8 @@ function checkObjective() {
   }
   const m = missionOf(state);
   if (!m || state.result) return;
+  // A step once done stays ticked, even if (like crystals in the store) it is undone later.
+  if (m.steps) state = { ...state, campaign: { ...state.campaign, ticked: stepsDone(m, state) } };
   // Done is checked first: the VIP who reaches the far factory goes into it and leaves the
   // board, which must count as arriving, not falling.
   if (m.done && m.done(state)) {
@@ -747,8 +752,9 @@ function showObjective() {
   }
   const m = missionOf(state);
   if (!m) return;
-  const steps = m.steps ? `\n\n${m.steps.map((step) =>
-    `${step.done(state) ? "\u2714" : "\u2022"} ${step.text}`).join("\n")}` : "";
+  const ticked = stepsDone(m, state);
+  const steps = m.steps ? `\n\n${m.steps.map((step, i) =>
+    `${ticked[i] ? "\u2714" : "\u2022"} ${step.text}`).join("\n")}` : "";
   confirmDialog({
     title: `Mission ${state.campaign.mission + 1}: ${m.title}`,
     text: `Objective: ${m.objective}${steps}\n\n${m.story}`,
@@ -1035,6 +1041,7 @@ async function runAiTurn() {
       seen = showEvents(state.events, before, after);
       await showMoves(state.events, before, after);
       if (seen) render();
+      await reportsShown;
     } catch (error) {
       console.error(error);
     }
@@ -1254,6 +1261,15 @@ function showEvents(events, before, after) {
   const moveClips = new Set();
   let builtMs = 0;
   let any = false;
+  // What each shot did, in words (combat-report.js): a line each in the log, and in the
+  // training missions a popup for each shot.
+  const reports = combatReports(events, {
+    name: (id) => unitName(before.units[id] ? before : after, id),
+    typeOf,
+    shown: (e) => seenAttack(e, before, after, seen),
+    rules: RULES,
+  });
+  for (const report of reports) lines.push(...report.lines);
   for (const e of events) {
     if (["fire", "returnFire", "overwatch", "splash", "lineHit"].includes(e.type)) {
       const from = (before.units[e.unitId] || after.units[e.unitId] || {}).at;
@@ -1268,29 +1284,9 @@ function showEvents(events, before, after) {
       if (e.type === "overwatch") tip("overwatch");
       if (from && seen(from)) effects.push({ at: from, size: 0.42 });
       if (to && seen(to)) effects.push({ at: to, size: 0.75 });
-
-      const verb = { fire: "fired on", returnFire: "returned fire on",
-        overwatch: "on overwatch fired on",
-        splash: "caught in the blast:", lineHit: "also hit by the sonic boom:" }[e.type];
-      lines.push(e.type === "splash" || e.type === "lineHit"
-        ? `${unitName(before, e.targetId)} ${verb} ${e.attack}.`
-        : `${unitName(before, e.unitId)} ${verb} ${unitName(before, e.targetId)} ` +
-          `(${e.attack}).`);
     } else if (e.type === "hit" && shooter && before.units[e.unitId] &&
       seen(before.units[e.unitId].at)) {
-      sums.push(attackSum(shooter, before.units[e.unitId].type, e));
-      if (e.livesAfter === 0) continue;
-      lines.push(e.livesAfter < e.livesBefore
-        ? `${unitName(before, e.unitId)} lost a life.`
-        : `${unitName(before, e.unitId)}: ${e.total} of ${e.defence} this turn, ` +
-          "more fire this turn adds to it.");
-    } else if (e.type === "hit" && e.livesAfter > 0) {
-      const unit = before.units[e.unitId];
-      if (!unit || !seen(unit.at)) continue;
-      lines.push(e.livesAfter < e.livesBefore
-        ? `${unitName(before, e.unitId)} lost a life.`
-        : `${unitName(before, e.unitId)}: ${e.total} of ${e.defence} this turn, ` +
-          "more fire this turn adds to it.");
+      sums.push(attackSum(shooter, before.units[e.unitId].type, e, RULES));
     } else if (e.type === "boom") {
       // A sonic boom: a shock wave running along its whole line.
       if (e.path.length && (seen(e.from) || e.path.some(seen))) {
@@ -1472,31 +1468,28 @@ function showEvents(events, before, after) {
   if (moveMs) setTimeout(afterMoves, moveMs);
   else afterMoves();
   if (knockedOut.length) showBanner(`${namesOf(knockedOut)} out of the game`);
-  if (sums.length) showBanner(sums.join("\n"), ATTACK_BANNER_MS);
+  // In a training mission each shot gets a popup that stays until it is read; elsewhere the
+  // sum shows in a banner for a moment.
+  if (missionOf(state)?.reports && reports.length) {
+    for (const report of reports) {
+      reportsShown = showNote({ title: report.title, report: true,
+        text: `${report.paragraphs.join("\n\n")}\n\n${ADD_UP_NOTE}` }, RULES);
+    }
+  } else if (sums.length) {
+    showBanner(sums.join("\n"), ATTACK_BANNER_MS);
+  }
   ui.attackShown = sums.length > 0;
   return any;
 }
 
-// The sum behind a hit, for players learning how attacks work: attack against defence and
-// what it does. Attacks on one unit in a turn add up: reaching its defence costs it a life,
-// twice its defence destroys it.
-function attackSum(attackerType, targetType, hit) {
-  const { amount, total, defence, livesBefore, livesAfter } = hit;
-  const twice = RULES.combat.loseTwoLivesAt * defence;
-  const attack = total === amount ? `ATT ${amount}` : `ATT ${amount} (${total} this turn)`;
-  let result;
-  if (livesAfter === 0) {
-    result = total >= twice ? `DESTROYED (${total} ≥ 2 × ${defence})`
-      : `DESTROYED (${total} ≥ ${defence}, already damaged)`;
-  } else if (livesAfter < livesBefore) {
-    result = `1 HIT (${total} ≥ ${defence}): now damaged`;
-  } else if (total >= defence) {
-    result = `no more damage: ${twice - total} more this turn destroys it`;
-  } else {
-    result = `NO HIT (${total} < ${defence}): ${defence - total} more this turn`;
-  }
-  return `${RULES.units[attackerType].name} ${attack} vs ${RULES.units[targetType].name} ` +
-    `DEF ${defence} → ${result}`;
+// Closes when the last combat report popup has been read: Green's turn waits for it.
+let reportsShown = Promise.resolve();
+
+// Whether you saw an attack: where it was fired from or where it landed.
+function seenAttack(e, before, after, seen) {
+  const from = (before.units[e.unitId] || after.units[e.unitId] || {}).at;
+  const to = e.at || (before.units[e.targetId] || after.units[e.targetId] || {}).at;
+  return Boolean(seen(from) || seen(to));
 }
 
 // Once every one of your units has done all it can this turn, End turn flashes (once a turn).
@@ -1714,6 +1707,7 @@ function tip(id) {
 // The tips for what is selected and shown now, plus any waiting; called after each render.
 function offerTips(view) {
   if (!myTurn() || ui.briefing) return;
+  offerLessons(view);
   const unit = view.units[ui.selectedId];
   if (unit) {
     const stats = unitStats(view, unit);
@@ -1737,6 +1731,25 @@ function offerTips(view) {
   const ids = pendingTips;
   pendingTips = [];
   for (const id of ids) showTip(id, RULES);
+}
+
+// A training mission's lessons: each shows once, the first time it is needed, in the order
+// the mission lists them. The tips a lesson stands in for are marked as seen.
+function offerLessons(view) {
+  const m = missionOf(state);
+  if (!m || !m.lessons) return;
+  const shown = state.campaign.lessons || [];
+  const c = { state, view, selected: view.units[ui.selectedId] || null, mode: ui.mode, me };
+  const due = m.lessons.map((lesson, i) => i)
+    .filter((i) => !shown.includes(i) && m.lessons[i].when(c));
+  if (!due.length) return;
+  state = { ...state, campaign: { ...state.campaign, lessons: [...shown, ...due] } };
+  save();
+  for (const i of due) {
+    const lesson = m.lessons[i];
+    markTipsSeen(lesson.covers || []);
+    showLesson({ title: lesson.title, text: lesson.text }, RULES);
+  }
 }
 
 // Tips for mountains and rough ground, the first time you see them.

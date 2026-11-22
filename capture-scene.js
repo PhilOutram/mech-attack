@@ -3,7 +3,7 @@
 // the door falls inwards with a clang, light floods out and his silhouette stands in the
 // doorway. A placeholder built from simple shapes until Phil draws the layers. The torch and
 // the clang are recorded clips (CREDITS.md); the door's groan is made in code. A tap skips it.
-import { audioContext, scheduleSound } from "./sound.js?v=0.89";
+import { audioContext, scheduleSound } from "./sound.js?v=0.90";
 
 // Timeline, in ms from the start.
 const FADE_MS = 250;

@@ -7,7 +7,7 @@ import {
   ringOfMountains, freeHexNear, humansHold, homesHeld, homeHeld, ownerAt, isOut,
   lostCount, hasUnit, roundStarted, betray, reinforce, giftEach, takeFactory, teamHolds,
   warning, arrive,
-} from "./team-scenario.js?v=0.89";
+} from "./team-scenario.js?v=0.90";
 
 // Targets and counts, kept next to the text that names them.
 const CONVOY_CRYSTALS = 15;

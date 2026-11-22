@@ -9,6 +9,7 @@ One page to check at any time: problems not yet solved, decisions waiting for Ph
 - **Games are longer** with v0.88: mean 25 rounds on fixed map 1 (was 17), with a long tail (90th percentile 44, one game in 200 hit the round limit).
 - **The Infantry rush is the strongest strategy.** Evolved AIs build Infantry for about half their units and win about 80% of games against the hand-tuned AI. It survived Infantry moving 2: re-evolved for v0.88's figures, the best two-player AIs still build Infantry for 43-49% of their units and win 78-82%.
 - **The AI personalities were evolved for the old move and sight.** Re-evolved on 21 November 2026 for v0.88's figures, but before moves stopped when an enemy comes into view (v0.89); worth evolving again once that rule is settled.
+- **The game screen's header is crowded on a phone** (seen 22 November 2026 at 375 px wide): the crystal count sits over "Your turn" under the round number.
 
 ## Decisions waiting for Phil
 
@@ -26,6 +27,7 @@ One page to check at any time: problems not yet solved, decisions waiting for Ph
 - **Map variety in the team campaigns:** every mission has its own generated layout, but only two outlines: the 24-block 4-5-6-5-4 for 3 or 4 sides and the 37-block hexagon for 5 or 6. All ten 4-player missions are on the hexagon.
 - **Team missions after v0.89:** in the AI trials The Long Night and Breach went from about half won to 5 of 5, and The Overseer's Code from 4 of 4 won to stalling every game (`docs/campaigns.md`). Play these first; ease or tighten them if people find the same.
 - **Team campaign difficulty:** every mission needs playing by people. The AI trials cannot judge missions that need a plan (strikes in the same round, waiting by an ally's factory, leaving a camp standing).
+- **Training missions** (v0.90, provisional): the four new first missions (First Shots, Build an Army, Supply Lines, Dug In), their lessons and the combat report need playing by someone new to the game. Blue moves first in First Shots and Green's guards come to you, rather than Green firing first as planned: in AI trials a Blue Scout Bike is flipped by return fire in round 2 and then destroyed by the second guard, so the flip and the loss are both seen. Missions 1 to 4 play the same at every rank. Should the combat report popup stay on in later missions, or be a setting?
 
 ## Backlog: agreed, not started
 

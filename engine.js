@@ -15,7 +15,7 @@
 //   crystals they have seen before.
 import {
   neighbourKeys, distance, lineOfSight, cheapestPaths, pathTo, ray,
-} from "./hex.js?v=0.89";
+} from "./hex.js?v=0.90";
 
 // Factories, infantry and transporters (format 7):
 // - Every factory is a unit. Each player owns a home factory (players[p].factoryId, null for
@@ -1401,13 +1401,15 @@ export function livesAfterHit(state, target, amount) {
   return { total, defence, lives };
 }
 
+// The hit event also says how the defence is made up (the unit's own and the ground's bonus)
+// and the lives the unit had when this turn's attacks on it began, for the combat report.
 function hit(state, target, amount) {
   const { total, defence, lives } = livesAfterHit(state, target, amount);
-  state.hits[target.id] = {
-    ...state.hits[target.id],
-    total, livesAtStart: (state.hits[target.id] || { livesAtStart: target.lives }).livesAtStart,
-  };
-  state.events.push({ type: "hit", unitId: target.id, amount, total, defence,
+  const livesAtStart = (state.hits[target.id] || { livesAtStart: target.lives }).livesAtStart;
+  state.hits[target.id] = { ...state.hits[target.id], total, livesAtStart };
+  const base = unitStats(state, target).defence;
+  state.events.push({ type: "hit", unitId: target.id, amount, total, defence, base,
+    cover: defence - base, terrain: terrainOf(state, target.at) || "plain", livesAtStart,
     livesBefore: target.lives, livesAfter: lives });
   target.lives = lives;
   if (lives === 0) {
